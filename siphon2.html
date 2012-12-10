@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Siphon2: IDE in HTML, LESS, and CoffeeScript on iPad</title>
+    <!-- <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap.min.css" rel="stylesheet"> -->
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <link rel="stylesheet" href="lib/codemirror.css">
+    <script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+    <!-- <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script> -->
+    <script src="js/bootstrap.min.js"></script>
+    <script src="lib/codemirror.js"></script>
+    <script src="mode/xml/xml.js"></script>
+    <script src="mode/css/css.js"></script>
+    <script src="mode/less/less.js"></script>
+    <script src="mode/javascript/javascript.js"></script>
+    <script src="mode/coffeescript/coffeescript.js"></script>
+    <script src="http://cloud.github.com/downloads/cloudhead/less.js/less-1.3.1.min.js"></script>
+    <script src="http://coffeescript.org/extras/coffee-script.js"></script>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+              Keywords
+              <span class="caret"></span>
+            </a>
+            <table id="keywords" class="table dropdown-menu"></table>            
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+              Operators
+              <span class="caret"></span>
+            </a>
+            <table id="operators" class="table dropdown-menu"></table>            
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+              Variables
+              <span class="caret"></span>
+            </a>
+            <table id="variables" class="table dropdown-menu"></table>            
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+              Functions
+              <span class="caret"></span>
+            </a>
+            <table id="functions" class="table dropdown-menu"></table>            
+        </div>
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+              Classes
+              <span class="caret"></span>
+            </a>
+            <table id="classes" class="table dropdown-menu"></table>            
+        </div>
+        <div class="btn-group">
+            <button id="previous-button" class="btn">Previous</button>
+            <button id="next-button" class="btn">Next</button>
+        </div>
+        <button id="cancel-button" class="btn">Cancel</button>
+    </div>
+    <div id="codemirror"></div>
+    <script src="siphon2.js"></script>
+</body>
+</html>
