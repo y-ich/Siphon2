@@ -139,15 +139,23 @@ class AutoComplete
             @end = @cm.getCursor()
             @cm.setSelection @start, @end
 
-newCodeMirror = (tabAnchor, mode, active) ->        
-    result = CodeMirror $('#editor-pane')[0],
-        mode: mode
+newCodeMirror = (tabAnchor, options, active) ->
+    defaultOptions =
         lineNumbers: true
+        # CodeMirror 2
+        onChange: (cm, change)->
+            unless cm.siphon.autoComplete?
+                cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
+                cm.siphon.autoComplete.complete cm
+        # end of CodeMirror 2
         onKeyEvent: (cm, event) ->
             switch event.type
                 when 'keydown'
                     cm.siphon.autoComplete = null # reset
         theme: 'blackboard'
+    options ?= {}
+    options[key] ?= value for key, value of defaultOptions
+    result = CodeMirror $('#editor-pane')[0], options
     $wrapper = $(result.getWrapperElement())
     $wrapper.attr 'id', "cm#{newCodeMirror.number}"
     $wrapper.addClass 'tab-pane'
@@ -155,16 +163,18 @@ newCodeMirror = (tabAnchor, mode, active) ->
     newCodeMirror.number += 1
     result.siphon = {}
     $(tabAnchor).data 'editor', result
+    ### CodeMirror 3
     CodeMirror.on result, 'change', (cm, change)->
         if change.origin is 'input'
             cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
             cm.siphon.autoComplete.complete cm
+    ###
     result
 
 newCodeMirror.number = 0
 
 
-newCodeMirror $('#file-tabs > li.active > a')[0], 'coffeescript', true
+newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
 for e in $('#previous-button, #next-button, .btn-toolbar')
     new NoClickDelay e, false
@@ -173,12 +183,12 @@ $('#previous-button, #next-button').on 'mousedown', (event) ->
     event.preventDefault()
 
 $('#previous-button').on 'click', ->
-    cm = $('#file-tabs > li.active').data('editor')
+    cm = $('#file-tabs > li.active > a').data('editor')
     cm.siphon.autoComplete?.previous()
     cm.focus()
         
 $('#next-button').on 'click', ->
-    cm = $('#file-tabs > li.active').data('editor')
+    cm = $('#file-tabs > li.active > a').data('editor')
     cm.siphon.autoComplete?.next()
     cm.focus()
         
@@ -189,13 +199,14 @@ $('a.new-tab-type').on 'click', ->
     $tab = $("<li class=\"active\"><a href=\"##{id}\" data-toggle=\"tab\">untitled</a></li>")
     $('#file-tabs > li.dropdown').before $tab
     newCodeMirror $tab.children('a')[0], switch $(this).text()
-        when 'HTMl' then 'text/html'
-        when 'CSS' then 'css'
-        when 'LESS' then 'less'
-        when 'JavaScript' then 'javascript'
-        when 'CofeeScript' then 'coffeescript'
-        else null
-    
+            when 'HTMl' then mode: 'text/html'
+            when 'CSS' then { extraKeys: null, mode: 'css' }
+            when 'LESS' then { extraKyes: null, mode: 'less' }
+            when 'JavaScript' then { extraKeys: null, mode: 'javascript' }
+            when 'CofeeScript' then { extraKeys: null, mode: 'coffeescript' }
+            else null
+        , true
+
 $('#file').on 'click', -> $('#file-picker').click()
 $('#file-picker').on 'change', (event) ->
     fileName = this.value.replace /^.*\\/, ''
@@ -205,13 +216,15 @@ $('#file-picker').on 'change', (event) ->
         cm = $active.data 'editor'
         if cm.getValue() is '' and $active.text() is 'untitled'
             $active.text fileName
-            cm.setOption 'mode', switch fileName.replace /^.*\./, ''
+            extension = fileName.replace /^.*\./, ''
+            cm.setOption 'mode', switch extension
                 when 'html' then 'text/html'
                 when 'css' then 'css'
                 when 'js' then 'javascript'
                 when 'coffee' then 'coffeescript'
                 when 'less' then 'less'
                 else null
+            cm.setOption 'extraKeys', null unless extension is 'html'
             cm.setValue reader.result
     reader.readAsText event.target.files[0]
 

@@ -417,11 +417,16 @@
 
   })();
 
-  newCodeMirror = function(tabAnchor, mode, active) {
-    var $wrapper, result;
-    result = CodeMirror($('#editor-pane')[0], {
-      mode: mode,
+  newCodeMirror = function(tabAnchor, options, active) {
+    var $wrapper, defaultOptions, key, result, value, _ref1;
+    defaultOptions = {
       lineNumbers: true,
+      onChange: function(cm, change) {
+        if (cm.siphon.autoComplete == null) {
+          cm.siphon.autoComplete = new AutoComplete(cm, change.text[change.text.length - 1]);
+          return cm.siphon.autoComplete.complete(cm);
+        }
+      },
       onKeyEvent: function(cm, event) {
         switch (event.type) {
           case 'keydown':
@@ -429,7 +434,17 @@
         }
       },
       theme: 'blackboard'
-    });
+    };
+    if (options == null) {
+      options = {};
+    }
+    for (key in defaultOptions) {
+      value = defaultOptions[key];
+      if ((_ref1 = options[key]) == null) {
+        options[key] = value;
+      }
+    }
+    result = CodeMirror($('#editor-pane')[0], options);
     $wrapper = $(result.getWrapperElement());
     $wrapper.attr('id', "cm" + newCodeMirror.number);
     $wrapper.addClass('tab-pane');
@@ -439,18 +454,22 @@
     newCodeMirror.number += 1;
     result.siphon = {};
     $(tabAnchor).data('editor', result);
-    CodeMirror.on(result, 'change', function(cm, change) {
-      if (change.origin === 'input') {
-        cm.siphon.autoComplete = new AutoComplete(cm, change.text[change.text.length - 1]);
-        return cm.siphon.autoComplete.complete(cm);
-      }
-    });
+    /* CodeMirror 3
+    CodeMirror.on result, 'change', (cm, change)->
+        if change.origin is 'input'
+            cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
+            cm.siphon.autoComplete.complete cm
+    */
+
     return result;
   };
 
   newCodeMirror.number = 0;
 
-  newCodeMirror($('#file-tabs > li.active > a')[0], 'coffeescript', true);
+  newCodeMirror($('#file-tabs > li.active > a')[0], {
+    extraKeys: null,
+    mode: 'coffeescript'
+  }, true);
 
   _ref1 = $('#previous-button, #next-button, .btn-toolbar');
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
@@ -464,7 +483,7 @@
 
   $('#previous-button').on('click', function() {
     var cm, _ref2;
-    cm = $('#file-tabs > li.active').data('editor');
+    cm = $('#file-tabs > li.active > a').data('editor');
     if ((_ref2 = cm.siphon.autoComplete) != null) {
       _ref2.previous();
     }
@@ -473,7 +492,7 @@
 
   $('#next-button').on('click', function() {
     var cm, _ref2;
-    cm = $('#file-tabs > li.active').data('editor');
+    cm = $('#file-tabs > li.active > a').data('editor');
     if ((_ref2 = cm.siphon.autoComplete) != null) {
       _ref2.next();
     }
@@ -501,19 +520,33 @@
     return newCodeMirror($tab.children('a')[0], (function() {
       switch ($(this).text()) {
         case 'HTMl':
-          return 'text/html';
+          return {
+            mode: 'text/html'
+          };
         case 'CSS':
-          return 'css';
+          return {
+            extraKeys: null,
+            mode: 'css'
+          };
         case 'LESS':
-          return 'less';
+          return {
+            extraKyes: null,
+            mode: 'less'
+          };
         case 'JavaScript':
-          return 'javascript';
+          return {
+            extraKeys: null,
+            mode: 'javascript'
+          };
         case 'CofeeScript':
-          return 'coffeescript';
+          return {
+            extraKeys: null,
+            mode: 'coffeescript'
+          };
         default:
           return null;
       }
-    }).call(this));
+    }).call(this), true);
   });
 
   $('#file').on('click', function() {
@@ -525,13 +558,14 @@
     fileName = this.value.replace(/^.*\\/, '');
     reader = new FileReader();
     reader.onload = function() {
-      var $active, cm;
+      var $active, cm, extension;
       $active = $('#file-tabs > li.active > a');
       cm = $active.data('editor');
       if (cm.getValue() === '' && $active.text() === 'untitled') {
         $active.text(fileName);
+        extension = fileName.replace(/^.*\./, '');
         cm.setOption('mode', (function() {
-          switch (fileName.replace(/^.*\./, '')) {
+          switch (extension) {
             case 'html':
               return 'text/html';
             case 'css':
@@ -546,6 +580,9 @@
               return null;
           }
         })());
+        if (extension !== 'html') {
+          cm.setOption('extraKeys', null);
+        }
         return cm.setValue(reader.result);
       }
     };
