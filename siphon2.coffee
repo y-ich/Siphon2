@@ -189,7 +189,7 @@ $('a.new-tab-type').on 'click', ->
     $tab = $("<li class=\"active\"><a href=\"##{id}\" data-toggle=\"tab\">untitled</a></li>")
     $('#file-tabs > li.dropdown').before $tab
     newCodeMirror $tab.children('a')[0], switch $(this).text()
-        when 'HTMl' then 'xml'
+        when 'HTMl' then 'text/html'
         when 'CSS' then 'css'
         when 'LESS' then 'less'
         when 'JavaScript' then 'javascript'
@@ -206,7 +206,7 @@ $('#file-picker').on 'change', (event) ->
         if cm.getValue() is '' and $active.text() is 'untitled'
             $active.text fileName
             cm.setOption 'mode', switch fileName.replace /^.*\./, ''
-                when 'html' then 'xml'
+                when 'html' then 'text/html'
                 when 'css' then 'css'
                 when 'js' then 'javascript'
                 when 'coffee' then 'coffeescript'

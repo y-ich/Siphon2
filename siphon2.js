@@ -501,7 +501,7 @@
     return newCodeMirror($tab.children('a')[0], (function() {
       switch ($(this).text()) {
         case 'HTMl':
-          return 'xml';
+          return 'text/html';
         case 'CSS':
           return 'css';
         case 'LESS':
@@ -533,7 +533,7 @@
         cm.setOption('mode', (function() {
           switch (fileName.replace(/^.*\./, '')) {
             case 'html':
-              return 'xml';
+              return 'text/html';
             case 'css':
               return 'css';
             case 'js':
