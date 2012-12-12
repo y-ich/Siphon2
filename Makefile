@@ -1,5 +1,5 @@
 TARGET = siphon2
-CODE_MIRROR = ~/OpenSources/CodeMirror
+CODE_MIRROR = ~/Downloads/codemirror-2.36
 $(TARGET).min.js: $(TARGET).js
 	uglifyjs $< > $@
 
