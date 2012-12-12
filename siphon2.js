@@ -480,7 +480,7 @@
     return cm.focus();
   });
 
-  $('#new-text > ul.dropdown-menu a').on('click', function() {
+  $('a.new-tab-type').on('click', function() {
     var $tab, id, num;
     $('#file-tabs > li.active, #editor-pane > *').removeClass('active');
     num = ((function() {
@@ -497,7 +497,7 @@
     });
     id = "cm" + (num + 1);
     $tab = $("<li class=\"active\"><a href=\"#" + id + "\" data-toggle=\"tab\">untitled</a></li>");
-    $('#file-tabs').append($tab);
+    $('#file-tabs > li.dropdown').before($tab);
     return newCodeMirror($tab.children('a')[0], (function() {
       switch ($(this).text()) {
         case 'HTMl':

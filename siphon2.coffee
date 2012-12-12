@@ -181,12 +181,12 @@ $('#next-button').on 'click', ->
     cm.siphon.autoComplete?.next()
     cm.focus()
         
-$('#new-text > ul.dropdown-menu a').on 'click', ->
+$('a.new-tab-type').on 'click', ->
     $('#file-tabs > li.active, #editor-pane > *').removeClass 'active'
     num = (parseInt e.id.replace /^cm/, '' for e in $('#editor-pane > *')).reduce (a, b) -> Math.max a, b
     id = "cm#{num + 1}"
     $tab = $("<li class=\"active\"><a href=\"##{id}\" data-toggle=\"tab\">untitled</a></li>")
-    $('#file-tabs').append $tab
+    $('#file-tabs > li.dropdown').before $tab
     newCodeMirror $tab.children('a')[0], switch $(this).text()
         when 'HTMl' then 'xml'
         when 'CSS' then 'css'

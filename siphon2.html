@@ -23,16 +23,6 @@
 </head>
 <body>
     <div class="btn-toolbar">
-        <div id="new-text" class="btn-group">
-            <button class="btn dropdown-toggle" data-toggle="dropdown"><i class="icon-plus"></i></button>
-            <ul class="dropdown-menu">
-                <li><a href="#">HTML</a></li>
-                <li><a href="#">CSS</a></li>
-                <li><a href="#">LESS</a></li>
-                <li><a href="#">JavaScript</a></li>
-                <li><a href="#">CoffeeScript</a></li>
-            </ul>
-        </div>
         <button id="file" class="btn"><i class="icon-file"></i></button>
         <input type="file" id="file-picker" style="display: none;"></input>
         <div class="btn-group">
@@ -45,7 +35,20 @@
         <button type="button" id="play" class="btn"><i class="icon-play"></i></button>
     </div>
     <ul id="file-tabs" class="nav nav-tabs">
-      <li class="active"><a href="#cm0" data-toggle="tab">untitled</a></li>
+        <li class="active"><a href="#cm0" data-toggle="tab">untitled</a></li>
+        <li class="dropdown">
+            <a class="dropdown-toggle" data-toggle="dropdown">
+                <i class="icon-plus"></i>
+                <b class="caret"></b>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a class="new-tab-type" href="#">HTML</a></li>
+                <li><a class="new-tab-type" href="#">CSS</a></li>
+                <li><a class="new-tab-type" href="#">LESS</a></li>
+                <li><a class="new-tab-type" href="#">JavaScript</a></li>
+                <li><a class="new-tab-type" href="#">CoffeeScript</a></li>
+            </ul>
+        </li>
     </ul>
     <div id="editor-pane" class="tab-content"></div>
     <div class="navbar navbar-fixed-bottom">
