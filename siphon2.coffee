@@ -142,12 +142,16 @@ class AutoComplete
 newCodeMirror = (tabAnchor, options, active) ->
     defaultOptions =
         lineNumbers: true
+        onBlur: ->
+            $('.navbar-fixed-bottom').css 'bottom', ''           
         # CodeMirror 2
         onChange: (cm, change)->
             unless cm.siphon.autoComplete?
                 cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
                 cm.siphon.autoComplete.complete cm
         # end of CodeMirror 2
+        onFocus: ->
+            $('.navbar-fixed-bottom').css 'bottom', keyboardHeight + 'px'
         onKeyEvent: (cm, event) ->
             switch event.type
                 when 'keydown'
@@ -199,6 +203,8 @@ uploadFile = ->
 #
 # main
 #
+
+keyboardHeight = 307
 
 $('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
 
