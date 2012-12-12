@@ -57,7 +57,9 @@
           }
         });
       };
-      initialRequest = gapi.client.drive.files.list();
+      initialRequest = gapi.client.drive.files.list({
+        q: q
+      });
       return retrievePageOfFiles(initialRequest, []);
     };
 
@@ -466,6 +468,10 @@
 
   newCodeMirror.number = 0;
 
+  if (/iPhone|iPad/.test(navigator.userAgent)) {
+    $('#file').css('display', 'none');
+  }
+
   newCodeMirror($('#file-tabs > li.active > a')[0], {
     extraKeys: null,
     mode: 'coffeescript'
@@ -612,19 +618,18 @@
   });
 
   getList = function() {
-    googleDrive.getList(['.html', '.css', '.js', '.less', '.coffee'].map(function(e) {
+    googleDrive.File.getList(['.html', '.css', '.js', '.less', '.coffee'].map(function(e) {
       return "title contains '" + e + "'";
     }).join(' or '), function(list) {
-      var $a, _k, _len2, _results;
+      var $a, _k, _len2;
       $('#download~ul > *').remove();
-      _results = [];
       for (_k = 0, _len2 = list.length; _k < _len2; _k++) {
         e = list[_k];
         $a = $("<a href=\"" + e.downloadUrl + "\">" + e.title + "</a>");
         $a.data('resource', e);
-        _results.push($('#download~ul').append($("<li></li>").append($a)));
+        $('#download~ul').append($("<li></li>").append($a));
       }
-      return _results;
+      return spinner.stop();
     });
     return spinner.spin(document.body);
   };

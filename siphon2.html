@@ -25,17 +25,20 @@
     <script src="http://coffeescript.org/extras/coffee-script.js"></script>
 </head>
 <body>
-    <div class="btn-toolbar">
-        <button id="file" class="btn"><i class="icon-file"></i></button>
-        <input type="file" id="file-picker" style="display: none;"></input>
-        <div class="btn-group">
-            <button type="button" id="download" class="btn dropdown-toggle" data-toggle="dropdown"><i class="icon-download"></i></button>
-            <ul class="dropdown-menu">
-            </ul>
+    <div class="navbar">
+        <div class="navbar-inner">
+            <a href="#" class="brand">Siphon2</a>
+            <button id="file" class="btn"><i class="icon-file"></i></button>
+            <input type="file" id="file-picker" style="display: none;"></input>
+            <div class="btn-group">
+                <button type="button" id="download" class="btn dropdown-toggle" data-toggle="dropdown"><i class="icon-download"></i></button>
+                <ul class="dropdown-menu">
+                </ul>
+            </div>
+            <button type="button" id="upload" class="btn"><i class="icon-upload"></i></button>
+            <button type="button" id="delete" class="btn"><i class="icon-trash"></i></button>
+            <button type="button" id="play" class="btn"><i class="icon-play"></i></button>
         </div>
-        <button type="button" id="upload" class="btn"><i class="icon-upload"></i></button>
-        <button type="button" id="delete" class="btn"><i class="icon-trash"></i></button>
-        <button type="button" id="play" class="btn"><i class="icon-play"></i></button>
     </div>
     <ul id="file-tabs" class="nav nav-tabs">
         <li class="active"><a href="#cm0" data-toggle="tab">untitled</a></li>
@@ -60,7 +63,7 @@
             <button id="next-button" class="btn">Next</button>
         </div>
     </div>
-    <script src="siphon2.js"></script>
+    <script src="siphon2.js?1"></script>
     <script src="https://apis.google.com/js/client.js?onload=handleClientLoad"></script>
 </body>
 </html>

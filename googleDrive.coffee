@@ -49,7 +49,7 @@ class googleDrive.File
                     retrievePageOfFiles request, result
                 else
                     callback result
-        initialRequest = gapi.client.drive.files.list()
+        initialRequest = gapi.client.drive.files.list q: q
         retrievePageOfFiles initialRequest, []
         
     constructor: (idOrResource) ->

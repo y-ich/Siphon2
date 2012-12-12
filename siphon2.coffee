@@ -174,6 +174,8 @@ newCodeMirror = (tabAnchor, options, active) ->
 newCodeMirror.number = 0
 
 
+$('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
+
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
 for e in $('#previous-button, #next-button, .btn-toolbar')
@@ -247,12 +249,13 @@ $('#delete').on 'click', ->
         cm.focus()
 
 getList = ->
-    googleDrive.getList ['.html', '.css', '.js', '.less', '.coffee'].map((e) -> "title contains '#{e}'").join(' or '), (list) ->
+    googleDrive.File.getList ['.html', '.css', '.js', '.less', '.coffee'].map((e) -> "title contains '#{e}'").join(' or '), (list) ->
         $('#download~ul > *').remove()
         for e in list
             $a = $("<a href=\"#{e.downloadUrl}\">#{e.title}</a>")
             $a.data 'resource', e
             $('#download~ul').append $("<li></li>").append $a
+        spinner.stop()
     spinner.spin document.body
     
 $('#download').on 'click', ->
