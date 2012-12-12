@@ -65,7 +65,7 @@ class googleDrive.File
         if @resource.downloadUrl?
             accessToken = gapi.auth.getToken().access_token
             xhr = new XMLHttpRequest()
-            xhr.open 'GET', file.downloadUrl
+            xhr.open 'GET', @resource.downloadUrl
             xhr.setRequestHeader 'Authorization', 'Bearer ' + accessToken
             xhr.onload = -> callback xhr.responseText
             xhr.onerror = -> callback null

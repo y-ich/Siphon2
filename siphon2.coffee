@@ -266,7 +266,8 @@ $('#download').on 'click', ->
 
 $('#download~ul').on 'click', 'a', (event) ->
     event.preventDefault()
-    file = new googleDrive.File $(this).data('resource').download (text) ->
+    file = new googleDrive.File $(this).data('resource')
+    file.download (text) ->
         spinner.stop()
         $('#file-tabs > li.active > a').data('editor').setValue text
         $('#file-tabs > li.active > a').data 'file', file

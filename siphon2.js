@@ -87,7 +87,7 @@
       if (this.resource.downloadUrl != null) {
         accessToken = gapi.auth.getToken().access_token;
         xhr = new XMLHttpRequest();
-        xhr.open('GET', file.downloadUrl);
+        xhr.open('GET', this.resource.downloadUrl);
         xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
         xhr.onload = function() {
           return callback(xhr.responseText);
@@ -645,11 +645,12 @@
   $('#download~ul').on('click', 'a', function(event) {
     var file;
     event.preventDefault();
-    file = new googleDrive.File($(this).data('resource').download(function(text) {
+    file = new googleDrive.File($(this).data('resource'));
+    file.download(function(text) {
       spinner.stop();
       $('#file-tabs > li.active > a').data('editor').setValue(text);
       return $('#file-tabs > li.active > a').data('file', file);
-    }));
+    });
     return spinner.spin(document.body);
   });
 
