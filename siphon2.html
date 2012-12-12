@@ -2,14 +2,16 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <title>Siphon2: IDE in HTML, LESS, and CoffeeScript on iPad</title>
     <!-- <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap.min.css" rel="stylesheet"> -->
     <link href="css/bootstrap.css" rel="stylesheet">
     <link rel="stylesheet" href="lib/codemirror.css">
+    <link rel="stylesheet" href="theme/blackboard.css">
+    <link rel="stylesheet" href="siphon2.css">
     <script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
-    <!-- <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script> -->
     <script src="js/bootstrap.min.js"></script>
+    <script src="js/noClickDelay.js"></script>
     <script src="lib/codemirror.js"></script>
     <script src="mode/xml/xml.js"></script>
     <script src="mode/css/css.js"></script>
@@ -20,49 +22,39 @@
     <script src="http://coffeescript.org/extras/coffee-script.js"></script>
 </head>
 <body>
-    <div class="toolbar">
-        <div class="btn-group">
-            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-              Keywords
-              <span class="caret"></span>
-            </a>
-            <table id="keywords" class="table dropdown-menu"></table>            
+    <div class="btn-toolbar">
+        <div id="new-text" class="btn-group">
+            <button class="btn dropdown-toggle" data-toggle="dropdown"><i class="icon-plus"></i></button>
+            <ul class="dropdown-menu">
+                <li><a href="#">HTML</a></li>
+                <li><a href="#">CSS</a></li>
+                <li><a href="#">LESS</a></li>
+                <li><a href="#">JavaScript</a></li>
+                <li><a href="#">CoffeeScript</a></li>
+            </ul>
         </div>
+        <button id="file" class="btn"><i class="icon-file"></i></button>
+        <input type="file" id="file-picker" style="display: none;"></input>
         <div class="btn-group">
-            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-              Operators
-              <span class="caret"></span>
-            </a>
-            <table id="operators" class="table dropdown-menu"></table>            
+            <button type="button" id="download" class="btn dropdown-toggle" data-toggle="dropdown"><i class="icon-download"></i></button>
+            <ul class="dropdown-menu">
+            </ul>
         </div>
-        <div class="btn-group">
-            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-              Variables
-              <span class="caret"></span>
-            </a>
-            <table id="variables" class="table dropdown-menu"></table>            
-        </div>
-        <div class="btn-group">
-            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-              Functions
-              <span class="caret"></span>
-            </a>
-            <table id="functions" class="table dropdown-menu"></table>            
-        </div>
-        <div class="btn-group">
-            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-              Classes
-              <span class="caret"></span>
-            </a>
-            <table id="classes" class="table dropdown-menu"></table>            
-        </div>
-        <div class="btn-group">
+        <button type="button" id="upload" class="btn"><i class="icon-upload"></i></button>
+        <button type="button" id="delete" class="btn"><i class="icon-trash"></i></button>
+        <button type="button" id="play" class="btn"><i class="icon-play"></i></button>
+    </div>
+    <ul id="file-tabs" class="nav nav-tabs">
+      <li class="active"><a href="#cm0" data-toggle="tab">untitled</a></li>
+    </ul>
+    <div id="editor-pane" class="tab-content"></div>
+    <div class="navbar navbar-fixed-bottom">
+        <div class="btn-group pull-right">
             <button id="previous-button" class="btn">Previous</button>
             <button id="next-button" class="btn">Next</button>
         </div>
-        <button id="cancel-button" class="btn">Cancel</button>
     </div>
-    <div id="codemirror"></div>
     <script src="siphon2.js"></script>
+    <script src="https://apis.google.com/js/client.js?onload=handleClientLoad"></script>
 </body>
 </html>

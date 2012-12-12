@@ -1,0 +1,14 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+#editor-pane {
+  height: 100%;
+  background-color: black;
+}
+.CodeMirror,
+.CodeMirror-scroll {
+  height: auto;
+  overflow: visible;
+}

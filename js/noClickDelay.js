@@ -1,5 +1,6 @@
-function NoClickDelay(el) {
+function NoClickDelay(el, focus) {
 	this.element = el;
+    this.focus = (typeof focus === 'undefined') ? true : focus;
 	if( window.Touch ) this.element.addEventListener('touchstart', this, false);
 }
 
@@ -18,7 +19,7 @@ NoClickDelay.prototype = {
 
 		var theTarget = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
 		if(theTarget.nodeType == 3) theTarget = theTarget.parentNode;
-        $(theTarget).focus();
+        if(this.focus) $(theTarget).focus();
 
 		this.element.addEventListener('touchmove', this, false);
 		this.element.addEventListener('touchend', this, false);
