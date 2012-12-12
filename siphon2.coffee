@@ -163,6 +163,7 @@ newCodeMirror = (tabAnchor, mode, active) ->
 
 newCodeMirror.number = 0
 
+
 newCodeMirror $('#file-tabs > li.active > a')[0], 'coffeescript', true
 
 for e in $('#previous-button, #next-button, .btn-toolbar')
@@ -216,7 +217,7 @@ $('#file-picker').on 'change', (event) ->
 
 $('#delete').on 'click', ->
     $active = $('#file-tabs > li.active > a')
-    if confirm "Do you really delete #{$active.text()}?"
+    if confirm "Do you really delete #{$active.text()} locally?"
         if $('#file-tabs > li').length > 1
             cm = $active.data 'editor'
             $active.data 'editor', null
@@ -231,23 +232,15 @@ $('#delete').on 'click', ->
             cm = $active.data('editor')
             cm.setValue ''
         cm.focus()
-            
-downloadFile = (file, callback) ->
-    accessToken = gapi.auth.getToken().access_token
-    xhr = new XMLHttpRequest()
-    xhr.open 'GET', file.downloadUrl
-    xhr.setRequestHeader 'Authorization', 'Bearer ' + accessToken
-    xhr.onload = -> callback xhr.responseText
-    xhr.onerror = -> callback(null)
-    xhr.send();
-
 
 getList = ->
     googleDrive.getList ['.html', '.css', '.js', '.less', '.coffee'].map((e) -> "title contains '#{e}'").join(' or '), (list) ->
+        $('#download~ul > *').remove()
         for e in list
             $a = $("<a href=\"#{e.downloadUrl}\">#{e.title}</a>")
             $a.data 'resource', e
             $('#download~ul').append $("<li></li>").append $a
+    spinner.spin document.body
     
 $('#download').on 'click', ->
     if not googleDrive.authorized
@@ -257,20 +250,29 @@ $('#download').on 'click', ->
 
 $('#download~ul').on 'click', 'a', (event) ->
     event.preventDefault()
-    file = new googleDrive.File $(this).data('resource').download (text) -> 
+    file = new googleDrive.File $(this).data('resource').download (text) ->
+        spinner.stop()
         $('#file-tabs > li.active > a').data('editor').setValue text
         $('#file-tabs > li.active > a').data 'file', file
-        
+    spinner.spin document.body
+
 uploadFile = ->
     $active = $('#file-tabs > li.active > a')
     file = $active.data('file')
     if file?
-        file.update null, $active.data('editor').getValue()
+        file.update null, $active.data('editor').getValue(), -> spinner.stop()
     else
-        googleDrive.File.insert $active.text(),  'text/plain', $active.data('editor').getValue()
+        title = $active.text()
+        if title is 'untitled'
+            title = prompt()
+            return unless title
+        googleDrive.File.insert title, 'text/plain', $active.data('editor').getValue(), -> spinner.stop()
+    spinner.spin document.body
 
 $('#upload').on 'click', ->
     if not googleDrive.authorized
         googleDrive.checkAuth uploadFile
     else
         uploadFile()
+
+spinner = new Spinner(color: '#fff')
