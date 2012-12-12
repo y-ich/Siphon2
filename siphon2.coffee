@@ -206,7 +206,7 @@ spinner = new Spinner(color: '#fff')
 
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
-for e in $('#previous-button, #next-button, .navbar')
+for e in $('#previous-button, #next-button') # removed .navbar for a work around for dropdown menu
     new NoClickDelay e, false
 
 $('#previous-button, #next-button').on 'mousedown', (event) ->
@@ -276,7 +276,8 @@ $('#delete').on 'click', ->
             cm.setValue ''
         cm.focus()
 
-$('#download').on 'click', ->
+# Including touchstart is work around that touchstart in bootstrap dropdown return false and that prevents default actions such as triggering click event.
+$('#download').on 'click touchstart', ->
     if not googleDrive.authorized
         googleDrive.checkAuth getList
     else

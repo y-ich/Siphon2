@@ -521,7 +521,7 @@
     mode: 'coffeescript'
   }, true);
 
-  _ref1 = $('#previous-button, #next-button, .navbar');
+  _ref1 = $('#previous-button, #next-button');
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
     e = _ref1[_j];
     new NoClickDelay(e, false);
@@ -661,7 +661,7 @@
     }
   });
 
-  $('#download').on('click', function() {
+  $('#download').on('click touchstart', function() {
     if (!googleDrive.authorized) {
       return googleDrive.checkAuth(getList);
     } else {
