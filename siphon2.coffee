@@ -173,12 +173,40 @@ newCodeMirror = (tabAnchor, options, active) ->
 
 newCodeMirror.number = 0
 
+getList = ->
+    googleDrive.File.getList ['.html', '.css', '.js', '.less', '.coffee'].map((e) -> "title contains '#{e}'").join(' or '), (list) ->
+        $('#download~ul > *').remove()
+        for e in list
+            $a = $("<a href=\"#{e.downloadUrl}\">#{e.title}</a>")
+            $a.data 'resource', e
+            $('#download~ul').append $("<li></li>").append $a
+        spinner.stop()
+    spinner.spin document.body    
+
+uploadFile = ->
+    $active = $('#file-tabs > li.active > a')
+    file = $active.data('file')
+    if file?
+        file.update null, $active.data('editor').getValue(), -> spinner.stop()
+    else
+        title = $active.text()
+        if title is 'untitled'
+            title = prompt()
+            return unless title
+        googleDrive.File.insert title, 'text/plain', $active.data('editor').getValue(), -> spinner.stop()
+    spinner.spin document.body
+
+#
+# main
+#
 
 $('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
 
+spinner = new Spinner(color: '#fff')
+
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
-for e in $('#previous-button, #next-button, .btn-toolbar')
+for e in $('#previous-button, #next-button, .navbar')
     new NoClickDelay e, false
 
 $('#previous-button, #next-button').on 'mousedown', (event) ->
@@ -232,8 +260,8 @@ $('#file-picker').on 'change', (event) ->
 
 $('#delete').on 'click', ->
     $active = $('#file-tabs > li.active > a')
-    if confirm "Do you really delete #{$active.text()} locally?"
-        if $('#file-tabs > li').length > 1
+    if confirm "Do you really delete \"#{$active.text()}\" locally?"
+        if $('#file-tabs > li:not(.dropdown)').length > 1
             cm = $active.data 'editor'
             $active.data 'editor', null
             $active.parent().remove()
@@ -248,16 +276,6 @@ $('#delete').on 'click', ->
             cm.setValue ''
         cm.focus()
 
-getList = ->
-    googleDrive.File.getList ['.html', '.css', '.js', '.less', '.coffee'].map((e) -> "title contains '#{e}'").join(' or '), (list) ->
-        $('#download~ul > *').remove()
-        for e in list
-            $a = $("<a href=\"#{e.downloadUrl}\">#{e.title}</a>")
-            $a.data 'resource', e
-            $('#download~ul').append $("<li></li>").append $a
-        spinner.stop()
-    spinner.spin document.body
-    
 $('#download').on 'click', ->
     if not googleDrive.authorized
         googleDrive.checkAuth getList
@@ -273,23 +291,8 @@ $('#download~ul').on 'click', 'a', (event) ->
         $('#file-tabs > li.active > a').data 'file', file
     spinner.spin document.body
 
-uploadFile = ->
-    $active = $('#file-tabs > li.active > a')
-    file = $active.data('file')
-    if file?
-        file.update null, $active.data('editor').getValue(), -> spinner.stop()
-    else
-        title = $active.text()
-        if title is 'untitled'
-            title = prompt()
-            return unless title
-        googleDrive.File.insert title, 'text/plain', $active.data('editor').getValue(), -> spinner.stop()
-    spinner.spin document.body
-
 $('#upload').on 'click', ->
     if not googleDrive.authorized
         googleDrive.checkAuth uploadFile
     else
         uploadFile()
-
-spinner = new Spinner(color: '#fff')

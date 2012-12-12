@@ -468,16 +468,60 @@
 
   newCodeMirror.number = 0;
 
+  getList = function() {
+    googleDrive.File.getList(['.html', '.css', '.js', '.less', '.coffee'].map(function(e) {
+      return "title contains '" + e + "'";
+    }).join(' or '), function(list) {
+      var $a, _j, _len1;
+      $('#download~ul > *').remove();
+      for (_j = 0, _len1 = list.length; _j < _len1; _j++) {
+        e = list[_j];
+        $a = $("<a href=\"" + e.downloadUrl + "\">" + e.title + "</a>");
+        $a.data('resource', e);
+        $('#download~ul').append($("<li></li>").append($a));
+      }
+      return spinner.stop();
+    });
+    return spinner.spin(document.body);
+  };
+
+  uploadFile = function() {
+    var $active, file, title;
+    $active = $('#file-tabs > li.active > a');
+    file = $active.data('file');
+    if (file != null) {
+      file.update(null, $active.data('editor').getValue(), function() {
+        return spinner.stop();
+      });
+    } else {
+      title = $active.text();
+      if (title === 'untitled') {
+        title = prompt();
+        if (!title) {
+          return;
+        }
+      }
+      googleDrive.File.insert(title, 'text/plain', $active.data('editor').getValue(), function() {
+        return spinner.stop();
+      });
+    }
+    return spinner.spin(document.body);
+  };
+
   if (/iPhone|iPad/.test(navigator.userAgent)) {
     $('#file').css('display', 'none');
   }
+
+  spinner = new Spinner({
+    color: '#fff'
+  });
 
   newCodeMirror($('#file-tabs > li.active > a')[0], {
     extraKeys: null,
     mode: 'coffeescript'
   }, true);
 
-  _ref1 = $('#previous-button, #next-button, .btn-toolbar');
+  _ref1 = $('#previous-button, #next-button, .navbar');
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
     e = _ref1[_j];
     new NoClickDelay(e, false);
@@ -598,8 +642,8 @@
   $('#delete').on('click', function() {
     var $active, $first, cm;
     $active = $('#file-tabs > li.active > a');
-    if (confirm("Do you really delete " + ($active.text()) + " locally?")) {
-      if ($('#file-tabs > li').length > 1) {
+    if (confirm("Do you really delete \"" + ($active.text()) + "\" locally?")) {
+      if ($('#file-tabs > li:not(.dropdown)').length > 1) {
         cm = $active.data('editor');
         $active.data('editor', null);
         $active.parent().remove();
@@ -616,23 +660,6 @@
       return cm.focus();
     }
   });
-
-  getList = function() {
-    googleDrive.File.getList(['.html', '.css', '.js', '.less', '.coffee'].map(function(e) {
-      return "title contains '" + e + "'";
-    }).join(' or '), function(list) {
-      var $a, _k, _len2;
-      $('#download~ul > *').remove();
-      for (_k = 0, _len2 = list.length; _k < _len2; _k++) {
-        e = list[_k];
-        $a = $("<a href=\"" + e.downloadUrl + "\">" + e.title + "</a>");
-        $a.data('resource', e);
-        $('#download~ul').append($("<li></li>").append($a));
-      }
-      return spinner.stop();
-    });
-    return spinner.spin(document.body);
-  };
 
   $('#download').on('click', function() {
     if (!googleDrive.authorized) {
@@ -654,39 +681,12 @@
     return spinner.spin(document.body);
   });
 
-  uploadFile = function() {
-    var $active, file, title;
-    $active = $('#file-tabs > li.active > a');
-    file = $active.data('file');
-    if (file != null) {
-      file.update(null, $active.data('editor').getValue(), function() {
-        return spinner.stop();
-      });
-    } else {
-      title = $active.text();
-      if (title === 'untitled') {
-        title = prompt();
-        if (!title) {
-          return;
-        }
-      }
-      googleDrive.File.insert(title, 'text/plain', $active.data('editor').getValue(), function() {
-        return spinner.stop();
-      });
-    }
-    return spinner.spin(document.body);
-  };
-
   $('#upload').on('click', function() {
     if (!googleDrive.authorized) {
       return googleDrive.checkAuth(uploadFile);
     } else {
       return uploadFile();
     }
-  });
-
-  spinner = new Spinner({
-    color: '#fff'
   });
 
 }).call(this);
