@@ -2,12 +2,9 @@
 # (C) 2012 New 3 Rs (ICHIKAWA, Yuji)
 ###
 
-touchDevice =
-    try
-        document.createEvent 'TouchEvent'
-        true
-    catch error
-        false
+#
+# function definitions
+#
 
 newCodeMirror = (tabAnchor, options, active) ->
     defaultOptions =
@@ -47,7 +44,6 @@ newCodeMirror = (tabAnchor, options, active) ->
             cm.siphon.autoComplete.complete cm
     ###
     result
-
 newCodeMirror.number = 0
 
 getList = ->     
@@ -106,10 +102,51 @@ evalCS = (str) ->
     catch error
         result = error.message
     result
+
+showError = (error) ->
+    console.error error if (window.console)
+    switch error.status
+        when 401
+            # If you're using dropbox.js, the only cause behind this error is that
+            # the user token expired.
+            # Get the user through the authentication flow again.
+            null
+        when 404
+            # The file or folder you tried to access is not in the user's Dropbox.
+            # Handling this error is specific to your application.
+            null            
+        when 507
+            # The user is over their Dropbox quota.
+            # Tell them their Dropbox is full. Refreshing the page won't help.
+            null
+        when 503
+            # Too many API requests. Tell the user to try again later.
+            # Long-term, optimize your code to use fewer API calls.
+            null
+        when 400
+            # Bad input parameter
+            null
+        when 403  
+            # Bad OAuth request.
+            null
+        when 405
+            # Request method not expected
+            null
+        else
+            # Caused by a bug in dropbox.js, in your application, or in Dropbox.
+            # Tell the user an error occurred, ask them to refresh the page.
+            null
     
 #
 # main
 #
+
+touchDevice =
+    try
+        document.createEvent 'TouchEvent'
+        true
+    catch error
+        false
 
 keyboardHeight = 307
 
@@ -134,7 +171,7 @@ for key, value of localStorage
                     $('#dropbox').button 'signout'
             break
     catch error
-        null
+        console.error error
 
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
@@ -237,39 +274,6 @@ $('#eval').on 'click', ->
         cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
     cm.replaceSelection evalCS(cm.getSelection()).toString()
 
-showError = (error) ->
-    console.error error if (window.console)
-    switch error.status
-        when 401
-            # If you're using dropbox.js, the only cause behind this error is that
-            # the user token expired.
-            # Get the user through the authentication flow again.
-            null
-        when 404
-            # The file or folder you tried to access is not in the user's Dropbox.
-            # Handling this error is specific to your application.
-            null            
-        when 507
-            # The user is over their Dropbox quota.
-            # Tell them their Dropbox is full. Refreshing the page won't help.
-            null
-        when 503
-            # Too many API requests. Tell the user to try again later.
-            # Long-term, optimize your code to use fewer API calls.
-            null
-        when 400
-            # Bad input parameter
-            null
-        when 403  
-            # Bad OAuth request.
-            null
-        when 405
-            # Request method not expected
-            null
-        else
-            # Caused by a bug in dropbox.js, in your application, or in Dropbox.
-            # Tell the user an error occurred, ask them to refresh the page.
-            null
 
 $('#dropbox').on 'click', ->
     $this = $(this)

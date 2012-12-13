@@ -200,15 +200,6 @@
   */
 
 
-  touchDevice = (function() {
-    try {
-      document.createEvent('TouchEvent');
-      return true;
-    } catch (error) {
-      return false;
-    }
-  })();
-
   newCodeMirror = function(tabAnchor, options, active) {
     var $wrapper, defaultOptions, key, result, value, _ref1;
     defaultOptions = {
@@ -355,6 +346,39 @@
     return result;
   };
 
+  showError = function(error) {
+    if (window.console) {
+      console.error(error);
+    }
+    switch (error.status) {
+      case 401:
+        return null;
+      case 404:
+        return null;
+      case 507:
+        return null;
+      case 503:
+        return null;
+      case 400:
+        return null;
+      case 403:
+        return null;
+      case 405:
+        return null;
+      default:
+        return null;
+    }
+  };
+
+  touchDevice = (function() {
+    try {
+      document.createEvent('TouchEvent');
+      return true;
+    } catch (error) {
+      return false;
+    }
+  })();
+
   keyboardHeight = 307;
 
   if (/iPhone|iPad/.test(navigator.userAgent)) {
@@ -392,7 +416,7 @@
         break;
       }
     } catch (error) {
-      null;
+      console.error(error);
     }
   }
 
@@ -588,30 +612,6 @@
     }
     return cm.replaceSelection(evalCS(cm.getSelection()).toString());
   });
-
-  showError = function(error) {
-    if (window.console) {
-      console.error(error);
-    }
-    switch (error.status) {
-      case 401:
-        return null;
-      case 404:
-        return null;
-      case 507:
-        return null;
-      case 503:
-        return null;
-      case 400:
-        return null;
-      case 403:
-        return null;
-      case 405:
-        return null;
-      default:
-        return null;
-    }
-  };
 
   $('#dropbox').on('click', function() {
     var $this;
