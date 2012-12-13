@@ -278,25 +278,31 @@
   newCodeMirror.number = 0;
 
   getList = function() {
-    var extension, _j, _len1, _ref1;
+    var deferred, deferreds, extension, _j, _len1, _ref1;
+    spinner.spin(document.body);
     $('#download~ul > *').remove();
+    deferreds = [];
     _ref1 = ['.html', '.css', '.js', '.less', '.coffee'];
     for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
       extension = _ref1[_j];
-      dropbox.findByName('', extension, null, function(error, stats) {
-        var $a, _k, _len2, _results;
-        spinner.stop();
-        _results = [];
-        for (_k = 0, _len2 = stats.length; _k < _len2; _k++) {
-          e = stats[_k];
-          $a = $("<a href=\"" + e.downloadUrl + "\">" + e.name + "</a>");
-          $a.data('dropbox', e);
-          _results.push($('#download~ul').append($("<li></li>").append($a)));
-        }
-        return _results;
-      });
+      deferred = $.Deferred();
+      deferreds.push(deferred);
+      dropbox.findByName('', extension, null, (function(deferred) {
+        return function(error, stats) {
+          var $a, _k, _len2;
+          for (_k = 0, _len2 = stats.length; _k < _len2; _k++) {
+            e = stats[_k];
+            $a = $("<a href=\"#\">" + e.path + "</a>");
+            $a.data('dropbox', e);
+            $('#download~ul').append($("<li></li>").append($a));
+          }
+          return deferred.resolve();
+        };
+      })(deferred));
     }
-    return spinner.spin(document.body);
+    return $.when.apply(window, deferreds).then(function() {
+      return spinner.stop();
+    });
   };
 
   uploadFile = function() {

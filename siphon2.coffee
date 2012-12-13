@@ -188,15 +188,21 @@ newCodeMirror = (tabAnchor, options, active) ->
 newCodeMirror.number = 0
 
 getList = ->     
+    spinner.spin document.body
     $('#download~ul > *').remove()
+    deferreds = []
     for extension in ['.html', '.css', '.js', '.less', '.coffee']
-        dropbox.findByName '', extension, null, (error, stats) ->
-            spinner.stop()
-            for e in stats
-                $a = $("<a href=\"#{e.downloadUrl}\">#{e.name}</a>")
-                $a.data 'dropbox', e
-                $('#download~ul').append $("<li></li>").append $a
-    spinner.spin document.body    
+        deferred = $.Deferred()
+        deferreds.push deferred
+        dropbox.findByName '', extension, null, ((deferred) ->
+            (error, stats) ->
+                for e in stats
+                    $a = $("<a href=\"#\">#{e.path}</a>")
+                    $a.data 'dropbox', e
+                    $('#download~ul').append $("<li></li>").append $a
+                deferred.resolve()
+        )(deferred)
+    $.when.apply(window, deferreds).then -> spinner.stop()
 
 uploadFile = ->
     cloud = $('#cloud > .active').attr 'id'
