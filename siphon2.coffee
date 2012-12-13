@@ -46,22 +46,27 @@ newCodeMirror = (tabAnchor, options, active) ->
     result
 newCodeMirror.number = 0
 
-getList = ->     
+getList = (path, $ul) ->     
     spinner.spin document.body
-    $('#download~ul > *').remove()
-    deferreds = []
-    for extension in ['.html', '.css', '.js', '.less', '.coffee']
-        deferred = $.Deferred()
-        deferreds.push deferred
-        dropbox.findByName '', extension, null, ((deferred) ->
-            (error, stats) ->
-                for e in stats
-                    $a = $("<a href=\"#\">#{e.path}</a>")
-                    $a.data 'dropbox', e
-                    $('#download~ul').append $("<li></li>").append $a
-                deferred.resolve()
-        )(deferred)
-    $.when.apply(window, deferreds).then -> spinner.stop()
+    dropbox.readdir path, null, (error, names, stat, stats) ->
+        spinner.stop()
+        $ul.children().remove()
+        if error
+            alert error
+        else
+            for e in stats
+                $li = $(if e.isFolder
+                        """
+                        <li class="dropdown-submenu">
+                            <a href=\"#\">#{e.name}</a>
+                            <ul class="dropdown-menu"></ul>
+                        </li>
+                        """
+                    else
+                        "<li><a href=\"#\">#{e.name}</a></li>"
+                )
+                $li.children('a').data 'dropbox', e
+                $ul.append $li
 
 uploadFile = ->
     cloud = $('#cloud > .active').attr 'id'
@@ -244,17 +249,24 @@ $('#delete').on 'click', ->
         cm.focus()
 
 # Including touchstart is work around that touchstart in bootstrap dropdown return false and that prevents default actions such as triggering click event.
-$('#download').on 'click touchstart', ->
-    getList()
+$('#download').on 'click touchstart', -> getList '', $('#download~ul')
 
 $('#download~ul').on 'click', 'a', (event) ->
     event.preventDefault()
     stat = $(this).data('dropbox')
-    dropbox.readFile stat.path, null, (error, string, stat) ->
-        spinner.stop()
-        $('#file-tabs > li.active > a').data('editor').setValue string
-        $('#file-tabs > li.active > a').data 'dropbox', stat
+    if stat.isFile
+        dropbox.readFile stat.path, null, (error, string, stat) ->
+            spinner.stop()
+            $('#file-tabs > li.active > a').data('editor').setValue string
+            $('#file-tabs > li.active > a').data 'dropbox', stat
     spinner.spin document.body
+
+$('#download~ul').on 'mouseover', 'a', (event) ->
+    $this = $(this)
+    stat = $this.data('dropbox')
+    if stat.isFolder
+        console.log stat
+        getList stat.path, $this.next('ul')
 
 $('#upload').on 'click', ->
     uploadFile()

@@ -259,31 +259,24 @@
 
   newCodeMirror.number = 0;
 
-  getList = function() {
-    var deferred, deferreds, extension, _j, _len1, _ref1;
+  getList = function(path, $ul) {
     spinner.spin(document.body);
-    $('#download~ul > *').remove();
-    deferreds = [];
-    _ref1 = ['.html', '.css', '.js', '.less', '.coffee'];
-    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-      extension = _ref1[_j];
-      deferred = $.Deferred();
-      deferreds.push(deferred);
-      dropbox.findByName('', extension, null, (function(deferred) {
-        return function(error, stats) {
-          var $a, _k, _len2;
-          for (_k = 0, _len2 = stats.length; _k < _len2; _k++) {
-            e = stats[_k];
-            $a = $("<a href=\"#\">" + e.path + "</a>");
-            $a.data('dropbox', e);
-            $('#download~ul').append($("<li></li>").append($a));
-          }
-          return deferred.resolve();
-        };
-      })(deferred));
-    }
-    return $.when.apply(window, deferreds).then(function() {
-      return spinner.stop();
+    return dropbox.readdir(path, null, function(error, names, stat, stats) {
+      var $li, _j, _len1, _results;
+      spinner.stop();
+      $ul.children().remove();
+      if (error) {
+        return alert(error);
+      } else {
+        _results = [];
+        for (_j = 0, _len1 = stats.length; _j < _len1; _j++) {
+          e = stats[_j];
+          $li = $(e.isFolder ? "<li class=\"dropdown-submenu\">\n    <a href=\"#\">" + e.name + "</a>\n    <ul class=\"dropdown-menu\"></ul>\n</li>" : "<li><a href=\"#\">" + e.name + "</a></li>");
+          $li.children('a').data('dropbox', e);
+          _results.push($ul.append($li));
+        }
+        return _results;
+      }
     });
   };
 
@@ -563,19 +556,31 @@
   });
 
   $('#download').on('click touchstart', function() {
-    return getList();
+    return getList('', $('#download~ul'));
   });
 
   $('#download~ul').on('click', 'a', function(event) {
     var stat;
     event.preventDefault();
     stat = $(this).data('dropbox');
-    dropbox.readFile(stat.path, null, function(error, string, stat) {
-      spinner.stop();
-      $('#file-tabs > li.active > a').data('editor').setValue(string);
-      return $('#file-tabs > li.active > a').data('dropbox', stat);
-    });
+    if (stat.isFile) {
+      dropbox.readFile(stat.path, null, function(error, string, stat) {
+        spinner.stop();
+        $('#file-tabs > li.active > a').data('editor').setValue(string);
+        return $('#file-tabs > li.active > a').data('dropbox', stat);
+      });
+    }
     return spinner.spin(document.body);
+  });
+
+  $('#download~ul').on('mouseover', 'a', function(event) {
+    var $this, stat;
+    $this = $(this);
+    stat = $this.data('dropbox');
+    if (stat.isFolder) {
+      console.log(stat);
+      return getList(stat.path, $this.next('ul'));
+    }
   });
 
   $('#upload').on('click', function() {
