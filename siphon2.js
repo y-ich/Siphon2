@@ -7,7 +7,92 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, apiKey, classes, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, prepareTable, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1;
+  var AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, apiKey, classes, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1;
+
+  JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
+
+  COFFEE_KEYWORDS = ['undefined', 'then', 'unless', 'until', 'loop', 'of', 'by', 'when', 'yes', 'no', 'on', 'off'];
+
+  OPERATORS_WITH_EQUAL = ['-', '+', '*', '/', '%', '<', '>', '&', '|', '^', '!', '?', '='];
+
+  OPERATORS = ['->', '=>', 'and', 'or', 'is', 'isnt', 'not', '&&', '||'];
+
+  OPERATORS = OPERATORS.concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map(function(e) {
+    return e + '=';
+  }))).sort();
+
+  UTC_PROPERTIES = ['Date', 'Day', 'FullYear', 'Hours', 'Milliseconds', 'Minutes', 'Month', 'Seconds'];
+
+  DATE_PROPERTIES = ['Time', 'Year'].concat(UTC_PROPERTIES.reduce((function(a, b) {
+    return a.concat([b, 'UTC' + b]);
+  }), []));
+
+  CORE_CLASSES = {
+    Array: ['length', 'concat', 'every', 'filter', 'forEach', 'indexOf', 'join', 'lastIndexOf', 'map', 'pop', 'push', 'reduce', 'reduceRight', 'reverse', 'shift', 'slice', 'some', 'sort', 'splice', 'toLocaleString', 'toString', 'unshift'],
+    Boolean: ['toString', 'valueOf'],
+    Date: ['getTimezoneOffset', 'toDateString', 'toGMTString', 'toISOString', 'toJSON', 'toLocaleDateString', 'toLocaleString', 'toLocaleTimeString', 'toString', 'toTimeString', 'toUTCString', 'valueOf'].concat(DATE_PROPERTIES.reduce((function(a, b) {
+      return a.concat(['get' + b, 'set' + b]);
+    }), [])).sort(),
+    Error: [],
+    EvalError: [],
+    Function: [],
+    Global: [],
+    JSON: [],
+    Math: [],
+    Number: [],
+    Object: [],
+    RangeError: [],
+    ReferenceError: [],
+    RegExp: [],
+    String: [],
+    SyntaxError: [],
+    TypeError: [],
+    URIError: []
+  };
+
+  KEYWORDS = JS_KEYWORDS.concat(COFFEE_KEYWORDS).sort();
+
+  KEYWORDS_COMPLETE = {
+    "if": ['else', 'then else'],
+    "for": ['in', 'in when', 'of', 'of when'],
+    "try": ['catch finally', 'catch'],
+    "class": ['extends'],
+    "switch": ['when else', 'when', 'when then else', 'when then']
+  };
+
+  globalProperties = (function() {
+    var _results;
+    _results = [];
+    for (e in window) {
+      _results.push(e);
+    }
+    return _results;
+  })();
+
+  globalPropertiesPlusKeywords = globalProperties.concat(KEYWORDS).sort();
+
+  variables = [];
+
+  functions = [];
+
+  classes = [];
+
+  _ref = globalProperties.sort();
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    e = _ref[_i];
+    if (window[e] === null || (typeof window[e] !== 'function' && /^[A-Z]/.test(e))) {
+      continue;
+    }
+    if (typeof window[e] === 'function') {
+      if (/^[A-Z]/.test(e)) {
+        classes.push(e);
+      } else {
+        functions.push(e);
+      }
+    } else if (!/^[A-Z]/.test(e)) {
+      variables.push(e);
+    }
+  }
 
   AutoComplete = (function() {
 
@@ -123,106 +208,6 @@
       return false;
     }
   })();
-
-  JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
-
-  COFFEE_KEYWORDS = ['undefined', 'then', 'unless', 'until', 'loop', 'of', 'by', 'when', 'yes', 'no', 'on', 'off'];
-
-  OPERATORS_WITH_EQUAL = ['-', '+', '*', '/', '%', '<', '>', '&', '|', '^', '!', '?', '='];
-
-  OPERATORS = ['->', '=>', 'and', 'or', 'is', 'isnt', 'not', '&&', '||'];
-
-  OPERATORS = OPERATORS.concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map(function(e) {
-    return e + '=';
-  }))).sort();
-
-  UTC_PROPERTIES = ['Date', 'Day', 'FullYear', 'Hours', 'Milliseconds', 'Minutes', 'Month', 'Seconds'];
-
-  DATE_PROPERTIES = ['Time', 'Year'].concat(UTC_PROPERTIES.reduce((function(a, b) {
-    return a.concat([b, 'UTC' + b]);
-  }), []));
-
-  CORE_CLASSES = {
-    Array: ['length', 'concat', 'every', 'filter', 'forEach', 'indexOf', 'join', 'lastIndexOf', 'map', 'pop', 'push', 'reduce', 'reduceRight', 'reverse', 'shift', 'slice', 'some', 'sort', 'splice', 'toLocaleString', 'toString', 'unshift'],
-    Boolean: ['toString', 'valueOf'],
-    Date: ['getTimezoneOffset', 'toDateString', 'toGMTString', 'toISOString', 'toJSON', 'toLocaleDateString', 'toLocaleString', 'toLocaleTimeString', 'toString', 'toTimeString', 'toUTCString', 'valueOf'].concat(DATE_PROPERTIES.reduce((function(a, b) {
-      return a.concat(['get' + b, 'set' + b]);
-    }), [])).sort(),
-    Error: [],
-    EvalError: [],
-    Function: [],
-    Global: [],
-    JSON: [],
-    Math: [],
-    Number: [],
-    Object: [],
-    RangeError: [],
-    ReferenceError: [],
-    RegExp: [],
-    String: [],
-    SyntaxError: [],
-    TypeError: [],
-    URIError: []
-  };
-
-  KEYWORDS = JS_KEYWORDS.concat(COFFEE_KEYWORDS).sort();
-
-  KEYWORDS_COMPLETE = {
-    "if": ['else', 'then else'],
-    "for": ['in', 'in when', 'of', 'of when'],
-    "try": ['catch finally', 'catch'],
-    "class": ['extends'],
-    "switch": ['when else', 'when', 'when then else', 'when then']
-  };
-
-  prepareTable = function(id, array) {
-    var $tr, e, i, numOfColumns, rows, _i, _len;
-    rows = [];
-    numOfColumns = 5;
-    for (i = _i = 0, _len = array.length; _i < _len; i = ++_i) {
-      e = array[i];
-      if (i % numOfColumns === 0) {
-        $tr = $('<tr></tr>');
-        rows.push($tr);
-      }
-      $tr.append($('<td></td>').append($('<a class="token" href="#"></a>').text(e)));
-    }
-    return $("#" + id).append(rows);
-  };
-
-  globalProperties = (function() {
-    var _results;
-    _results = [];
-    for (e in window) {
-      _results.push(e);
-    }
-    return _results;
-  })();
-
-  globalPropertiesPlusKeywords = globalProperties.concat(KEYWORDS).sort();
-
-  variables = [];
-
-  functions = [];
-
-  classes = [];
-
-  _ref = globalProperties.sort();
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    e = _ref[_i];
-    if (window[e] === null || (typeof window[e] !== 'function' && /^[A-Z]/.test(e))) {
-      continue;
-    }
-    if (typeof window[e] === 'function') {
-      if (/^[A-Z]/.test(e)) {
-        classes.push(e);
-      } else {
-        functions.push(e);
-      }
-    } else if (!/^[A-Z]/.test(e)) {
-      variables.push(e);
-    }
-  }
 
   newCodeMirror = function(tabAnchor, options, active) {
     var $wrapper, defaultOptions, key, result, value, _ref1;
