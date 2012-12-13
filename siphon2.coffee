@@ -13,7 +13,7 @@ newCodeMirror = (tabAnchor, options, active) ->
             $('.navbar-fixed-bottom').css 'bottom', ''           
         # CodeMirror 2
         onChange: (cm, change)->
-            unless cm.siphon.autoComplete?
+            if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
                 cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
                 cm.siphon.autoComplete.complete cm
         # end of CodeMirror 2
@@ -69,18 +69,18 @@ getList = (path, $ul) ->
                 $ul.append $li
 
 uploadFile = ->
-    cloud = $('#cloud > .active').attr 'id'
-
     $active = $('#file-tabs > li.active > a')
-    file = $active.data('file')
-    if file?
-        file.update null, $active.data('editor').getValue(), -> spinner.stop()
-    else
-        title = $active.text()
-        if title is 'untitled'
-            title = prompt()
-            return unless title
-        dropbox.writeFile title, $active.data('editor').getValue(), null, -> spinner.stop()
+    stat = $active.data 'dropbox'
+    path = if stat? then stat.path else prompt 'put file name with its path', $active.text()
+    return if not path? or path is ''
+    
+    dropbox.writeFile path, $active.data('editor').getValue(), null, (error, stat) ->
+        spinner.stop()
+        if error
+            alert error
+        else
+            $active.data 'dropbox', stat
+            
     spinner.spin document.body
 
 fireKeyEvent = (type, keyIdentifier, keyCode, charCode = 0) ->

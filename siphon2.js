@@ -208,7 +208,7 @@
         return $('.navbar-fixed-bottom').css('bottom', '');
       },
       onChange: function(cm, change) {
-        if (cm.siphon.autoComplete == null) {
+        if (!(cm.siphon.autoComplete != null) && change.text.length === 1 && change.text[0].length === 1) {
           cm.siphon.autoComplete = new AutoComplete(cm, change.text[change.text.length - 1]);
           return cm.siphon.autoComplete.complete(cm);
         }
@@ -281,26 +281,21 @@
   };
 
   uploadFile = function() {
-    var $active, cloud, file, title;
-    cloud = $('#cloud > .active').attr('id');
+    var $active, path, stat;
     $active = $('#file-tabs > li.active > a');
-    file = $active.data('file');
-    if (file != null) {
-      file.update(null, $active.data('editor').getValue(), function() {
-        return spinner.stop();
-      });
-    } else {
-      title = $active.text();
-      if (title === 'untitled') {
-        title = prompt();
-        if (!title) {
-          return;
-        }
-      }
-      dropbox.writeFile(title, $active.data('editor').getValue(), null, function() {
-        return spinner.stop();
-      });
+    stat = $active.data('dropbox');
+    path = stat != null ? stat.path : prompt('put file name with its path', $active.text());
+    if (!(path != null) || path === '') {
+      return;
     }
+    dropbox.writeFile(path, $active.data('editor').getValue(), null, function(error, stat) {
+      spinner.stop();
+      if (error) {
+        return alert(error);
+      } else {
+        return $active.data('dropbox', stat);
+      }
+    });
     return spinner.spin(document.body);
   };
 
