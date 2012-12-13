@@ -577,15 +577,11 @@
     mode: 'coffeescript'
   }, true);
 
-  _ref1 = $('#previous-button, #next-button, .navbar-fixed-bottom');
+  _ref1 = $('.navbar-fixed-bottom');
   for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
     e = _ref1[_j];
     new NoClickDelay(e, false);
   }
-
-  $('#previous-button, #next-button').on('mousedown', function(event) {
-    return event.preventDefault();
-  });
 
   $('#previous-button').on('click', function() {
     var cm, _ref2;
@@ -623,7 +619,7 @@
     id = "cm" + (num + 1);
     $tab = $("<li class=\"active\"><a href=\"#" + id + "\" data-toggle=\"tab\">untitled</a></li>");
     $('#file-tabs > li.dropdown').before($tab);
-    return newCodeMirror($tab.children('a')[0], (function() {
+    newCodeMirror($tab.children('a')[0], (function() {
       switch ($(this).text()) {
         case 'HTMl':
           return {
@@ -653,6 +649,7 @@
           return null;
       }
     }).call(this), true);
+    return false;
   });
 
   $('#file').on('click', function() {
@@ -757,7 +754,7 @@
     return $('#file-tabs > li.active > a').data('editor').undo();
   });
 
-  $('#extend').on('click', function() {
+  $('#eval').on('click', function() {
     var cm, line;
     cm = $('#file-tabs > li.active > a').data('editor');
     if (cm.getOption('mode') !== 'coffeescript') {

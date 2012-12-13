@@ -247,11 +247,8 @@ spinner = new Spinner(color: '#fff')
 
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
-for e in $('#previous-button, #next-button, .navbar-fixed-bottom') # removed .navbar for a work around for dropdown menu
+for e in $('.navbar-fixed-bottom') # removed .navbar for a work around for dropdown menu
     new NoClickDelay e, false
-
-$('#previous-button, #next-button').on 'mousedown', (event) ->
-    event.preventDefault()
 
 $('#previous-button').on 'click', ->
     cm = $('#file-tabs > li.active > a').data('editor')
@@ -277,6 +274,7 @@ $('a.new-tab-type').on 'click', ->
             when 'CofeeScript' then { extraKeys: null, mode: 'coffeescript' }
             else null
         , true
+    false # prevent default action
 
 $('#file').on 'click', -> $('#file-picker').click()
 $('#file-picker').on 'change', (event) ->
@@ -346,7 +344,7 @@ $('.key').on (if touchDevice then 'touchend' else 'mouseup'), -> fireKeyEvent 'k
 $('#undo').on 'click', ->
     $('#file-tabs > li.active > a').data('editor').undo()
 
-$('#extend').on 'click', ->
+$('#eval').on 'click', ->
     cm = $('#file-tabs > li.active > a').data('editor')
     return unless cm.getOption('mode') is 'coffeescript'
     if not cm.somethingSelected()
