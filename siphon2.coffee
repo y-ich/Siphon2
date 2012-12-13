@@ -2,6 +2,13 @@
 # (C) 2012 New 3 Rs (ICHIKAWA, Yuji)
 ###
 
+touchDevice =
+    try
+        document.createEvent 'TouchEvent'
+        true
+    catch error
+        false
+
 # JavaScript/CoffeeScript constants
 JS_KEYWORDS = [
   'true', 'false', 'null', 'this'
@@ -159,6 +166,9 @@ newCodeMirror = (tabAnchor, options, active) ->
         theme: 'blackboard'
     options ?= {}
     options[key] ?= value for key, value of defaultOptions
+    if not touchDevice
+        options.onBlur = null
+        options.onFocus = null
     result = CodeMirror $('#editor-pane')[0], options
     $wrapper = $(result.getWrapperElement())
     $wrapper.attr 'id', "cm#{newCodeMirror.number}"
@@ -200,6 +210,31 @@ uploadFile = ->
         googleDrive.File.insert title, 'text/plain', $active.data('editor').getValue(), -> spinner.stop()
     spinner.spin document.body
 
+fireKeyEvent = (type, keyIdentifier, keyCode, charCode = 0) ->
+    DOM_KEY_LOCATION_STANDARD = 0
+    KEY_CODES =
+        'Left': 37
+        'Right': 39
+        'Up': 38
+        'Down': 40
+        'U+0009': 9
+    e = document.createEvent 'KeyboardEvent'
+    e.initKeyboardEvent type, true, true, window, keyIdentifier, DOM_KEY_LOCATION_STANDARD, ''
+    # There is no getModifiersState method in webkit, so you have no way to know the content of modifiersList. So I use '' in the last argument.
+
+    e.override =
+        keyCode : keyCode ? KEY_CODES[keyIdentifier]
+        charCode : charCode
+    document.activeElement.dispatchEvent(e)
+
+evalCS = (str) ->
+    try
+        jssnippet = CoffeeScript.compile str, bare : on
+        result = eval jssnippet
+    catch error
+        result = error.message
+    result
+    
 #
 # main
 #
@@ -212,7 +247,7 @@ spinner = new Spinner(color: '#fff')
 
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
-for e in $('#previous-button, #next-button') # removed .navbar for a work around for dropdown menu
+for e in $('#previous-button, #next-button, .navbar-fixed-bottom') # removed .navbar for a work around for dropdown menu
     new NoClickDelay e, false
 
 $('#previous-button, #next-button').on 'mousedown', (event) ->
@@ -303,3 +338,18 @@ $('#upload').on 'click', ->
         googleDrive.checkAuth uploadFile
     else
         uploadFile()
+
+$('.key').on (if touchDevice then 'touchstart' else 'mousedown'), -> fireKeyEvent 'keydown', $(this).data('identifier')
+    
+$('.key').on (if touchDevice then 'touchend' else 'mouseup'), -> fireKeyEvent 'keyup', $(this).data('identifier')
+
+$('#undo').on 'click', ->
+    $('#file-tabs > li.active > a').data('editor').undo()
+
+$('#extend').on 'click', ->
+    cm = $('#file-tabs > li.active > a').data('editor')
+    return unless cm.getOption('mode') is 'coffeescript'
+    if not cm.somethingSelected()
+        line = cm.getCursor().line
+        cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
+    cm.replaceSelection evalCS(cm.getSelection()).toString()
