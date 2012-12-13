@@ -187,17 +187,20 @@ newCodeMirror = (tabAnchor, options, active) ->
 
 newCodeMirror.number = 0
 
-getList = ->
-    googleDrive.File.getList ['.html', '.css', '.js', '.less', '.coffee'].map((e) -> "title contains '#{e}'").join(' or '), (list) ->
-        $('#download~ul > *').remove()
-        for e in list
-            $a = $("<a href=\"#{e.downloadUrl}\">#{e.title}</a>")
-            $a.data 'resource', e
-            $('#download~ul').append $("<li></li>").append $a
-        spinner.stop()
+getList = ->     
+    $('#download~ul > *').remove()
+    for extension in ['.html', '.css', '.js', '.less', '.coffee']
+        dropbox.findByName '', extension, null, (error, stats) ->
+            spinner.stop()
+            for e in stats
+                $a = $("<a href=\"#{e.downloadUrl}\">#{e.name}</a>")
+                $a.data 'dropbox', e
+                $('#download~ul').append $("<li></li>").append $a
     spinner.spin document.body    
 
 uploadFile = ->
+    cloud = $('#cloud > .active').attr 'id'
+
     $active = $('#file-tabs > li.active > a')
     file = $active.data('file')
     if file?
@@ -207,7 +210,7 @@ uploadFile = ->
         if title is 'untitled'
             title = prompt()
             return unless title
-        googleDrive.File.insert title, 'text/plain', $active.data('editor').getValue(), -> spinner.stop()
+        dropbox.writeFile title, $active.data('editor').getValue(), null, -> spinner.stop()
     spinner.spin document.body
 
 fireKeyEvent = (type, keyIdentifier, keyCode, charCode = 0) ->
@@ -244,6 +247,25 @@ keyboardHeight = 307
 $('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
 
 spinner = new Spinner(color: '#fff')
+
+apiKey = 'hQovC3k4w4A=|uGAxh2R5OvngTLzgpdby+tAhTTOj2KMnaKb1r1rZvg=='
+dropbox = new Dropbox.Client
+    key: apiKey
+    sandbox: true
+dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
+for key, value of localStorage
+    try
+        if /^dropbox-auth/.test(key) and JSON.parse(value).key is apiKey
+            $('#dropbox').button 'loading'
+            dropbox.authenticate (error, client) ->
+                if error
+                    showError error 
+                    $('#dropbox').button 'reset'
+                else
+                    $('#dropbox').button 'signout'
+            break
+    catch error
+        null
 
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
@@ -317,25 +339,19 @@ $('#delete').on 'click', ->
 
 # Including touchstart is work around that touchstart in bootstrap dropdown return false and that prevents default actions such as triggering click event.
 $('#download').on 'click touchstart', ->
-    if not googleDrive.authorized
-        googleDrive.checkAuth getList
-    else
-        getList()
+    getList()
 
 $('#download~ul').on 'click', 'a', (event) ->
     event.preventDefault()
-    file = new googleDrive.File $(this).data('resource')
-    file.download (text) ->
+    stat = $(this).data('dropbox')
+    dropbox.readFile stat.path, null, (error, string, stat) ->
         spinner.stop()
-        $('#file-tabs > li.active > a').data('editor').setValue text
-        $('#file-tabs > li.active > a').data 'file', file
+        $('#file-tabs > li.active > a').data('editor').setValue string
+        $('#file-tabs > li.active > a').data 'dropbox', stat
     spinner.spin document.body
 
 $('#upload').on 'click', ->
-    if not googleDrive.authorized
-        googleDrive.checkAuth uploadFile
-    else
-        uploadFile()
+    uploadFile()
 
 $('.key').on (if touchDevice then 'touchstart' else 'mousedown'), -> fireKeyEvent 'keydown', $(this).data('identifier')
     
@@ -351,3 +367,57 @@ $('#eval').on 'click', ->
         line = cm.getCursor().line
         cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
     cm.replaceSelection evalCS(cm.getSelection()).toString()
+
+showError = (error) ->
+    console.error error if (window.console)
+    switch error.status
+        when 401
+            # If you're using dropbox.js, the only cause behind this error is that
+            # the user token expired.
+            # Get the user through the authentication flow again.
+            null
+        when 404
+            # The file or folder you tried to access is not in the user's Dropbox.
+            # Handling this error is specific to your application.
+            null            
+        when 507
+            # The user is over their Dropbox quota.
+            # Tell them their Dropbox is full. Refreshing the page won't help.
+            null
+        when 503
+            # Too many API requests. Tell the user to try again later.
+            # Long-term, optimize your code to use fewer API calls.
+            null
+        when 400
+            # Bad input parameter
+            null
+        when 403  
+            # Bad OAuth request.
+            null
+        when 405
+            # Request method not expected
+            null
+        else
+            # Caused by a bug in dropbox.js, in your application, or in Dropbox.
+            # Tell the user an error occurred, ask them to refresh the page.
+            null
+
+$('#dropbox').on 'click', ->
+    $this = $(this)
+    if $this.text() is 'sign-in'
+        $this.button 'loading'
+        dropbox.authenticate (error, client) ->
+            spinner.stop()
+            if error
+                showError error 
+            else
+                $this.button 'signout'
+    else
+        dropbox.signOut (error) ->
+            spinner.stop()
+            if error
+                showError error 
+            else
+                $this.button 'reset'
+            
+    spinner.spin document.body

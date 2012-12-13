@@ -1,6 +1,6 @@
 {spawn, exec} = require 'child_process'
 
-src = ['googleDrive.coffee', 'siphon2.coffee']
+src = ['siphon2.coffee']
 
 task 'watch', 'continually build with --watch', ->
     p1 = spawn 'coffee', ['-wcj', 'siphon2.js'].concat src

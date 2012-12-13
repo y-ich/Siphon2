@@ -3,9 +3,6 @@
 CLIENT_ID = '361799283439.apps.googleusercontent.com'
 SCOPES = 'https://www.googleapis.com/auth/drive'
 
-window.googleDrive =
-    authorized: false
-
 BOUNDARY = '-------314159265358979323846'
 delimiter = "\r\n--#{BOUNDARY}\r\n"
 close_delim = "\r\n--#{BOUNDARY}--"
@@ -129,23 +126,25 @@ class googleDrive.File
 
 
 # Check if the current user has authorized the application.
-googleDrive.checkAuth = (success) ->
-    handleAuthResult = (authResult) ->
-        if authResult and not authResult.error
-            googleDrive.authorized = true
-            success()
-        else
-            gapi.auth.authorize
-                    'client_id': CLIENT_ID
-                    'scope': SCOPES
-                    'immediate': false
-                , handleAuthResult
-
+googleDrive.checkAuth = (callback) ->
     gapi.auth.authorize
             'client_id': CLIENT_ID
             'scope': SCOPES
             'immediate': true
-        , handleAuthResult
+        , (authResult) ->
+            if authResult and not authResult.error
+                callback true
+            else
+                gapi.auth.authorize
+                        'client_id': CLIENT_ID
+                        'scope': SCOPES
+                        'immediate': false
+                    , (authResult) ->
+                        if authResult and not authResult.error
+                            callback true
+                        else
+                            callback false
+
 
 window.handleClientLoad = ->
     gapi.client.load 'drive', 'v2'
