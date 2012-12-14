@@ -7,7 +7,7 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, apiKey, classes, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1;
+  var AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, IPAD_KEYBOARD_HEIGHT, IPAD_SPLIT_KEYBOARD_HEIGHT, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, apiKey, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -215,7 +215,7 @@
         }
       },
       onFocus: function() {
-        return $('.navbar-fixed-bottom').css('bottom', keyboardHeight + 'px');
+        return $('.navbar-fixed-bottom').css('bottom', config.keyboardHeight[orientation % 180 === 0 ? 'portrait' : 'landscape'] + 'px');
       },
       onKeyEvent: function(cm, event) {
         switch (event.type) {
@@ -368,10 +368,28 @@
     }
   })();
 
-  keyboardHeight = 307;
+  IPAD_KEYBOARD_HEIGHT = {
+    portrait: 307,
+    landscape: 395
+  };
+
+  IPAD_SPLIT_KEYBOARD_HEIGHT = {
+    portrait: 283,
+    landscape: 277
+  };
+
+  config = JSON.parse((_ref1 = localStorage['siphon-config']) != null ? _ref1 : '{}');
+
+  if ((_ref2 = config.keyboardHeight) == null) {
+    config.keyboardHeight = IPAD_KEYBOARD_HEIGHT;
+  }
 
   if (/iPhone|iPad/.test(navigator.userAgent)) {
     $('#file').css('display', 'none');
+  }
+
+  if (!touchDevice) {
+    $('#soft-key').css('display', 'none');
   }
 
   spinner = new Spinner({
@@ -414,26 +432,26 @@
     mode: 'coffeescript'
   }, true);
 
-  _ref1 = $('.navbar-fixed-bottom');
-  for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-    e = _ref1[_j];
+  _ref3 = $('.navbar-fixed-bottom');
+  for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
+    e = _ref3[_j];
     new NoClickDelay(e, false);
   }
 
   $('#previous-button').on('click', function() {
-    var cm, _ref2;
+    var cm, _ref4;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref2 = cm.siphon.autoComplete) != null) {
-      _ref2.previous();
+    if ((_ref4 = cm.siphon.autoComplete) != null) {
+      _ref4.previous();
     }
     return cm.focus();
   });
 
   $('#next-button').on('click', function() {
-    var cm, _ref2;
+    var cm, _ref4;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref2 = cm.siphon.autoComplete) != null) {
-      _ref2.next();
+    if ((_ref4 = cm.siphon.autoComplete) != null) {
+      _ref4.next();
     }
     return cm.focus();
   });
@@ -442,11 +460,11 @@
     var $tab, id, num;
     $('#file-tabs > li.active, #editor-pane > *').removeClass('active');
     num = ((function() {
-      var _k, _len2, _ref2, _results;
-      _ref2 = $('#editor-pane > *');
+      var _k, _len2, _ref4, _results;
+      _ref4 = $('#editor-pane > *');
       _results = [];
-      for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-        e = _ref2[_k];
+      for (_k = 0, _len2 = _ref4.length; _k < _len2; _k++) {
+        e = _ref4[_k];
         _results.push(parseInt(e.id.replace(/^cm/, '')));
       }
       return _results;
@@ -640,5 +658,11 @@
     }
     return spinner.spin(document.body);
   });
+
+  window.addEventListener('orientationchange', (function() {
+    if ($('.navbar-fixed-bottom').css('bottom') !== '') {
+      return $('.navbar-fixed-bottom').css('bottom', config.keyboardHeight[orientation % 180 === 0 ? 'portrait' : 'landscape'] + 'px');
+    }
+  }), false);
 
 }).call(this);

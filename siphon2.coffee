@@ -19,7 +19,7 @@ newCodeMirror = (tabAnchor, options, active) ->
                 cm.siphon.autoComplete.complete cm
         # end of CodeMirror 2
         onFocus: ->
-            $('.navbar-fixed-bottom').css 'bottom', keyboardHeight + 'px'
+            $('.navbar-fixed-bottom').css 'bottom', config.keyboardHeight[if orientation % 180 == 0 then 'portrait' else 'landscape'] + 'px'
         onKeyEvent: (cm, event) ->
             switch event.type
                 when 'keydown'
@@ -154,9 +154,18 @@ touchDevice =
     catch error
         false
 
-keyboardHeight = 307
+IPAD_KEYBOARD_HEIGHT =
+    portrait: 307
+    landscape: 395
+IPAD_SPLIT_KEYBOARD_HEIGHT =
+    portrait: 283
+    landscape: 277
+
+config = JSON.parse localStorage['siphon-config'] ? '{}'
+config.keyboardHeight ?= IPAD_KEYBOARD_HEIGHT
 
 $('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
+$('#soft-key').css 'display', 'none' unless touchDevice
 
 spinner = new Spinner(color: '#fff')
 
@@ -287,7 +296,6 @@ $('#eval').on 'click', ->
         cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
     cm.replaceSelection evalCS(cm.getSelection()).toString()
 
-
 $('#dropbox').on 'click', ->
     $this = $(this)
     if $this.text() is 'sign-in'
@@ -308,3 +316,9 @@ $('#dropbox').on 'click', ->
                 $this.button 'reset'
             
     spinner.spin document.body
+
+
+window.addEventListener 'orientationchange', (->
+        if $('.navbar-fixed-bottom').css('bottom') isnt ''
+            $('.navbar-fixed-bottom').css 'bottom', config.keyboardHeight[if orientation % 180 == 0 then 'portrait' else 'landscape'] + 'px' 
+    ), false

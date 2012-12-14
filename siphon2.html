@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <title>Siphon2: IDE in HTML, LESS, and CoffeeScript on iPad</title>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="apple-touch-icon-precomposed" href="img/icon.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="img/icon@2x.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="img/icon-72.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="img/icon-72@2x.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 320px) and not (-webkit-device-pixel-ratio: 2)" href="img/startup-iphone.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 480px) and (-webkit-device-pixel-ratio: 2)" href="img/startup-iphone4.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="img/startup-iphone5.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 768px) and (orientation: portrait)" href="img/startup-ipad-portrait.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 768px) and (orientation: landscape)" href="img/startup-ipad-landscape.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 768px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="img/startup-ipad-portrait@2x.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 768px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="img/startup-ipad-landscape@2x.png" />
+    <title>Siphon2</title>
     <!--<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap.min.css" rel="stylesheet">-->
     <link href="css/bootstrap.css" rel="stylesheet">
     <link rel="stylesheet" href="lib/codemirror.css">
@@ -65,13 +77,15 @@
     </ul>
     <div id="editor-pane" class="tab-content"></div>
     <div class="navbar navbar-fixed-bottom">
-        <button data-identifier="U+0009" class="btn key">Tab</button>
-        <button id="undo" class="btn">Undo</button>
-        <div class="btn-group">
-            <button data-identifier="Left" class="btn key"><i class="icon-arrow-left"></i></button>            
-            <button data-identifier="Right" class="btn key"><i class="icon-arrow-right"></i></button>            
-            <button data-identifier="Up" class="btn key"><i class="icon-arrow-up"></i></button>            
-            <button data-identifier="Down" class="btn key"><i class="icon-arrow-down"></i></button>            
+        <div id="soft-key" class="pull-left">
+            <button data-identifier="U+0009" class="btn key">Tab</button>
+            <button id="undo" class="btn">Undo</button>
+            <div class="btn-group">
+                <button data-identifier="Left" class="btn key"><i class="icon-arrow-left"></i></button>            
+                <button data-identifier="Right" class="btn key"><i class="icon-arrow-right"></i></button>            
+                <button data-identifier="Up" class="btn key"><i class="icon-arrow-up"></i></button>            
+                <button data-identifier="Down" class="btn key"><i class="icon-arrow-down"></i></button>            
+            </div>
         </div>
         <div class="pull-right">
             <button id="eval" class="btn">Eval</button>
