@@ -55,7 +55,7 @@
             <div class="pull-right">
                 Dropbox:
                 <button type="button" id="dropbox" class="btn" data-loading-text="signing-in..." data-signout-text="sign-out">sign-in</button>
-                <button type="button" id="setting" class="btn"><i class="icon-cog"></i></button>                
+                <a href="#setting-modal" role="button" class="btn" data-toggle="modal"><i class="icon-cog"></i></a>                
             </div>
         </div>
     </div>
@@ -93,6 +93,48 @@
                 <button id="previous-button" class="btn">Previous</button>
                 <button id="next-button" class="btn">Next</button>
             </div>            
+        </div>
+    </div>
+    <div id="setting-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="settingLabel" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+            <h3 id="settingLabel">Siphon2 Setting</h3>
+        </div>
+        <div class="modal-body">
+            <form id="setting" class="form-horizontal">
+                <div class="control-group">
+                    <label class="control-label" for="keyboard">keyboard:</label>              
+                    <div class="controls">
+                        <label class="radio">
+                            <input type="radio" name="keyboard" value="normal" checked>
+                            iPad normal keyboard
+                        </label>
+                        <label class="radio">
+                            <input type="radio" name="keyboard" value="split">
+                            iPad split keyboard
+                        </label>
+                        <label class="radio">
+                            <input type="radio" name="keyboard" value="user-defined">
+                            User-defined keyboard height (specify values below)
+                        </label>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="keyboard-height-portrait">portrait:</label>              
+                    <div class="controls">
+                        <input type="text" name="keyboard-height-portrait" placeholder="px">                      
+                    </div>
+                </div>          
+                <div class="control-group">
+                <label class="control-label" for="keyboard-height-landscape">landscape:</label>
+                    <div class="controls">
+                        <input type="text" name="keyboard-height-landscape" placeholder="px">
+                    </div>
+                </div>                
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button id="save-setting" class="btn btn-primary" data-dismiss="modal" aria-hidden="true">Save</button>
         </div>
     </div>
     <script src="siphon2.js"></script>

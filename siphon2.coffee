@@ -19,7 +19,7 @@ newCodeMirror = (tabAnchor, options, active) ->
                 cm.siphon.autoComplete.complete cm
         # end of CodeMirror 2
         onFocus: ->
-            $('.navbar-fixed-bottom').css 'bottom', config.keyboardHeight[if orientation % 180 == 0 then 'portrait' else 'landscape'] + 'px'
+            $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
         onKeyEvent: (cm, event) ->
             switch event.type
                 when 'keydown'
@@ -142,7 +142,21 @@ showError = (error) ->
             # Caused by a bug in dropbox.js, in your application, or in Dropbox.
             # Tell the user an error occurred, ask them to refresh the page.
             null
-    
+
+keyboardHeight = (config) ->
+    IPAD_KEYBOARD_HEIGHT =
+        portrait: 307
+        landscape: 395
+    IPAD_SPLIT_KEYBOARD_HEIGHT =
+        portrait: 283
+        landscape: 277
+
+    r = (switch config.keyboard
+        when 'normal' then IPAD_KEYBOARD_HEIGHT
+        when 'split' then IPAD_SPLIT_KEYBOARD_HEIGHT
+        when 'user-defined' then config['user-defined-keyboard'])[if orientation % 180 == 0 then 'portrait' else 'landscape']
+    console.log r
+    r
 #
 # main
 #
@@ -154,16 +168,13 @@ touchDevice =
     catch error
         false
 
-IPAD_KEYBOARD_HEIGHT =
-    portrait: 307
-    landscape: 395
-IPAD_SPLIT_KEYBOARD_HEIGHT =
-    portrait: 283
-    landscape: 277
-
 config = JSON.parse localStorage['siphon-config'] ? '{}'
-config.keyboardHeight ?= IPAD_KEYBOARD_HEIGHT
-
+config.keyboard ?= 'normal'
+$("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
+if config['user-defined-keyboard']?
+    $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
+    $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
+    
 $('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
 $('#soft-key').css 'display', 'none' unless touchDevice
 
@@ -319,6 +330,16 @@ $('#dropbox').on 'click', ->
 
 window.addEventListener 'orientationchange', (->
         if $('.navbar-fixed-bottom').css('bottom') isnt ''
-            $('.navbar-fixed-bottom').css 'bottom', config.keyboardHeight[if orientation % 180 == 0 then 'portrait' else 'landscape'] + 'px' 
+            $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
     ), false
+
 window.addEventListener 'scroll', (-> if document.body.scrollLeft != 0 or document.body.scrollTop != 0 then scrollTo 0, 0), false
+
+$('#save-setting').on 'click', ->
+    config.keyboard = $('#setting input[name="keyboard"]:checked').val()
+    if config.keyboard is 'user-defined'
+        config['user-defined-keyboard'] =
+            portrait: parseInt $('#setting input[name="keyboard-height-portrait"]').val()
+            landscape: parseInt $('#setting input[name="keyboard-height-landscape"]').val()
+                
+    localStorage['siphon-config'] = JSON.stringify config

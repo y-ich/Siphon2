@@ -7,7 +7,7 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, IPAD_KEYBOARD_HEIGHT, IPAD_SPLIT_KEYBOARD_HEIGHT, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, apiKey, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3;
+  var AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, apiKey, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -215,7 +215,7 @@
         }
       },
       onFocus: function() {
-        return $('.navbar-fixed-bottom').css('bottom', config.keyboardHeight[orientation % 180 === 0 ? 'portrait' : 'landscape'] + 'px');
+        return $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
       },
       onKeyEvent: function(cm, event) {
         switch (event.type) {
@@ -359,6 +359,30 @@
     }
   };
 
+  keyboardHeight = function(config) {
+    var IPAD_KEYBOARD_HEIGHT, IPAD_SPLIT_KEYBOARD_HEIGHT, r;
+    IPAD_KEYBOARD_HEIGHT = {
+      portrait: 307,
+      landscape: 395
+    };
+    IPAD_SPLIT_KEYBOARD_HEIGHT = {
+      portrait: 283,
+      landscape: 277
+    };
+    r = ((function() {
+      switch (config.keyboard) {
+        case 'normal':
+          return IPAD_KEYBOARD_HEIGHT;
+        case 'split':
+          return IPAD_SPLIT_KEYBOARD_HEIGHT;
+        case 'user-defined':
+          return config['user-defined-keyboard'];
+      }
+    })())[orientation % 180 === 0 ? 'portrait' : 'landscape'];
+    console.log(r);
+    return r;
+  };
+
   touchDevice = (function() {
     try {
       document.createEvent('TouchEvent');
@@ -368,20 +392,17 @@
     }
   })();
 
-  IPAD_KEYBOARD_HEIGHT = {
-    portrait: 307,
-    landscape: 395
-  };
-
-  IPAD_SPLIT_KEYBOARD_HEIGHT = {
-    portrait: 283,
-    landscape: 277
-  };
-
   config = JSON.parse((_ref1 = localStorage['siphon-config']) != null ? _ref1 : '{}');
 
-  if ((_ref2 = config.keyboardHeight) == null) {
-    config.keyboardHeight = IPAD_KEYBOARD_HEIGHT;
+  if ((_ref2 = config.keyboard) == null) {
+    config.keyboard = 'normal';
+  }
+
+  $("#setting input[name=\"keyboard\"][value=\"" + config.keyboard + "\"]").attr('checked', '');
+
+  if (config['user-defined-keyboard'] != null) {
+    $('#setting input[name="keyboard-height-portrait"]').value(config['user-defined-keyboard'].portrait);
+    $('#setting input[name="keyboard-height-landscape"]').value(config['user-defined-keyboard'].landscape);
   }
 
   if (/iPhone|iPad/.test(navigator.userAgent)) {
@@ -660,7 +681,7 @@
 
   window.addEventListener('orientationchange', (function() {
     if ($('.navbar-fixed-bottom').css('bottom') !== '') {
-      return $('.navbar-fixed-bottom').css('bottom', config.keyboardHeight[orientation % 180 === 0 ? 'portrait' : 'landscape'] + 'px');
+      return $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
     }
   }), false);
 
@@ -669,5 +690,16 @@
       return scrollTo(0, 0);
     }
   }), false);
+
+  $('#save-setting').on('click', function() {
+    config.keyboard = $('#setting input[name="keyboard"]:checked').val();
+    if (config.keyboard === 'user-defined') {
+      config['user-defined-keyboard'] = {
+        portrait: parseInt($('#setting input[name="keyboard-height-portrait"]').val()),
+        landscape: parseInt($('#setting input[name="keyboard-height-landscape"]').val())
+      };
+    }
+    return localStorage['siphon-config'] = JSON.stringify(config);
+  });
 
 }).call(this);
