@@ -275,7 +275,6 @@ $('#download~ul').on 'mouseover', 'a', (event) ->
     $this = $(this)
     stat = $this.data('dropbox')
     if stat.isFolder
-        console.log stat
         getList stat.path, $this.next('ul')
 
 $('#upload').on 'click', ->
@@ -322,3 +321,4 @@ window.addEventListener 'orientationchange', (->
         if $('.navbar-fixed-bottom').css('bottom') isnt ''
             $('.navbar-fixed-bottom').css 'bottom', config.keyboardHeight[if orientation % 180 == 0 then 'portrait' else 'landscape'] + 'px' 
     ), false
+window.addEventListener 'scroll', (-> if document.body.scrollLeft != 0 or document.body.scrollTop != 0 then scrollTo 0, 0), false

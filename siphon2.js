@@ -592,7 +592,6 @@
     $this = $(this);
     stat = $this.data('dropbox');
     if (stat.isFolder) {
-      console.log(stat);
       return getList(stat.path, $this.next('ul'));
     }
   });
@@ -662,6 +661,12 @@
   window.addEventListener('orientationchange', (function() {
     if ($('.navbar-fixed-bottom').css('bottom') !== '') {
       return $('.navbar-fixed-bottom').css('bottom', config.keyboardHeight[orientation % 180 === 0 ? 'portrait' : 'landscape'] + 'px');
+    }
+  }), false);
+
+  window.addEventListener('scroll', (function() {
+    if (document.body.scrollLeft !== 0 || document.body.scrollTop !== 0) {
+      return scrollTo(0, 0);
     }
   }), false);
 
