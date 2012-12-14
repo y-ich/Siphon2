@@ -619,6 +619,7 @@
     $this = $(this);
     if ($this.text() === 'sign-in') {
       $this.button('loading');
+      dropbox.reset();
       dropbox.authenticate(function(error, client) {
         spinner.stop();
         if (error) {

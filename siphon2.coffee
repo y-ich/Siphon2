@@ -292,6 +292,7 @@ $('#dropbox').on 'click', ->
     $this = $(this)
     if $this.text() is 'sign-in'
         $this.button 'loading'
+        dropbox.reset() # work around for cdnjs version of dropbox-js. seems not to reset by authenticate.
         dropbox.authenticate (error, client) ->
             spinner.stop()
             if error
