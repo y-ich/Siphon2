@@ -423,9 +423,9 @@
     color: '#fff'
   });
 
-  API_KEY_FULL = '';
+  API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
-  API_KEY_SANDBOX = 'TyVXVmNRdWA=|Qh+VMx8zE6ge9GM+4DtvAfec7CQvoinPATvezIxPlA==';
+  API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw==';
 
   apiKey = config.sandbox ? API_KEY_SANDBOX : API_KEY_FULL;
 
@@ -667,13 +667,7 @@
     $this = $(this);
     if ($this.text() === 'sign-in') {
       $this.button('loading');
-      dropbox = new Dropbox.Client({
-        key: config.sandbox ? API_KEY_SANDBOX : API_KEY_FULL,
-        sandbox: config.sandbox
-      });
-      dropbox.authDriver(new Dropbox.Drivers.Redirect({
-        rememberUser: true
-      }));
+      dropbox.reset();
       dropbox.authenticate(function(error, client) {
         spinner.stop();
         if (error) {
@@ -717,9 +711,6 @@
     }
     if (config.sandbox.toString() !== $('#setting input[name="sandbox"]:checked').val()) {
       config.sandbox = !config.sandbox;
-      if ($('#dropbox').text() === 'sign-out') {
-        $('#dropbox').trigger('click');
-      }
     }
     return localStorage['siphon-config'] = JSON.stringify(config);
   });

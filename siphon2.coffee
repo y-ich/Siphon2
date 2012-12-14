@@ -182,8 +182,8 @@ $('#soft-key').css 'display', 'none' unless touchDevice
 
 spinner = new Spinner(color: '#fff')
 
-API_KEY_FULL = ''
-API_KEY_SANDBOX = 'TyVXVmNRdWA=|Qh+VMx8zE6ge9GM+4DtvAfec7CQvoinPATvezIxPlA=='
+API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ=='
+API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw=='
 apiKey = if config.sandbox then API_KEY_SANDBOX else API_KEY_FULL
 
 dropbox = new Dropbox.Client
@@ -315,10 +315,7 @@ $('#dropbox').on 'click', ->
     $this = $(this)
     if $this.text() is 'sign-in'
         $this.button 'loading'
-        dropbox = new Dropbox.Client
-            key: if config.sandbox then API_KEY_SANDBOX else API_KEY_FULL
-            sandbox: config.sandbox
-        dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
+        dropbox.reset()
         dropbox.authenticate (error, client) ->
             spinner.stop()
             if error
@@ -351,6 +348,4 @@ $('#save-setting').on 'click', ->
             landscape: parseInt $('#setting input[name="keyboard-height-landscape"]').val()
     if config.sandbox.toString() isnt $('#setting input[name="sandbox"]:checked').val()
         config.sandbox = not config.sandbox
-        if $('#dropbox').text() is 'sign-out'
-            $('#dropbox').trigger 'click'
     localStorage['siphon-config'] = JSON.stringify config
