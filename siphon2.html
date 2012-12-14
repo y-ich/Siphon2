@@ -131,7 +131,21 @@
                         <input type="text" name="keyboard-height-landscape" placeholder="px">
                     </div>
                 </div>                
+                <div class="control-group">
+                    <label class="control-label" for="sandbox">Dropbox permission:</label>
+                    <div class="controls">
+                        <label class="radio">
+                            <input type="radio" name="sandbox" value="true" checked>
+                            App folder only
+                        </label>
+                        <label class="radio">
+                            <input type="radio" name="sandbox" value="false">
+                            Full Dropbox
+                        </label>
+                    </div>                    
+                </div>
             </form>
+            <p>You need to re-sign-in when you change Dropbox permission.</p>
         </div>
         <div class="modal-footer">
             <button id="save-setting" class="btn btn-primary" data-dismiss="modal" aria-hidden="true">Save</button>

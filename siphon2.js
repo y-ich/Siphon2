@@ -7,7 +7,7 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, apiKey, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3;
+  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, apiKey, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -398,12 +398,18 @@
     config.keyboard = 'normal';
   }
 
+  if ((_ref3 = config.sandbox) == null) {
+    config.sandbox = true;
+  }
+
   $("#setting input[name=\"keyboard\"][value=\"" + config.keyboard + "\"]").attr('checked', '');
 
   if (config['user-defined-keyboard'] != null) {
     $('#setting input[name="keyboard-height-portrait"]').value(config['user-defined-keyboard'].portrait);
     $('#setting input[name="keyboard-height-landscape"]').value(config['user-defined-keyboard'].landscape);
   }
+
+  $("#setting input[name=\"sandbox\"][value=\"" + (config.sandbox.toString()) + "\"]").attr('checked', '');
 
   if (/iPhone|iPad/.test(navigator.userAgent)) {
     $('#file').css('display', 'none');
@@ -417,11 +423,15 @@
     color: '#fff'
   });
 
-  apiKey = 'hQovC3k4w4A=|uGAxh2R5OvngTLzgpdby+tAhTTOj2KMnaKb1r1rZvg==';
+  API_KEY_FULL = '';
+
+  API_KEY_SANDBOX = 'TyVXVmNRdWA=|Qh+VMx8zE6ge9GM+4DtvAfec7CQvoinPATvezIxPlA==';
+
+  apiKey = config.sandbox ? API_KEY_SANDBOX : API_KEY_FULL;
 
   dropbox = new Dropbox.Client({
     key: apiKey,
-    sandbox: true
+    sandbox: config.sandbox
   });
 
   dropbox.authDriver(new Dropbox.Drivers.Redirect({
@@ -453,26 +463,26 @@
     mode: 'coffeescript'
   }, true);
 
-  _ref3 = $('.navbar-fixed-bottom');
-  for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
-    e = _ref3[_j];
+  _ref4 = $('.navbar-fixed-bottom');
+  for (_j = 0, _len1 = _ref4.length; _j < _len1; _j++) {
+    e = _ref4[_j];
     new NoClickDelay(e, false);
   }
 
   $('#previous-button').on('click', function() {
-    var cm, _ref4;
+    var cm, _ref5;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref4 = cm.siphon.autoComplete) != null) {
-      _ref4.previous();
+    if ((_ref5 = cm.siphon.autoComplete) != null) {
+      _ref5.previous();
     }
     return cm.focus();
   });
 
   $('#next-button').on('click', function() {
-    var cm, _ref4;
+    var cm, _ref5;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref4 = cm.siphon.autoComplete) != null) {
-      _ref4.next();
+    if ((_ref5 = cm.siphon.autoComplete) != null) {
+      _ref5.next();
     }
     return cm.focus();
   });
@@ -481,11 +491,11 @@
     var $tab, id, num;
     $('#file-tabs > li.active, #editor-pane > *').removeClass('active');
     num = ((function() {
-      var _k, _len2, _ref4, _results;
-      _ref4 = $('#editor-pane > *');
+      var _k, _len2, _ref5, _results;
+      _ref5 = $('#editor-pane > *');
       _results = [];
-      for (_k = 0, _len2 = _ref4.length; _k < _len2; _k++) {
-        e = _ref4[_k];
+      for (_k = 0, _len2 = _ref5.length; _k < _len2; _k++) {
+        e = _ref5[_k];
         _results.push(parseInt(e.id.replace(/^cm/, '')));
       }
       return _results;
@@ -657,7 +667,13 @@
     $this = $(this);
     if ($this.text() === 'sign-in') {
       $this.button('loading');
-      dropbox.reset();
+      dropbox = new Dropbox.Client({
+        key: config.sandbox ? API_KEY_SANDBOX : API_KEY_FULL,
+        sandbox: config.sandbox
+      });
+      dropbox.authDriver(new Dropbox.Drivers.Redirect({
+        rememberUser: true
+      }));
       dropbox.authenticate(function(error, client) {
         spinner.stop();
         if (error) {
@@ -698,6 +714,12 @@
         portrait: parseInt($('#setting input[name="keyboard-height-portrait"]').val()),
         landscape: parseInt($('#setting input[name="keyboard-height-landscape"]').val())
       };
+    }
+    if (config.sandbox.toString() !== $('#setting input[name="sandbox"]:checked').val()) {
+      config.sandbox = !config.sandbox;
+      if ($('#dropbox').text() === 'sign-out') {
+        $('#dropbox').trigger('click');
+      }
     }
     return localStorage['siphon-config'] = JSON.stringify(config);
   });

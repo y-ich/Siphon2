@@ -170,20 +170,25 @@ touchDevice =
 
 config = JSON.parse localStorage['siphon-config'] ? '{}'
 config.keyboard ?= 'normal'
+config.sandbox ?= true
 $("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
 if config['user-defined-keyboard']?
     $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
     $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
+$("#setting input[name=\"sandbox\"][value=\"#{config.sandbox.toString()}\"]").attr 'checked', ''
     
 $('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
 $('#soft-key').css 'display', 'none' unless touchDevice
 
 spinner = new Spinner(color: '#fff')
 
-apiKey = 'hQovC3k4w4A=|uGAxh2R5OvngTLzgpdby+tAhTTOj2KMnaKb1r1rZvg=='
+API_KEY_FULL = ''
+API_KEY_SANDBOX = 'TyVXVmNRdWA=|Qh+VMx8zE6ge9GM+4DtvAfec7CQvoinPATvezIxPlA=='
+apiKey = if config.sandbox then API_KEY_SANDBOX else API_KEY_FULL
+
 dropbox = new Dropbox.Client
     key: apiKey
-    sandbox: true
+    sandbox: config.sandbox
 dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
 for key, value of localStorage
     try
@@ -310,7 +315,10 @@ $('#dropbox').on 'click', ->
     $this = $(this)
     if $this.text() is 'sign-in'
         $this.button 'loading'
-        dropbox.reset() # work around for cdnjs version of dropbox-js. seems not to reset by authenticate.
+        dropbox = new Dropbox.Client
+            key: if config.sandbox then API_KEY_SANDBOX else API_KEY_FULL
+            sandbox: config.sandbox
+        dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
         dropbox.authenticate (error, client) ->
             spinner.stop()
             if error
@@ -341,5 +349,8 @@ $('#save-setting').on 'click', ->
         config['user-defined-keyboard'] =
             portrait: parseInt $('#setting input[name="keyboard-height-portrait"]').val()
             landscape: parseInt $('#setting input[name="keyboard-height-landscape"]').val()
-                
+    if config.sandbox.toString() isnt $('#setting input[name="sandbox"]:checked').val()
+        config.sandbox = not config.sandbox
+        if $('#dropbox').text() is 'sign-out'
+            $('#dropbox').trigger 'click'
     localStorage['siphon-config'] = JSON.stringify config
