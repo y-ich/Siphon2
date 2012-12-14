@@ -204,6 +204,7 @@
     var $wrapper, defaultOptions, key, result, value, _ref1;
     defaultOptions = {
       lineNumbers: true,
+      lineWrapping: true,
       onBlur: function() {
         return $('.navbar-fixed-bottom').css('bottom', '');
       },

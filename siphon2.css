@@ -4,11 +4,22 @@ body {
   margin: 0;
 }
 #editor-pane {
-  height: 100%;
+  position: absolute;
+  width: 100%;
+  top: 120px;
+  bottom: 0px;
   background-color: black;
+  -webkit-overflow-scrolling: touch;
 }
 .CodeMirror,
 .CodeMirror-scroll {
   height: auto;
-  overflow: visible;
 }
+/* Tried to scroll whole page, it worked fine except fixed position menu on Mobile Safari.
+ * on Mobile Safari, fixed position elements scroll when focusing text input. */
+/*
+.CodeMirror, .CodeMirror-scroll {
+    height: auto;
+    overflow: visible;
+}
+*/

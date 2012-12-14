@@ -9,6 +9,7 @@
 newCodeMirror = (tabAnchor, options, active) ->
     defaultOptions =
         lineNumbers: true
+        lineWrapping: true
         onBlur: ->
             $('.navbar-fixed-bottom').css 'bottom', ''           
         # CodeMirror 2
