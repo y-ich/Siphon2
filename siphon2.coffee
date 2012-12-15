@@ -179,15 +179,14 @@ $('#setting input[name="home"]').val config.home
     
 spinner = new Spinner(color: '#fff')
 
-apiKey = if config.sandbox then API_KEY_SANDBOX else API_KEY_FULL
 dropbox = new Dropbox.Client
-    key: apiKey
+    key: if config.sandbox then API_KEY_SANDBOX else API_KEY_FULL
     sandbox: config.sandbox
 dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
-if not /not_approved=true/.test location.toString()
+if not /not_approved=true/.test location.toString() # if redirect result is not user reject
     for key, value of localStorage
         try
-            if /^dropbox-auth/.test(key) and JSON.parse(value).key is apiKey
+            if /^dropbox-auth/.test(key) and JSON.parse(value).key is dropbox.oauth.key
                 $('#dropbox').button 'loading'
                 dropbox.authenticate (error, client) ->
                     if error
@@ -197,7 +196,7 @@ if not /not_approved=true/.test location.toString()
                         $('#dropbox').button 'signout'
                 break
         catch error
-            console.error error
+            console.log error
 
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 

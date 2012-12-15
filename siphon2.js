@@ -7,7 +7,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, apiKey, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -435,10 +435,8 @@
     color: '#fff'
   });
 
-  apiKey = config.sandbox ? API_KEY_SANDBOX : API_KEY_FULL;
-
   dropbox = new Dropbox.Client({
-    key: apiKey,
+    key: config.sandbox ? API_KEY_SANDBOX : API_KEY_FULL,
     sandbox: config.sandbox
   });
 
@@ -450,7 +448,7 @@
     for (key in localStorage) {
       value = localStorage[key];
       try {
-        if (/^dropbox-auth/.test(key) && JSON.parse(value).key === apiKey) {
+        if (/^dropbox-auth/.test(key) && JSON.parse(value).key === dropbox.oauth.key) {
           $('#dropbox').button('loading');
           dropbox.authenticate(function(error, client) {
             if (error) {
@@ -463,7 +461,7 @@
           break;
         }
       } catch (error) {
-        console.error(error);
+        console.log(error);
       }
     }
   }
