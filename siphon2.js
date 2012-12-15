@@ -703,7 +703,7 @@
   });
 
   window.addEventListener('orientationchange', (function() {
-    if ($('.navbar-fixed-bottom').css('bottom') !== '') {
+    if ($('.navbar-fixed-bottom').css('bottom') !== '0px') {
       return $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
     }
   }), false);

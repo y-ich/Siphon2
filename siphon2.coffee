@@ -342,7 +342,7 @@ $('#dropbox').on 'click', ->
 
 
 window.addEventListener 'orientationchange', (->
-        if $('.navbar-fixed-bottom').css('bottom') isnt ''
+        if $('.navbar-fixed-bottom').css('bottom') isnt '0px'
             $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
     ), false
 
