@@ -220,7 +220,14 @@ $('a.new-tab-type').on 'click', ->
     $('#file-tabs > li.active, #editor-pane > *').removeClass 'active'
     num = (parseInt e.id.replace /^cm/, '' for e in $('#editor-pane > *')).reduce (a, b) -> Math.max a, b
     id = "cm#{num + 1}"
-    $tab = $("<li class=\"active\"><a href=\"##{id}\" data-toggle=\"tab\">untitled</a></li>")
+    $tab = $("""
+        <li class="active">
+            <a href="##{id}" data-toggle="tab">
+                <button class="close" type="button">&times;</button>
+                <span>untitled</span>
+            </a>
+        </li>
+        """)
     $('#file-tabs > li.dropdown').before $tab
     newCodeMirror $tab.children('a')[0], switch $(this).text()
             when 'HTMl' then mode: 'text/html'
@@ -239,8 +246,8 @@ $('#file-picker').on 'change', (event) ->
     reader.onload = ->
         $active = $('#file-tabs > li.active > a')
         cm = $active.data 'editor'
-        if cm.getValue() is '' and $active.text() is 'untitled'
-            $active.text fileName
+        if cm.getValue() is '' and $active.children('span').text() is 'untitled'
+            $active.children('span').text fileName
             extension = fileName.replace /^.*\./, ''
             cm.setOption 'mode', switch extension
                 when 'html' then 'text/html'
@@ -253,21 +260,22 @@ $('#file-picker').on 'change', (event) ->
             cm.setValue reader.result
     reader.readAsText event.target.files[0]
 
-$('#delete').on 'click', ->
-    $active = $('#file-tabs > li.active > a')
-    if confirm "Do you really delete \"#{$active.text()}\" locally?"
+$('#file-tabs').on 'click', 'button.close', ->
+    $this = $(this)
+    $tabAnchor = $this.parent()
+    if confirm "Do you really delete \"#{$tabAnchor.children('span').text()}\" locally?" # slice removes close button "x"
         if $('#file-tabs > li:not(.dropdown)').length > 1
-            cm = $active.data 'editor'
-            $active.data 'editor', null
-            $active.parent().remove()
+            cm = $tabAnchor.data 'editor'
+            $tabAnchor.data 'editor', null
+            $tabAnchor.parent().remove()
             $(cm.getWrapperElement()).remove()
             $first = $('#file-tabs > li:first-child')
             $first.addClass 'active'
             cm = $first.children('a').data 'editor'
             $(cm.getWrapperElement().parentElement).addClass 'active'
         else
-            $active.text 'untitled'
-            cm = $active.data('editor')
+            $tabAnchor.children('span').text 'untitled'
+            cm = $tabAnchor.data('editor')
             cm.setValue ''
         cm.focus()
 

@@ -511,7 +511,7 @@
       return Math.max(a, b);
     });
     id = "cm" + (num + 1);
-    $tab = $("<li class=\"active\"><a href=\"#" + id + "\" data-toggle=\"tab\">untitled</a></li>");
+    $tab = $("<li class=\"active\">\n    <a href=\"#" + id + "\" data-toggle=\"tab\">\n        <button class=\"close\" type=\"button\">&times;</button>\n        <span>untitled</span>\n    </a>\n</li>");
     $('#file-tabs > li.dropdown').before($tab);
     newCodeMirror($tab.children('a')[0], (function() {
       switch ($(this).text()) {
@@ -558,8 +558,8 @@
       var $active, cm, extension;
       $active = $('#file-tabs > li.active > a');
       cm = $active.data('editor');
-      if (cm.getValue() === '' && $active.text() === 'untitled') {
-        $active.text(fileName);
+      if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
+        $active.children('span').text(fileName);
         extension = fileName.replace(/^.*\./, '');
         cm.setOption('mode', (function() {
           switch (extension) {
@@ -586,22 +586,23 @@
     return reader.readAsText(event.target.files[0]);
   });
 
-  $('#delete').on('click', function() {
-    var $active, $first, cm;
-    $active = $('#file-tabs > li.active > a');
-    if (confirm("Do you really delete \"" + ($active.text()) + "\" locally?")) {
+  $('#file-tabs').on('click', 'button.close', function() {
+    var $first, $tabAnchor, $this, cm;
+    $this = $(this);
+    $tabAnchor = $this.parent();
+    if (confirm("Do you really delete \"" + ($tabAnchor.children('span').text()) + "\" locally?")) {
       if ($('#file-tabs > li:not(.dropdown)').length > 1) {
-        cm = $active.data('editor');
-        $active.data('editor', null);
-        $active.parent().remove();
+        cm = $tabAnchor.data('editor');
+        $tabAnchor.data('editor', null);
+        $tabAnchor.parent().remove();
         $(cm.getWrapperElement()).remove();
         $first = $('#file-tabs > li:first-child');
         $first.addClass('active');
         cm = $first.children('a').data('editor');
         $(cm.getWrapperElement().parentElement).addClass('active');
       } else {
-        $active.text('untitled');
-        cm = $active.data('editor');
+        $tabAnchor.children('span').text('untitled');
+        cm = $tabAnchor.data('editor');
         cm.setValue('');
       }
       return cm.focus();

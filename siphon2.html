@@ -45,7 +45,6 @@
             <input type="file" id="file-picker" style="display: none;"></input>
             <a id="download-button" href="#download-modal" role="button" class="btn" data-toggle="modal"><i class="icon-download"></i></a>
             <button type="button" id="upload" class="btn"><i class="icon-upload"></i></button>
-            <button type="button" id="delete" class="btn"><i class="icon-remove"></i></button>
             <button type="button" id="play" class="btn"><i class="icon-play"></i></button>
             <div class="pull-right">
                 Dropbox:
@@ -55,7 +54,10 @@
         </div>
     </div>
     <ul id="file-tabs" class="nav nav-tabs">
-        <li class="active"><a href="#cm0" data-toggle="tab">untitled</a></li>
+        <li class="active"><a href="#cm0" data-toggle="tab">
+            <button class="close" type="button">&times;</button>
+            <span>untitled</span> <!-- in order to treat file name only-->
+        </a></li>
         <li class="dropdown">
             <a class="dropdown-toggle" data-toggle="dropdown">
                 <i class="icon-plus"></i>

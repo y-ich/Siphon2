@@ -9,6 +9,10 @@ body {
 a.btn:focus {
   outline: none;
 }
+.nav-tabs > li .close {
+  margin: -2px 0 0 10px;
+  font-size: 18px;
+}
 #editor-pane {
   position: absolute;
   width: 100%;
