@@ -200,6 +200,10 @@
   */
 
 
+  API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
+
+  API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw==';
+
   newCodeMirror = function(tabAnchor, options, active) {
     var $wrapper, defaultOptions, key, result, value, _ref1;
     defaultOptions = {
@@ -394,6 +398,14 @@
     }
   })();
 
+  if (/iPhone|iPad/.test(navigator.userAgent)) {
+    $('#file').css('display', 'none');
+  }
+
+  if (!touchDevice) {
+    $('#soft-key').css('display', 'none');
+  }
+
   config = JSON.parse((_ref1 = localStorage['siphon-config']) != null ? _ref1 : '{}');
 
   if ((_ref2 = config.keyboard) == null) {
@@ -419,21 +431,9 @@
 
   $('#setting input[name="home"]').val(config.home);
 
-  if (/iPhone|iPad/.test(navigator.userAgent)) {
-    $('#file').css('display', 'none');
-  }
-
-  if (!touchDevice) {
-    $('#soft-key').css('display', 'none');
-  }
-
   spinner = new Spinner({
     color: '#fff'
   });
-
-  API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
-
-  API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw==';
 
   apiKey = config.sandbox ? API_KEY_SANDBOX : API_KEY_FULL;
 
@@ -446,23 +446,25 @@
     rememberUser: true
   }));
 
-  for (key in localStorage) {
-    value = localStorage[key];
-    try {
-      if (/^dropbox-auth/.test(key) && JSON.parse(value).key === apiKey) {
-        $('#dropbox').button('loading');
-        dropbox.authenticate(function(error, client) {
-          if (error) {
-            showError(error);
-            return $('#dropbox').button('reset');
-          } else {
-            return $('#dropbox').button('signout');
-          }
-        });
-        break;
+  if (!/not_approved=true/.test(location.toString())) {
+    for (key in localStorage) {
+      value = localStorage[key];
+      try {
+        if (/^dropbox-auth/.test(key) && JSON.parse(value).key === apiKey) {
+          $('#dropbox').button('loading');
+          dropbox.authenticate(function(error, client) {
+            if (error) {
+              showError(error);
+              return $('#dropbox').button('reset');
+            } else {
+              return $('#dropbox').button('signout');
+            }
+          });
+          break;
+        }
+      } catch (error) {
+        console.error(error);
       }
-    } catch (error) {
-      console.error(error);
     }
   }
 
@@ -687,7 +689,8 @@
       dropbox.signOut(function(error) {
         spinner.stop();
         if (error) {
-          return showError(error);
+          showError(error);
+          return alart('pass');
         } else {
           return $this.button('reset');
         }

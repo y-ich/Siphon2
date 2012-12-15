@@ -2,6 +2,9 @@
 # (C) 2012 New 3 Rs (ICHIKAWA, Yuji)
 ###
 
+API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ=='
+API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw=='
+
 #
 # function definitions
 #
@@ -160,6 +163,9 @@ touchDevice =
     catch error
         false
 
+$('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
+$('#soft-key').css 'display', 'none' unless touchDevice
+
 config = JSON.parse localStorage['siphon-config'] ? '{}'
 config.keyboard ?= 'normal'
 config.sandbox ?= true
@@ -171,32 +177,27 @@ if config['user-defined-keyboard']?
 $("#setting input[name=\"sandbox\"][value=\"#{config.sandbox.toString()}\"]").attr 'checked', ''
 $('#setting input[name="home"]').val config.home
     
-$('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
-$('#soft-key').css 'display', 'none' unless touchDevice
-
 spinner = new Spinner(color: '#fff')
 
-API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ=='
-API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw=='
 apiKey = if config.sandbox then API_KEY_SANDBOX else API_KEY_FULL
-
 dropbox = new Dropbox.Client
     key: apiKey
     sandbox: config.sandbox
 dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
-for key, value of localStorage
-    try
-        if /^dropbox-auth/.test(key) and JSON.parse(value).key is apiKey
-            $('#dropbox').button 'loading'
-            dropbox.authenticate (error, client) ->
-                if error
-                    showError error 
-                    $('#dropbox').button 'reset'
-                else
-                    $('#dropbox').button 'signout'
-            break
-    catch error
-        console.error error
+if not /not_approved=true/.test location.toString()
+    for key, value of localStorage
+        try
+            if /^dropbox-auth/.test(key) and JSON.parse(value).key is apiKey
+                $('#dropbox').button 'loading'
+                dropbox.authenticate (error, client) ->
+                    if error
+                        showError error 
+                        $('#dropbox').button 'reset'
+                    else
+                        $('#dropbox').button 'signout'
+                break
+        catch error
+            console.error error
 
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
@@ -327,7 +328,8 @@ $('#dropbox').on 'click', ->
         dropbox.signOut (error) ->
             spinner.stop()
             if error
-                showError error 
+                showError error
+                alart 'pass'
             else
                 $this.button 'reset'
             
