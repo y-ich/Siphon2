@@ -612,7 +612,16 @@
     return getList($('#download-modal .breadcrumb > li.active > a').data('path'));
   });
 
-  $('#download-modal table').on('click', 'tr', function(event) {
+  $('#download-modal .breadcrumb').on('click', 'li:not(.active) > a', function() {
+    var $this;
+    $this = $(this);
+    $this.parent().nextUntil().remove();
+    $this.parent().addClass('active');
+    getList($this.data('path'));
+    return false;
+  });
+
+  $('#download-modal table').on('click', 'tr', function() {
     var $this, stat;
     $this = $(this);
     stat = $this.data('dropbox');

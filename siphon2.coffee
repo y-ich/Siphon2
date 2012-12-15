@@ -274,7 +274,14 @@ $('#delete').on 'click', ->
 $('#download-button').on 'click', ->
     getList $('#download-modal .breadcrumb > li.active > a').data('path')
 
-$('#download-modal table').on 'click', 'tr', (event) ->
+$('#download-modal .breadcrumb').on 'click', 'li:not(.active) > a', ->
+    $this = $(this)
+    $this.parent().nextUntil().remove()
+    $this.parent().addClass 'active'
+    getList $this.data 'path'
+    false # prevent default
+    
+$('#download-modal table').on 'click', 'tr', ->
     $this =$(this)
     stat = $this.data('dropbox')
     if stat.isFile
