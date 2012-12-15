@@ -72,7 +72,7 @@ getList = (path, $ul) ->
 uploadFile = ->
     $active = $('#file-tabs > li.active > a')
     stat = $active.data 'dropbox'
-    path = if stat? then stat.path else prompt 'put file name with its path', $active.text()
+    path = if stat? then stat.path else config.home + '/ ' + prompt 'put file name with its path', $active.text()
     return if not path? or path is ''
     
     dropbox.writeFile path, $active.data('editor').getValue(), null, (error, stat) ->
@@ -171,11 +171,13 @@ touchDevice =
 config = JSON.parse localStorage['siphon-config'] ? '{}'
 config.keyboard ?= 'normal'
 config.sandbox ?= true
+config.home ?= ''
 $("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
 if config['user-defined-keyboard']?
     $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
     $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
 $("#setting input[name=\"sandbox\"][value=\"#{config.sandbox.toString()}\"]").attr 'checked', ''
+$('#setting input[name="home"]').val config.home
     
 $('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
 $('#soft-key').css 'display', 'none' unless touchDevice
@@ -275,7 +277,7 @@ $('#delete').on 'click', ->
         cm.focus()
 
 # Including touchstart is work around that touchstart in bootstrap dropdown return false and that prevents default actions such as triggering click event.
-$('#download').on 'click touchstart', -> getList '', $('#download~ul')
+$('#download').on 'click touchstart', -> getList config.home, $('#download~ul')
 
 $('#download~ul').on 'click', 'a', (event) ->
     event.preventDefault()
