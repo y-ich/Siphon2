@@ -3,6 +3,9 @@ body {
   height: 100%;
   margin: 0;
 }
+.modal-body {
+  -webkit-overflow-scrolling: touch;
+}
 #editor-pane {
   position: absolute;
   width: 100%;

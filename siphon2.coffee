@@ -272,17 +272,11 @@ $('#download-button').on 'click', ->
     getList $('#download-modal .breadcrumb > li.active > a').data('path')
 
 $('#download-modal table').on 'click', 'tr', (event) ->
-    $('#download-modal table tr').removeClass 'info'
-    $(this).addClass 'info'
-    
-$('#open').on 'click', ->
-    stat = $('#download-modal table tr.info').data('dropbox')
+    $this =$(this)
+    stat = $this.data('dropbox')
     if stat.isFile
-        dropbox.readFile stat.path, null, (error, string, stat) ->
-            spinner.stop()
-            $('#file-tabs > li.active > a').data('editor').setValue string
-            $('#file-tabs > li.active > a').data 'dropbox', stat
-        spinner.spin document.body
+        $('#download-modal table tr').removeClass 'info'
+        $this.addClass 'info'
     else if stat.isFolder
         $('#download-modal .breadcrumb > li.active').removeClass 'active'
         $('#download-modal .breadcrumb').append $("""
@@ -292,6 +286,15 @@ $('#open').on 'click', ->
             </li>
             """)
         getList stat.path
+    
+$('#open').on 'click', ->
+    stat = $('#download-modal table tr.info').data('dropbox')
+    if stat?.isFile
+        dropbox.readFile stat.path, null, (error, string, stat) ->
+            spinner.stop()
+            $('#file-tabs > li.active > a').data('editor').setValue string
+            $('#file-tabs > li.active > a').data 'dropbox', stat
+        spinner.spin document.body
         
 
 $('#upload').on 'click', ->

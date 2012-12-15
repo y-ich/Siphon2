@@ -613,24 +613,29 @@
   });
 
   $('#download-modal table').on('click', 'tr', function(event) {
-    $('#download-modal table tr').removeClass('info');
-    return $(this).addClass('info');
+    var $this, stat;
+    $this = $(this);
+    stat = $this.data('dropbox');
+    if (stat.isFile) {
+      $('#download-modal table tr').removeClass('info');
+      return $this.addClass('info');
+    } else if (stat.isFolder) {
+      $('#download-modal .breadcrumb > li.active').removeClass('active');
+      $('#download-modal .breadcrumb').append($("<li class=\"active\">\n    <span class=\"divider\">/</span>\n    <a href=\"#\" data-path=\"" + stat.path + "\"}>" + stat.name + "</a>\n</li>"));
+      return getList(stat.path);
+    }
   });
 
   $('#open').on('click', function() {
     var stat;
     stat = $('#download-modal table tr.info').data('dropbox');
-    if (stat.isFile) {
+    if (stat != null ? stat.isFile : void 0) {
       dropbox.readFile(stat.path, null, function(error, string, stat) {
         spinner.stop();
         $('#file-tabs > li.active > a').data('editor').setValue(string);
         return $('#file-tabs > li.active > a').data('dropbox', stat);
       });
       return spinner.spin(document.body);
-    } else if (stat.isFolder) {
-      $('#download-modal .breadcrumb > li.active').removeClass('active');
-      $('#download-modal .breadcrumb').append($("<li class=\"active\">\n    <span class=\"divider\">/</span>\n    <a href=\"#\" data-path=\"" + stat.path + "\"}>" + stat.name + "</a>\n</li>"));
-      return getList(stat.path);
     }
   });
 
