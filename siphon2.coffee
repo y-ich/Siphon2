@@ -338,7 +338,9 @@ window.addEventListener 'orientationchange', (->
             $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
     ), false
 
-window.addEventListener 'scroll', (-> if document.body.scrollLeft != 0 or document.body.scrollTop != 0 then scrollTo 0, 0), false
+window.addEventListener 'scroll', (->
+    if (document.body.scrollLeft != 0 or document.body.scrollTop != 0) and $('.open').length == 0 then scrollTo 0, 0
+), false
 
 $('#save-setting').on 'click', ->
     config.keyboard = $('#setting input[name="keyboard"]:checked').val()

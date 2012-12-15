@@ -696,7 +696,7 @@
   }), false);
 
   window.addEventListener('scroll', (function() {
-    if (document.body.scrollLeft !== 0 || document.body.scrollTop !== 0) {
+    if ((document.body.scrollLeft !== 0 || document.body.scrollTop !== 0) && $('.open').length === 0) {
       return scrollTo(0, 0);
     }
   }), false);
