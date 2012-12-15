@@ -7,7 +7,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -288,12 +288,18 @@
   };
 
   uploadFile = function() {
-    var $active, path, stat;
+    var $active, filename, folder, path, stat;
     $active = $('#file-tabs > li.active > a');
     stat = $active.data('dropbox');
-    path = stat != null ? stat.path : config.home + '/ ' + prompt('put file name with its path', $active.text());
-    if (!(path != null) || path === '') {
-      return;
+    if (stat != null) {
+      path = stat.path;
+    } else {
+      folder = $('#download-modal .breadcrumb > li.active > a').data('path');
+      filename = prompt("Input file name. (current folder is " + folder + ".)", $active.text());
+      if (!filename) {
+        return;
+      }
+      path = folder + '/' + filename;
     }
     dropbox.writeFile(path, $active.data('editor').getValue(), null, function(error, stat) {
       spinner.stop();
@@ -416,10 +422,6 @@
     config.sandbox = true;
   }
 
-  if ((_ref4 = config.home) == null) {
-    config.home = '';
-  }
-
   $("#setting input[name=\"keyboard\"][value=\"" + config.keyboard + "\"]").attr('checked', '');
 
   if (config['user-defined-keyboard'] != null) {
@@ -428,8 +430,6 @@
   }
 
   $("#setting input[name=\"sandbox\"][value=\"" + (config.sandbox.toString()) + "\"]").attr('checked', '');
-
-  $('#setting input[name="home"]').val(config.home);
 
   spinner = new Spinner({
     color: '#fff'
@@ -471,26 +471,26 @@
     mode: 'coffeescript'
   }, true);
 
-  _ref5 = $('.navbar-fixed-bottom');
-  for (_j = 0, _len1 = _ref5.length; _j < _len1; _j++) {
-    e = _ref5[_j];
+  _ref4 = $('.navbar-fixed-bottom');
+  for (_j = 0, _len1 = _ref4.length; _j < _len1; _j++) {
+    e = _ref4[_j];
     new NoClickDelay(e, false);
   }
 
   $('#previous-button').on('click', function() {
-    var cm, _ref6;
+    var cm, _ref5;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref6 = cm.siphon.autoComplete) != null) {
-      _ref6.previous();
+    if ((_ref5 = cm.siphon.autoComplete) != null) {
+      _ref5.previous();
     }
     return cm.focus();
   });
 
   $('#next-button').on('click', function() {
-    var cm, _ref6;
+    var cm, _ref5;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref6 = cm.siphon.autoComplete) != null) {
-      _ref6.next();
+    if ((_ref5 = cm.siphon.autoComplete) != null) {
+      _ref5.next();
     }
     return cm.focus();
   });
@@ -499,11 +499,11 @@
     var $tab, id, num;
     $('#file-tabs > li.active, #editor-pane > *').removeClass('active');
     num = ((function() {
-      var _k, _len2, _ref6, _results;
-      _ref6 = $('#editor-pane > *');
+      var _k, _len2, _ref5, _results;
+      _ref5 = $('#editor-pane > *');
       _results = [];
-      for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
-        e = _ref6[_k];
+      for (_k = 0, _len2 = _ref5.length; _k < _len2; _k++) {
+        e = _ref5[_k];
         _results.push(parseInt(e.id.replace(/^cm/, '')));
       }
       return _results;

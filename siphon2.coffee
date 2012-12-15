@@ -67,8 +67,13 @@ getList = (path) ->
 uploadFile = ->
     $active = $('#file-tabs > li.active > a')
     stat = $active.data 'dropbox'
-    path = if stat? then stat.path else config.home + '/ ' + prompt 'put file name with its path', $active.text()
-    return if not path? or path is ''
+    if stat?
+        path = stat.path
+    else
+        folder = $('#download-modal .breadcrumb > li.active > a').data('path')
+        filename = prompt "Input file name. (current folder is #{folder}.)", $active.text()
+        return unless filename
+        path = folder + '/' + filename
     
     dropbox.writeFile path, $active.data('editor').getValue(), null, (error, stat) ->
         spinner.stop()
@@ -169,13 +174,11 @@ $('#soft-key').css 'display', 'none' unless touchDevice
 config = JSON.parse localStorage['siphon-config'] ? '{}'
 config.keyboard ?= 'normal'
 config.sandbox ?= true
-config.home ?= ''
 $("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
 if config['user-defined-keyboard']?
     $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
     $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
 $("#setting input[name=\"sandbox\"][value=\"#{config.sandbox.toString()}\"]").attr 'checked', ''
-$('#setting input[name="home"]').val config.home
     
 spinner = new Spinner(color: '#fff')
 
