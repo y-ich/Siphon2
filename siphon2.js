@@ -260,21 +260,23 @@
 
   newCodeMirror.number = 0;
 
-  getList = function(path, $ul) {
+  getList = function(path) {
+    var $table;
+    $table = $('#download-modal table');
     spinner.spin(document.body);
     return dropbox.readdir(path, null, function(error, names, stat, stats) {
-      var $li, _j, _len1, _results;
+      var $tr, _j, _len1, _results;
       spinner.stop();
-      $ul.children().remove();
+      $table.children().remove();
       if (error) {
         return alert(error);
       } else {
         _results = [];
         for (_j = 0, _len1 = stats.length; _j < _len1; _j++) {
           e = stats[_j];
-          $li = $(e.isFolder ? "<li class=\"dropdown-submenu\">\n    <a href=\"#\">" + e.name + "</a>\n    <ul class=\"dropdown-menu\"></ul>\n</li>" : "<li><a href=\"#\">" + e.name + "</a></li>");
-          $li.children('a').data('dropbox', e);
-          _results.push($ul.append($li));
+          $tr = $("<tr><td>" + e.name + "</td></tr>");
+          $tr.data('dropbox', e);
+          _results.push($table.append($tr));
         }
         return _results;
       }
@@ -606,30 +608,29 @@
     }
   });
 
-  $('#download').on('click touchstart', function() {
-    return getList(config.home, $('#download~ul'));
+  $('#download-button').on('click', function() {
+    return getList($('#download-modal .breadcrumb > li.active > a').data('path'));
   });
 
-  $('#download~ul').on('click', 'a', function(event) {
+  $('#download-modal table').on('click', 'tr', function(event) {
+    $('#download-modal table tr').removeClass('info');
+    return $(this).addClass('info');
+  });
+
+  $('#open').on('click', function() {
     var stat;
-    event.preventDefault();
-    stat = $(this).data('dropbox');
+    stat = $('#download-modal table tr.info').data('dropbox');
     if (stat.isFile) {
       dropbox.readFile(stat.path, null, function(error, string, stat) {
         spinner.stop();
         $('#file-tabs > li.active > a').data('editor').setValue(string);
         return $('#file-tabs > li.active > a').data('dropbox', stat);
       });
-    }
-    return spinner.spin(document.body);
-  });
-
-  $('#download~ul').on('mouseover', 'a', function(event) {
-    var $this, stat;
-    $this = $(this);
-    stat = $this.data('dropbox');
-    if (stat.isFolder) {
-      return getList(stat.path, $this.next('ul'));
+      return spinner.spin(document.body);
+    } else if (stat.isFolder) {
+      $('#download-modal .breadcrumb > li.active').removeClass('active');
+      $('#download-modal .breadcrumb').append($("<li class=\"active\">\n    <span class=\"divider\">/</span>\n    <a href=\"#\" data-path=\"" + stat.path + "\"}>" + stat.name + "</a>\n</li>"));
+      return getList(stat.path);
     }
   });
 
