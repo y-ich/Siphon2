@@ -372,7 +372,7 @@
   };
 
   keyboardHeight = function(config) {
-    var IPAD_KEYBOARD_HEIGHT, IPAD_SPLIT_KEYBOARD_HEIGHT, r;
+    var IPAD_KEYBOARD_HEIGHT, IPAD_SPLIT_KEYBOARD_HEIGHT;
     IPAD_KEYBOARD_HEIGHT = {
       portrait: 307,
       landscape: 395
@@ -381,7 +381,7 @@
       portrait: 283,
       landscape: 277
     };
-    r = ((function() {
+    return ((function() {
       switch (config.keyboard) {
         case 'normal':
           return IPAD_KEYBOARD_HEIGHT;
@@ -391,8 +391,6 @@
           return config['user-defined-keyboard'];
       }
     })())[orientation % 180 === 0 ? 'portrait' : 'landscape'];
-    console.log(r);
-    return r;
   };
 
   touchDevice = (function() {

@@ -151,12 +151,11 @@ keyboardHeight = (config) ->
         portrait: 283
         landscape: 277
 
-    r = (switch config.keyboard
+    (switch config.keyboard
         when 'normal' then IPAD_KEYBOARD_HEIGHT
         when 'split' then IPAD_SPLIT_KEYBOARD_HEIGHT
         when 'user-defined' then config['user-defined-keyboard'])[if orientation % 180 == 0 then 'portrait' else 'landscape']
-    console.log r
-    r
+
 #
 # main
 #
