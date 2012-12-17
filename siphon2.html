@@ -114,6 +114,7 @@
         </div>
         <div class="modal-body">
             <form id="setting" class="form-horizontal">
+                <span class="help-block">Keyboard related</span>
                 <div class="control-group">
                     <label class="control-label" for="keyboard">keyboard:</label>              
                     <div class="controls">
@@ -157,11 +158,21 @@
                         </label>
                     </div>                    
                 </div>
+                <p>
+                    When you change Dropbox permission, <strong>please reload or restart Siphon2.</strong>
+                    Siphon2 keeps using current permission until restart.
+                </p>
+                <span class="help-block">Upload options</span>
+                <div class="control-group">
+                    <label class="control-label" for="compile">compile:</label>
+                    <div class="controls">
+                        <label class="checkbox">
+                            <input type="checkbox" name="compile" value="true">
+                            Upload CoffeeScript or LESS file with compiled file
+                        </label>
+                    </div>                    
+                </div>
             </form>
-            <p>
-                When you change Dropbox permission, <strong>please reload or restart Siphon2.</strong>
-                Siphon2 keeps using current permission until restart.
-            </p>
         </div>
         <div class="modal-footer">
             <button id="save-setting" class="btn btn-primary" data-dismiss="modal" aria-hidden="true">Save</button>

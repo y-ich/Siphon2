@@ -75,13 +75,30 @@ uploadFile = ->
         return unless filename
         path = folder + '/' + filename
     
+    fileDeferred = $.Deferred()
     dropbox.writeFile path, $active.data('editor').getValue(), null, (error, stat) ->
-        spinner.stop()
         if error
             alert error
         else
             $active.data 'dropbox', stat
-            
+        fileDeferred.resolve()
+
+    compileDeferred = $.Deferred()        
+    if config.compile
+        switch path.replace /^.*\./, ''
+            when 'coffee'
+                dropbox.writeFile path.replace(/coffee$/, 'js'), CoffeeScript.compile($active.data('editor').getValue()), null, (error, stat) ->
+                    if error
+                        alert error
+                    compileDeferred.resolve()
+            when 'less'
+                null
+            else
+                compileDeferred.resolve()
+    else
+        compileDeferred.resolve()
+
+    $.when(fileDeferred, compileDeferred).then -> spinner.stop()
     spinner.spin document.body
 
 fireKeyEvent = (type, keyIdentifier, keyCode, charCode = 0) ->
@@ -173,12 +190,14 @@ $('#soft-key').css 'display', 'none' unless touchDevice
 config = JSON.parse localStorage['siphon-config'] ? '{}'
 config.keyboard ?= 'normal'
 config.sandbox ?= true
+config.compile ?= false
 $("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
 if config['user-defined-keyboard']?
     $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
     $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
 $("#setting input[name=\"sandbox\"][value=\"#{config.sandbox.toString()}\"]").attr 'checked', ''
-    
+$("#setting input[name=\"compile\"]").attr 'checked', '' if config.compile
+
 spinner = new Spinner(color: '#fff')
 
 dropbox = new Dropbox.Client
@@ -372,4 +391,6 @@ $('#save-setting').on 'click', ->
             landscape: parseInt $('#setting input[name="keyboard-height-landscape"]').val()
     if config.sandbox.toString() isnt $('#setting input[name="sandbox"]:checked').val()
         config.sandbox = not config.sandbox
+    if (typeof $('#setting input[name="compile"]').attr('checked') isnt 'undefined') isnt config.compile
+        config.compile = not config.compile
     localStorage['siphon-config'] = JSON.stringify config

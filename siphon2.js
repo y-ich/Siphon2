@@ -7,7 +7,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4;
+  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -288,7 +288,7 @@
   };
 
   uploadFile = function() {
-    var $active, filename, folder, path, stat;
+    var $active, compileDeferred, fileDeferred, filename, folder, path, stat;
     $active = $('#file-tabs > li.active > a');
     stat = $active.data('dropbox');
     if (stat != null) {
@@ -301,13 +301,37 @@
       }
       path = folder + '/' + filename;
     }
+    fileDeferred = $.Deferred();
     dropbox.writeFile(path, $active.data('editor').getValue(), null, function(error, stat) {
-      spinner.stop();
       if (error) {
-        return alert(error);
+        alert(error);
       } else {
-        return $active.data('dropbox', stat);
+        $active.data('dropbox', stat);
       }
+      return fileDeferred.resolve();
+    });
+    compileDeferred = $.Deferred();
+    if (config.compile) {
+      switch (path.replace(/^.*\./, '')) {
+        case 'coffee':
+          dropbox.writeFile(path.replace(/coffee$/, 'js'), CoffeeScript.compile($active.data('editor').getValue()), null, function(error, stat) {
+            if (error) {
+              alert(error);
+            }
+            return compileDeferred.resolve();
+          });
+          break;
+        case 'less':
+          null;
+          break;
+        default:
+          compileDeferred.resolve();
+      }
+    } else {
+      compileDeferred.resolve();
+    }
+    $.when(fileDeferred, compileDeferred).then(function() {
+      return spinner.stop();
     });
     return spinner.spin(document.body);
   };
@@ -420,6 +444,10 @@
     config.sandbox = true;
   }
 
+  if ((_ref4 = config.compile) == null) {
+    config.compile = false;
+  }
+
   $("#setting input[name=\"keyboard\"][value=\"" + config.keyboard + "\"]").attr('checked', '');
 
   if (config['user-defined-keyboard'] != null) {
@@ -428,6 +456,10 @@
   }
 
   $("#setting input[name=\"sandbox\"][value=\"" + (config.sandbox.toString()) + "\"]").attr('checked', '');
+
+  if (config.compile) {
+    $("#setting input[name=\"compile\"]").attr('checked', '');
+  }
 
   spinner = new Spinner({
     color: '#fff'
@@ -469,26 +501,26 @@
     mode: 'coffeescript'
   }, true);
 
-  _ref4 = $('.navbar-fixed-bottom');
-  for (_j = 0, _len1 = _ref4.length; _j < _len1; _j++) {
-    e = _ref4[_j];
+  _ref5 = $('.navbar-fixed-bottom');
+  for (_j = 0, _len1 = _ref5.length; _j < _len1; _j++) {
+    e = _ref5[_j];
     new NoClickDelay(e, false);
   }
 
   $('#previous-button').on('click', function() {
-    var cm, _ref5;
+    var cm, _ref6;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref5 = cm.siphon.autoComplete) != null) {
-      _ref5.previous();
+    if ((_ref6 = cm.siphon.autoComplete) != null) {
+      _ref6.previous();
     }
     return cm.focus();
   });
 
   $('#next-button').on('click', function() {
-    var cm, _ref5;
+    var cm, _ref6;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref5 = cm.siphon.autoComplete) != null) {
-      _ref5.next();
+    if ((_ref6 = cm.siphon.autoComplete) != null) {
+      _ref6.next();
     }
     return cm.focus();
   });
@@ -497,11 +529,11 @@
     var $tab, id, num;
     $('#file-tabs > li.active, #editor-pane > *').removeClass('active');
     num = ((function() {
-      var _k, _len2, _ref5, _results;
-      _ref5 = $('#editor-pane > *');
+      var _k, _len2, _ref6, _results;
+      _ref6 = $('#editor-pane > *');
       _results = [];
-      for (_k = 0, _len2 = _ref5.length; _k < _len2; _k++) {
-        e = _ref5[_k];
+      for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
+        e = _ref6[_k];
         _results.push(parseInt(e.id.replace(/^cm/, '')));
       }
       return _results;
@@ -732,6 +764,9 @@
     }
     if (config.sandbox.toString() !== $('#setting input[name="sandbox"]:checked').val()) {
       config.sandbox = !config.sandbox;
+    }
+    if ((typeof $('#setting input[name="compile"]').attr('checked') !== 'undefined') !== config.compile) {
+      config.compile = !config.compile;
     }
     return localStorage['siphon-config'] = JSON.stringify(config);
   });
