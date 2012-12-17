@@ -7,7 +7,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, i, key, keyboardHeight, lessParser, name, newCodeMirror, newTabAndEditor, parentFolders, showError, spinner, touchDevice, uploadFile, value, variables, _base, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -469,6 +469,17 @@
 
   newTabAndEditor.num = 0;
 
+  parentFolders = function(path) {
+    var i, split, _j, _len1, _results;
+    split = path.split('/');
+    _results = [];
+    for (i = _j = 0, _len1 = split.length; _j < _len1; i = ++_j) {
+      e = split[i];
+      _results.push(split.slice(0, +i + 1 || 9e9).join('/'));
+    }
+    return _results;
+  };
+
   touchDevice = (function() {
     try {
       document.createEvent('TouchEvent');
@@ -492,12 +503,20 @@
     config.keyboard = 'normal';
   }
 
-  if ((_ref3 = config.sandbox) == null) {
-    config.sandbox = true;
+  if ((_ref3 = config.compile) == null) {
+    config.compile = false;
   }
 
-  if ((_ref4 = config.compile) == null) {
-    config.compile = false;
+  if ((_ref4 = config.dropbox) == null) {
+    config.dropbox = {};
+  }
+
+  if ((_ref5 = (_base = config.dropbox).sandbox) == null) {
+    _base.sandbox = true;
+  }
+
+  if (!(config.dropbox.currentFolder != null) || config.dropbox.currentFolder === '') {
+    config.dropbox.currentFolder = '/';
   }
 
   $("#setting input[name=\"keyboard\"][value=\"" + config.keyboard + "\"]").attr('checked', '');
@@ -507,19 +526,34 @@
     $('#setting input[name="keyboard-height-landscape"]').value(config['user-defined-keyboard'].landscape);
   }
 
-  $("#setting input[name=\"sandbox\"][value=\"" + (config.sandbox.toString()) + "\"]").attr('checked', '');
+  $("#setting input[name=\"sandbox\"][value=\"" + (config.dropbox.sandbox.toString()) + "\"]").attr('checked', '');
 
   if (config.compile) {
     $("#setting input[name=\"compile\"]").attr('checked', '');
   }
+
+  console.log(parentFolders(config.dropbox.currentFolder));
+
+  _ref6 = parentFolders(config.dropbox.currentFolder);
+  for (i = _j = 0, _len1 = _ref6.length; _j < _len1; i = ++_j) {
+    e = _ref6[i];
+    if (i === 0) {
+      $('#download-modal .breadcrumb').append('<li><a href="#" data-path="/">Home</a></li>');
+    } else {
+      name = e.replace(/^.*\//, '');
+      $('#download-modal .breadcrumb').append("<li>\n    <span class=\"divider\">/</span>\n    <a href=\"#\" data-path=\"" + e + "\">" + name + "</a>\n</li>");
+    }
+  }
+
+  $('#download-modal .breadcrumb > li:last-child').addClass('active');
 
   spinner = new Spinner({
     color: '#fff'
   });
 
   dropbox = new Dropbox.Client({
-    key: config.sandbox ? API_KEY_SANDBOX : API_KEY_FULL,
-    sandbox: config.sandbox
+    key: config.dropbox.sandbox ? API_KEY_SANDBOX : API_KEY_FULL,
+    sandbox: config.dropbox.sandbox
   });
 
   dropbox.authDriver(new Dropbox.Drivers.Redirect({
@@ -555,26 +589,26 @@
     mode: 'coffeescript'
   }, true);
 
-  _ref5 = $('.navbar-fixed-bottom');
-  for (_j = 0, _len1 = _ref5.length; _j < _len1; _j++) {
-    e = _ref5[_j];
+  _ref7 = $('.navbar-fixed-bottom');
+  for (_k = 0, _len2 = _ref7.length; _k < _len2; _k++) {
+    e = _ref7[_k];
     new NoClickDelay(e, false);
   }
 
   $('#previous-button').on('click', function() {
-    var cm, _ref6;
+    var cm, _ref8;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref6 = cm.siphon.autoComplete) != null) {
-      _ref6.previous();
+    if ((_ref8 = cm.siphon.autoComplete) != null) {
+      _ref8.previous();
     }
     return cm.focus();
   });
 
   $('#next-button').on('click', function() {
-    var cm, _ref6;
+    var cm, _ref8;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref6 = cm.siphon.autoComplete) != null) {
-      _ref6.next();
+    if ((_ref8 = cm.siphon.autoComplete) != null) {
+      _ref8.next();
     }
     return cm.focus();
   });
@@ -648,15 +682,18 @@
   });
 
   $('#download-button').on('click', function() {
-    return getList($('#download-modal .breadcrumb > li.active > a').data('path'));
+    return getList(config.dropbox.currentFolder);
   });
 
   $('#download-modal .breadcrumb').on('click', 'li:not(.active) > a', function() {
-    var $this;
+    var $this, path;
     $this = $(this);
     $this.parent().nextUntil().remove();
     $this.parent().addClass('active');
-    getList($this.data('path'));
+    path = $this.data('path');
+    getList(path);
+    config.dropbox.currentFolder = path;
+    localStorage['siphon-config'] = JSON.stringify(config);
     return false;
   });
 
@@ -670,7 +707,9 @@
     } else if (stat.isFolder) {
       $('#download-modal .breadcrumb > li.active').removeClass('active');
       $('#download-modal .breadcrumb').append($("<li class=\"active\">\n    <span class=\"divider\">/</span>\n    <a href=\"#\" data-path=\"" + stat.path + "\"}>" + stat.name + "</a>\n</li>"));
-      return getList(stat.path);
+      getList(stat.path);
+      config.dropbox.currentFolder = stat.path;
+      return localStorage['siphon-config'] = JSON.stringify(config);
     }
   });
 
@@ -808,8 +847,8 @@
         landscape: parseInt($('#setting input[name="keyboard-height-landscape"]').val())
       };
     }
-    if (config.sandbox.toString() !== $('#setting input[name="sandbox"]:checked').val()) {
-      config.sandbox = !config.sandbox;
+    if (config.dropbox.sandbox.toString() !== $('#setting input[name="sandbox"]:checked').val()) {
+      config.dropbox.sandbox = !config.dropbox.sandbox;
     }
     if ((typeof $('#setting input[name="compile"]').attr('checked') !== 'undefined') !== config.compile) {
       config.compile = !config.compile;

@@ -201,6 +201,10 @@ newTabAndEditor = (title = 'untitled', mode) ->
         , true
 newTabAndEditor.num = 0
 
+parentFolders = (path) ->
+    split = path.split '/'
+    split[0..i].join '/' for e, i in split
+        
 #
 # main
 #
@@ -217,20 +221,36 @@ $('#soft-key').css 'display', 'none' unless touchDevice
 
 config = JSON.parse localStorage['siphon-config'] ? '{}'
 config.keyboard ?= 'normal'
-config.sandbox ?= true
 config.compile ?= false
+config.dropbox ?= {}
+config.dropbox.sandbox ?= true
+config.dropbox.currentFolder = '/' if not config.dropbox.currentFolder? or config.dropbox.currentFolder is ''
+
 $("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
 if config['user-defined-keyboard']?
     $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
     $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
-$("#setting input[name=\"sandbox\"][value=\"#{config.sandbox.toString()}\"]").attr 'checked', ''
+$("#setting input[name=\"sandbox\"][value=\"#{config.dropbox.sandbox.toString()}\"]").attr 'checked', ''
 $("#setting input[name=\"compile\"]").attr 'checked', '' if config.compile
+console.log parentFolders config.dropbox.currentFolder
+for e, i in parentFolders config.dropbox.currentFolder
+    if i == 0
+        $('#download-modal .breadcrumb').append '<li><a href="#" data-path="/">Home</a></li>'
+    else
+        name = e.replace /^.*\//, ''
+        $('#download-modal .breadcrumb').append """
+            <li>
+                <span class="divider">/</span>
+                <a href="#" data-path="#{e}">#{name}</a>
+            </li>
+            """
+$('#download-modal .breadcrumb > li:last-child').addClass 'active'
 
 spinner = new Spinner(color: '#fff')
 
 dropbox = new Dropbox.Client
-    key: if config.sandbox then API_KEY_SANDBOX else API_KEY_FULL
-    sandbox: config.sandbox
+    key: if config.dropbox.sandbox then API_KEY_SANDBOX else API_KEY_FULL
+    sandbox: config.dropbox.sandbox
 dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
 if not /not_approved=true/.test location.toString() # if redirect result is not user reject
     for key, value of localStorage
@@ -309,13 +329,16 @@ $('#file-tabs').on 'click', 'button.close', ->
         cm.focus()
 
 $('#download-button').on 'click', ->
-    getList $('#download-modal .breadcrumb > li.active > a').data('path')
+    getList config.dropbox.currentFolder
 
 $('#download-modal .breadcrumb').on 'click', 'li:not(.active) > a', ->
     $this = $(this)
     $this.parent().nextUntil().remove()
     $this.parent().addClass 'active'
-    getList $this.data 'path'
+    path = $this.data 'path'
+    getList path
+    config.dropbox.currentFolder = path
+    localStorage['siphon-config'] = JSON.stringify config
     false # prevent default
     
 $('#download-modal table').on 'click', 'tr', ->
@@ -333,6 +356,8 @@ $('#download-modal table').on 'click', 'tr', ->
             </li>
             """)
         getList stat.path
+        config.dropbox.currentFolder = stat.path
+        localStorage['siphon-config'] = JSON.stringify config
     
 $('#open').on 'click', ->
     stat = $('#download-modal table tr.info').data('dropbox')
@@ -420,8 +445,8 @@ $('#save-setting').on 'click', ->
         config['user-defined-keyboard'] =
             portrait: parseInt $('#setting input[name="keyboard-height-portrait"]').val()
             landscape: parseInt $('#setting input[name="keyboard-height-landscape"]').val()
-    if config.sandbox.toString() isnt $('#setting input[name="sandbox"]:checked').val()
-        config.sandbox = not config.sandbox
+    if config.dropbox.sandbox.toString() isnt $('#setting input[name="sandbox"]:checked').val()
+        config.dropbox.sandbox = not config.dropbox.sandbox
     if (typeof $('#setting input[name="compile"]').attr('checked') isnt 'undefined') isnt config.compile
         config.compile = not config.compile
     localStorage['siphon-config'] = JSON.stringify config
