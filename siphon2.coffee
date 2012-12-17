@@ -92,7 +92,12 @@ uploadFile = ->
                         alert error
                     compileDeferred.resolve()
             when 'less'
-                null
+                lessParser.parse $active.data('editor').getValue(), (error, tree) ->
+                    console.log error
+                    dropbox.writeFile path.replace(/less$/, 'css'), tree.toCSS(), null, (error, stat) ->
+                        if error
+                            alert error
+                        compileDeferred.resolve()                
             else
                 compileDeferred.resolve()
     else
@@ -219,6 +224,8 @@ if not /not_approved=true/.test location.toString() # if redirect result is not 
         catch error
             console.log error
 
+lessParser = new less.Parser()
+
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
 for e in $('.navbar-fixed-bottom') # removed .navbar for a work around for dropdown menu
@@ -327,9 +334,44 @@ $('#open').on 'click', ->
     stat = $('#download-modal table tr.info').data('dropbox')
     if stat?.isFile
         dropbox.readFile stat.path, null, (error, string, stat) ->
+            $active = $('#file-tabs > li.active > a')
+            cm = $active.data 'editor'
+            extension = stat.name.replace /^.*\./, ''
+            unless cm.getValue() is '' and $active.children('span').text() is 'untitled'
+                $('#file-tabs > li.active, #editor-pane > *').removeClass 'active'
+                num = (parseInt e.id.replace /^cm/, '' for e in $('#editor-pane > *')).reduce (a, b) -> Math.max a, b
+                id = "cm#{num + 1}"
+                $tab = $("""
+                    <li class="active">
+                        <a href="##{id}" data-toggle="tab">
+                            <button class="close" type="button">&times;</button>
+                            <span>untitled</span>
+                        </a>
+                    </li>
+                    """)
+                $active = $tab.children('a')
+                $('#file-tabs > li.dropdown').before $tab
+                cm = newCodeMirror $active[0], switch extension
+                        when 'html' then mode: 'text/html'
+                        when 'css' then { extraKeys: null, mode: 'css' }
+                        when 'less' then { extraKyes: null, mode: 'less' }
+                        when 'js' then { extraKeys: null, mode: 'javascript' }
+                        when 'coffee' then { extraKeys: null, mode: 'coffeescript' }
+                        else null
+                    , true
+            $active.children('span').text stat.name
+            cm.setOption 'mode', switch extension
+                when 'html' then 'text/html'
+                when 'css' then 'css'
+                when 'js' then 'javascript'
+                when 'coffee' then 'coffeescript'
+                when 'less' then 'less'
+                else null
+            cm.setOption 'extraKeys', null unless extension is 'html'
+            cm.setValue string
+            $active.data 'dropbox', stat
+                
             spinner.stop()
-            $('#file-tabs > li.active > a').data('editor').setValue string
-            $('#file-tabs > li.active > a').data 'dropbox', stat
         spinner.spin document.body
         
 

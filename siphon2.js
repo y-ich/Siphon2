@@ -7,7 +7,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, lessParser, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -322,7 +322,15 @@
           });
           break;
         case 'less':
-          null;
+          lessParser.parse($active.data('editor').getValue(), function(error, tree) {
+            console.log(error);
+            return dropbox.writeFile(path.replace(/less$/, 'css'), tree.toCSS(), null, function(error, stat) {
+              if (error) {
+                alert(error);
+              }
+              return compileDeferred.resolve();
+            });
+          });
           break;
         default:
           compileDeferred.resolve();
@@ -495,6 +503,8 @@
       }
     }
   }
+
+  lessParser = new less.Parser();
 
   newCodeMirror($('#file-tabs > li.active > a')[0], {
     extraKeys: null,
@@ -671,9 +681,82 @@
     stat = $('#download-modal table tr.info').data('dropbox');
     if (stat != null ? stat.isFile : void 0) {
       dropbox.readFile(stat.path, null, function(error, string, stat) {
-        spinner.stop();
-        $('#file-tabs > li.active > a').data('editor').setValue(string);
-        return $('#file-tabs > li.active > a').data('dropbox', stat);
+        var $active, $tab, cm, extension, id, num;
+        $active = $('#file-tabs > li.active > a');
+        cm = $active.data('editor');
+        extension = stat.name.replace(/^.*\./, '');
+        if (!(cm.getValue() === '' && $active.children('span').text() === 'untitled')) {
+          $('#file-tabs > li.active, #editor-pane > *').removeClass('active');
+          num = ((function() {
+            var _k, _len2, _ref6, _results;
+            _ref6 = $('#editor-pane > *');
+            _results = [];
+            for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
+              e = _ref6[_k];
+              _results.push(parseInt(e.id.replace(/^cm/, '')));
+            }
+            return _results;
+          })()).reduce(function(a, b) {
+            return Math.max(a, b);
+          });
+          id = "cm" + (num + 1);
+          $tab = $("<li class=\"active\">\n    <a href=\"#" + id + "\" data-toggle=\"tab\">\n        <button class=\"close\" type=\"button\">&times;</button>\n        <span>untitled</span>\n    </a>\n</li>");
+          $active = $tab.children('a');
+          $('#file-tabs > li.dropdown').before($tab);
+          cm = newCodeMirror($active[0], (function() {
+            switch (extension) {
+              case 'html':
+                return {
+                  mode: 'text/html'
+                };
+              case 'css':
+                return {
+                  extraKeys: null,
+                  mode: 'css'
+                };
+              case 'less':
+                return {
+                  extraKyes: null,
+                  mode: 'less'
+                };
+              case 'js':
+                return {
+                  extraKeys: null,
+                  mode: 'javascript'
+                };
+              case 'coffee':
+                return {
+                  extraKeys: null,
+                  mode: 'coffeescript'
+                };
+              default:
+                return null;
+            }
+          })(), true);
+        }
+        $active.children('span').text(stat.name);
+        cm.setOption('mode', (function() {
+          switch (extension) {
+            case 'html':
+              return 'text/html';
+            case 'css':
+              return 'css';
+            case 'js':
+              return 'javascript';
+            case 'coffee':
+              return 'coffeescript';
+            case 'less':
+              return 'less';
+            default:
+              return null;
+          }
+        })());
+        if (extension !== 'html') {
+          cm.setOption('extraKeys', null);
+        }
+        cm.setValue(string);
+        $active.data('dropbox', stat);
+        return spinner.stop();
       });
       return spinner.spin(document.body);
     }
