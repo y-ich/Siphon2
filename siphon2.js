@@ -288,14 +288,14 @@
   };
 
   uploadFile = function() {
-    var $active, compileDeferred, fileDeferred, filename, folder, path, stat;
+    var $active, compileDeferred, compiled, fileDeferred, filename, folder, path, stat;
     $active = $('#file-tabs > li.active > a');
     stat = $active.data('dropbox');
     if (stat != null) {
       path = stat.path;
     } else {
       folder = $('#download-modal .breadcrumb > li.active > a').data('path');
-      filename = prompt("Input file name. (current folder is " + folder + ".)", $active.text());
+      filename = prompt("Input file name. (current folder is " + folder + ".)", $active.children('span').text());
       if (!filename) {
         return;
       }
@@ -314,22 +314,32 @@
     if (config.compile) {
       switch (path.replace(/^.*\./, '')) {
         case 'coffee':
-          dropbox.writeFile(path.replace(/coffee$/, 'js'), CoffeeScript.compile($active.data('editor').getValue()), null, function(error, stat) {
-            if (error) {
-              alert(error);
-            }
-            return compileDeferred.resolve();
-          });
-          break;
-        case 'less':
-          lessParser.parse($active.data('editor').getValue(), function(error, tree) {
-            console.log(error);
-            return dropbox.writeFile(path.replace(/less$/, 'css'), tree.toCSS(), null, function(error, stat) {
+          try {
+            compiled = CoffeeScript.compile($active.data('editor').getValue());
+            dropbox.writeFile(path.replace(/coffee$/, 'js'), compiled, null, function(error, stat) {
               if (error) {
                 alert(error);
               }
               return compileDeferred.resolve();
             });
+          } catch (error) {
+            compileDeferred.resolve();
+            alert(error);
+          }
+          break;
+        case 'less':
+          lessParser.parse($active.data('editor').getValue(), function(error, tree) {
+            if (error != null) {
+              compileDeferred.resolve();
+              return alert("Line " + error.line + ": " + error.message);
+            } else {
+              return dropbox.writeFile(path.replace(/less$/, 'css'), tree.toCSS(), null, function(error, stat) {
+                if (error) {
+                  alert(error);
+                }
+                return compileDeferred.resolve();
+              });
+            }
           });
           break;
         default:
@@ -674,6 +684,7 @@
         $(cm.getWrapperElement().parentElement).addClass('active');
       } else {
         $tabAnchor.children('span').text('untitled');
+        $tabAnchor.data('dropbox', null);
         cm = $tabAnchor.data('editor');
         cm.setValue('');
       }

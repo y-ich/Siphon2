@@ -71,7 +71,7 @@ uploadFile = ->
         path = stat.path
     else
         folder = $('#download-modal .breadcrumb > li.active > a').data('path')
-        filename = prompt "Input file name. (current folder is #{folder}.)", $active.text()
+        filename = prompt "Input file name. (current folder is #{folder}.)", $active.children('span').text()
         return unless filename
         path = folder + '/' + filename
     
@@ -87,17 +87,25 @@ uploadFile = ->
     if config.compile
         switch path.replace /^.*\./, ''
             when 'coffee'
-                dropbox.writeFile path.replace(/coffee$/, 'js'), CoffeeScript.compile($active.data('editor').getValue()), null, (error, stat) ->
-                    if error
-                        alert error
-                    compileDeferred.resolve()
-            when 'less'
-                lessParser.parse $active.data('editor').getValue(), (error, tree) ->
-                    console.log error
-                    dropbox.writeFile path.replace(/less$/, 'css'), tree.toCSS(), null, (error, stat) ->
+                try
+                    compiled = CoffeeScript.compile $active.data('editor').getValue()
+                    dropbox.writeFile path.replace(/coffee$/, 'js'), compiled, null, (error, stat) ->
                         if error
                             alert error
+                        compileDeferred.resolve()
+                catch error
+                    compileDeferred.resolve()
+                    alert error
+            when 'less'
+                lessParser.parse $active.data('editor').getValue(), (error, tree) ->
+                    if error?
                         compileDeferred.resolve()                
+                        alert "Line #{error.line}: #{error.message}"
+                    else
+                        dropbox.writeFile path.replace(/less$/, 'css'), tree.toCSS(), null, (error, stat) ->
+                            if error
+                                alert error
+                            compileDeferred.resolve()                
             else
                 compileDeferred.resolve()
     else
@@ -324,6 +332,7 @@ $('#file-tabs').on 'click', 'button.close', ->
             $(cm.getWrapperElement().parentElement).addClass 'active'
         else
             $tabAnchor.children('span').text 'untitled'
+            $tabAnchor.data 'dropbox', null
             cm = $tabAnchor.data('editor')
             cm.setValue ''
         cm.focus()
