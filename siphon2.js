@@ -7,7 +7,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, lessParser, newCodeMirror, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, key, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, showError, spinner, touchDevice, uploadFile, value, variables, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -425,6 +425,50 @@
     })())[orientation % 180 === 0 ? 'portrait' : 'landscape'];
   };
 
+  newTabAndEditor = function(title, mode) {
+    var $tab, id;
+    if (title == null) {
+      title = 'untitled';
+    }
+    $('#file-tabs > li.active, #editor-pane > *').removeClass('active');
+    newTabAndEditor.num += 1;
+    id = "cm" + newTabAndEditor.num;
+    $tab = $("<li class=\"active\">\n    <a href=\"#" + id + "\" data-toggle=\"tab\">\n        <button class=\"close\" type=\"button\">&times;</button>\n        <span>" + title + "</span>\n    </a>\n</li>");
+    $('#file-tabs > li.dropdown').before($tab);
+    return newCodeMirror($tab.children('a')[0], (function() {
+      switch (mode) {
+        case 'html':
+          return {
+            mode: 'text/html'
+          };
+        case 'css':
+          return {
+            extraKeys: null,
+            mode: 'css'
+          };
+        case 'less':
+          return {
+            extraKyes: null,
+            mode: 'less'
+          };
+        case 'javascript':
+          return {
+            extraKeys: null,
+            mode: 'javascript'
+          };
+        case 'cofeescript':
+          return {
+            extraKeys: null,
+            mode: 'coffeescript'
+          };
+        default:
+          return null;
+      }
+    })(), true);
+  };
+
+  newTabAndEditor.num = 0;
+
   touchDevice = (function() {
     try {
       document.createEvent('TouchEvent');
@@ -536,53 +580,7 @@
   });
 
   $('a.new-tab-type').on('click', function() {
-    var $tab, id, num;
-    $('#file-tabs > li.active, #editor-pane > *').removeClass('active');
-    num = ((function() {
-      var _k, _len2, _ref6, _results;
-      _ref6 = $('#editor-pane > *');
-      _results = [];
-      for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
-        e = _ref6[_k];
-        _results.push(parseInt(e.id.replace(/^cm/, '')));
-      }
-      return _results;
-    })()).reduce(function(a, b) {
-      return Math.max(a, b);
-    });
-    id = "cm" + (num + 1);
-    $tab = $("<li class=\"active\">\n    <a href=\"#" + id + "\" data-toggle=\"tab\">\n        <button class=\"close\" type=\"button\">&times;</button>\n        <span>untitled</span>\n    </a>\n</li>");
-    $('#file-tabs > li.dropdown').before($tab);
-    newCodeMirror($tab.children('a')[0], (function() {
-      switch ($(this).text()) {
-        case 'HTMl':
-          return {
-            mode: 'text/html'
-          };
-        case 'CSS':
-          return {
-            extraKeys: null,
-            mode: 'css'
-          };
-        case 'LESS':
-          return {
-            extraKyes: null,
-            mode: 'less'
-          };
-        case 'JavaScript':
-          return {
-            extraKeys: null,
-            mode: 'javascript'
-          };
-        case 'CofeeScript':
-          return {
-            extraKeys: null,
-            mode: 'coffeescript'
-          };
-        default:
-          return null;
-      }
-    }).call(this), true);
+    newTabAndEditor('untitled', $(this).text().toLowerCase());
     return false;
   });
 
@@ -681,78 +679,43 @@
     stat = $('#download-modal table tr.info').data('dropbox');
     if (stat != null ? stat.isFile : void 0) {
       dropbox.readFile(stat.path, null, function(error, string, stat) {
-        var $active, $tab, cm, extension, id, num;
+        var $active, cm, extension;
         $active = $('#file-tabs > li.active > a');
         cm = $active.data('editor');
         extension = stat.name.replace(/^.*\./, '');
-        if (!(cm.getValue() === '' && $active.children('span').text() === 'untitled')) {
-          $('#file-tabs > li.active, #editor-pane > *').removeClass('active');
-          num = ((function() {
-            var _k, _len2, _ref6, _results;
-            _ref6 = $('#editor-pane > *');
-            _results = [];
-            for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
-              e = _ref6[_k];
-              _results.push(parseInt(e.id.replace(/^cm/, '')));
-            }
-            return _results;
-          })()).reduce(function(a, b) {
-            return Math.max(a, b);
-          });
-          id = "cm" + (num + 1);
-          $tab = $("<li class=\"active\">\n    <a href=\"#" + id + "\" data-toggle=\"tab\">\n        <button class=\"close\" type=\"button\">&times;</button>\n        <span>untitled</span>\n    </a>\n</li>");
-          $active = $tab.children('a');
-          $('#file-tabs > li.dropdown').before($tab);
-          cm = newCodeMirror($active[0], (function() {
+        if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
+          $active.children('span').text(stat.name);
+          cm.setOption('mode', (function() {
             switch (extension) {
               case 'html':
-                return {
-                  mode: 'text/html'
-                };
+                return 'text/html';
               case 'css':
-                return {
-                  extraKeys: null,
-                  mode: 'css'
-                };
-              case 'less':
-                return {
-                  extraKyes: null,
-                  mode: 'less'
-                };
+                return 'css';
               case 'js':
-                return {
-                  extraKeys: null,
-                  mode: 'javascript'
-                };
+                return 'javascript';
               case 'coffee':
-                return {
-                  extraKeys: null,
-                  mode: 'coffeescript'
-                };
+                return 'coffeescript';
+              case 'less':
+                return 'less';
               default:
                 return null;
             }
-          })(), true);
-        }
-        $active.children('span').text(stat.name);
-        cm.setOption('mode', (function() {
-          switch (extension) {
-            case 'html':
-              return 'text/html';
-            case 'css':
-              return 'css';
-            case 'js':
-              return 'javascript';
-            case 'coffee':
-              return 'coffeescript';
-            case 'less':
-              return 'less';
-            default:
-              return null;
+          })());
+          if (extension !== 'html') {
+            cm.setOption('extraKeys', null);
           }
-        })());
-        if (extension !== 'html') {
-          cm.setOption('extraKeys', null);
+        } else {
+          cm = newTabAndEditor(stat.name, (function() {
+            switch (extension) {
+              case 'js':
+                return 'javascript';
+              case 'coffee':
+                return 'coffeescript';
+              default:
+                return extension;
+            }
+          })());
+          $active = $('#file-tabs > li.active > a');
         }
         cm.setValue(string);
         $active.data('dropbox', stat);

@@ -178,6 +178,29 @@ keyboardHeight = (config) ->
         when 'split' then IPAD_SPLIT_KEYBOARD_HEIGHT
         when 'user-defined' then config['user-defined-keyboard'])[if orientation % 180 == 0 then 'portrait' else 'landscape']
 
+newTabAndEditor = (title = 'untitled', mode) ->
+    $('#file-tabs > li.active, #editor-pane > *').removeClass 'active'
+    newTabAndEditor.num += 1
+    id = "cm#{newTabAndEditor.num}"
+    $tab = $("""
+        <li class="active">
+            <a href="##{id}" data-toggle="tab">
+                <button class="close" type="button">&times;</button>
+                <span>#{title}</span>
+            </a>
+        </li>
+        """)
+    $('#file-tabs > li.dropdown').before $tab
+    newCodeMirror $tab.children('a')[0], switch mode
+            when 'html' then mode: 'text/html'
+            when 'css' then { extraKeys: null, mode: 'css' }
+            when 'less' then { extraKyes: null, mode: 'less' }
+            when 'javascript' then { extraKeys: null, mode: 'javascript' }
+            when 'cofeescript' then { extraKeys: null, mode: 'coffeescript' }
+            else null
+        , true
+newTabAndEditor.num = 0
+
 #
 # main
 #
@@ -242,26 +265,7 @@ $('#next-button').on 'click', ->
     cm.focus()
         
 $('a.new-tab-type').on 'click', ->
-    $('#file-tabs > li.active, #editor-pane > *').removeClass 'active'
-    num = (parseInt e.id.replace /^cm/, '' for e in $('#editor-pane > *')).reduce (a, b) -> Math.max a, b
-    id = "cm#{num + 1}"
-    $tab = $("""
-        <li class="active">
-            <a href="##{id}" data-toggle="tab">
-                <button class="close" type="button">&times;</button>
-                <span>untitled</span>
-            </a>
-        </li>
-        """)
-    $('#file-tabs > li.dropdown').before $tab
-    newCodeMirror $tab.children('a')[0], switch $(this).text()
-            when 'HTMl' then mode: 'text/html'
-            when 'CSS' then { extraKeys: null, mode: 'css' }
-            when 'LESS' then { extraKyes: null, mode: 'less' }
-            when 'JavaScript' then { extraKeys: null, mode: 'javascript' }
-            when 'CofeeScript' then { extraKeys: null, mode: 'coffeescript' }
-            else null
-        , true
+    newTabAndEditor 'untitled', $(this).text().toLowerCase()
     false # prevent default action
 
 $('#file').on 'click', -> $('#file-picker').click()
@@ -337,37 +341,22 @@ $('#open').on 'click', ->
             $active = $('#file-tabs > li.active > a')
             cm = $active.data 'editor'
             extension = stat.name.replace /^.*\./, ''
-            unless cm.getValue() is '' and $active.children('span').text() is 'untitled'
-                $('#file-tabs > li.active, #editor-pane > *').removeClass 'active'
-                num = (parseInt e.id.replace /^cm/, '' for e in $('#editor-pane > *')).reduce (a, b) -> Math.max a, b
-                id = "cm#{num + 1}"
-                $tab = $("""
-                    <li class="active">
-                        <a href="##{id}" data-toggle="tab">
-                            <button class="close" type="button">&times;</button>
-                            <span>untitled</span>
-                        </a>
-                    </li>
-                    """)
-                $active = $tab.children('a')
-                $('#file-tabs > li.dropdown').before $tab
-                cm = newCodeMirror $active[0], switch extension
-                        when 'html' then mode: 'text/html'
-                        when 'css' then { extraKeys: null, mode: 'css' }
-                        when 'less' then { extraKyes: null, mode: 'less' }
-                        when 'js' then { extraKeys: null, mode: 'javascript' }
-                        when 'coffee' then { extraKeys: null, mode: 'coffeescript' }
-                        else null
-                    , true
-            $active.children('span').text stat.name
-            cm.setOption 'mode', switch extension
-                when 'html' then 'text/html'
-                when 'css' then 'css'
-                when 'js' then 'javascript'
-                when 'coffee' then 'coffeescript'
-                when 'less' then 'less'
-                else null
-            cm.setOption 'extraKeys', null unless extension is 'html'
+            if cm.getValue() is '' and $active.children('span').text() is 'untitled'
+                $active.children('span').text stat.name
+                cm.setOption 'mode', switch extension
+                    when 'html' then 'text/html'
+                    when 'css' then 'css'
+                    when 'js' then 'javascript'
+                    when 'coffee' then 'coffeescript'
+                    when 'less' then 'less'
+                    else null
+                cm.setOption 'extraKeys', null unless extension is 'html'
+            else
+                cm = newTabAndEditor stat.name, switch extension
+                        when 'js' then 'javascript'
+                        when 'coffee' then 'coffeescript'
+                        else extension
+                $active = $('#file-tabs > li.active > a')
             cm.setValue string
             $active.data 'dropbox', stat
                 
