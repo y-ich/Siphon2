@@ -6,11 +6,22 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, buffer, cm, config, dropbox, e, evalCS, ext2mode, fireKeyEvent, getList, i, key, keyboardHeight, lessParser, name, newCodeMirror, newTabAndEditor, parentFolders, showError, spinner, touchDevice, uploadFile, value, _base, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+  var API_KEY_FULL, API_KEY_SANDBOX, config, dropbox, e, evalCS, ext2mode, fireKeyEvent, getList, key, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, parentFolders, restore, showError, spinner, touchDevice, uploadFile, value, _i, _len, _ref;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
   API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw==';
+
+  touchDevice = (function() {
+    try {
+      document.createEvent('TouchEvent');
+      return true;
+    } catch (error) {
+      return false;
+    }
+  })();
+
+  config = null;
 
   ext2mode = function(str) {
     var exts, _ref;
@@ -332,87 +343,67 @@
     return _results;
   };
 
-  touchDevice = (function() {
-    try {
-      document.createEvent('TouchEvent');
-      return true;
-    } catch (error) {
-      return false;
+  restore = function() {
+    var buffer, cm, defaultConfig, e, i, key, name, value, _i, _len, _ref, _ref1, _ref2;
+    defaultConfig = {
+      keyboard: 'normal',
+      compile: false,
+      dropbox: {
+        sandbox: true,
+        currentFolder: '/'
+      },
+      autoSaveTime: 10000
+    };
+    config = JSON.parse((_ref = localStorage['siphon-config']) != null ? _ref : '{}');
+    for (key in defaultConfig) {
+      value = defaultConfig[key];
+      if ((_ref1 = config[key]) == null) {
+        config[key] = value;
+      }
     }
-  })();
+    for (key in localStorage) {
+      value = localStorage[key];
+      if (!(/^siphon-buffer/.test(key))) {
+        continue;
+      }
+      buffer = JSON.parse(value);
+      cm = newTabAndEditor(buffer.title, ext2mode(buffer.title.replace(/^.*\./, '')));
+      cm.setValue(buffer.text);
+      if (buffer.dropbox != null) {
+        $('#file-tabs > li.active > a').data('dropbox', buffer.dropbox);
+      }
+    }
+    $("#setting input[name=\"keyboard\"][value=\"" + config.keyboard + "\"]").attr('checked', '');
+    if (config['user-defined-keyboard'] != null) {
+      $('#setting input[name="keyboard-height-portrait"]').value(config['user-defined-keyboard'].portrait);
+      $('#setting input[name="keyboard-height-landscape"]').value(config['user-defined-keyboard'].landscape);
+    }
+    $("#setting input[name=\"sandbox\"][value=\"" + (config.dropbox.sandbox.toString()) + "\"]").attr('checked', '');
+    if (config.compile) {
+      $("#setting input[name=\"compile\"]").attr('checked', '');
+    }
+    _ref2 = parentFolders(config.dropbox.currentFolder);
+    for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
+      e = _ref2[i];
+      if (i === 0) {
+        $('#download-modal .breadcrumb').append('<li><a href="#" data-path="/">Home</a></li>');
+      } else {
+        name = e.replace(/^.*\//, '');
+        $('#download-modal .breadcrumb').append("<li>\n    <span class=\"divider\">/</span>\n    <a href=\"#\" data-path=\"" + e + "\">" + name + "</a>\n</li>");
+      }
+    }
+    return $('#download-modal .breadcrumb > li:last-child').addClass('active');
+  };
 
   if (!touchDevice) {
     $('#soft-key').css('display', 'none');
-  }
-
-  config = JSON.parse((_ref = localStorage['siphon-config']) != null ? _ref : '{}');
-
-  if ((_ref1 = config.keyboard) == null) {
-    config.keyboard = 'normal';
-  }
-
-  if ((_ref2 = config.compile) == null) {
-    config.compile = false;
-  }
-
-  if ((_ref3 = config.dropbox) == null) {
-    config.dropbox = {};
-  }
-
-  if ((_ref4 = (_base = config.dropbox).sandbox) == null) {
-    _base.sandbox = true;
-  }
-
-  if (!(config.dropbox.currentFolder != null) || config.dropbox.currentFolder === '') {
-    config.dropbox.currentFolder = '/';
-  }
-
-  if ((_ref5 = config.autoSaveTime) == null) {
-    config.autoSaveTime = 10000;
   }
 
   newCodeMirror($('#file-tabs > li.active > a')[0], {
     extraKeys: null
   }, true);
 
-  for (key in localStorage) {
-    value = localStorage[key];
-    if (!(/^siphon-buffer/.test(key))) {
-      continue;
-    }
-    buffer = JSON.parse(value);
-    cm = newTabAndEditor(buffer.title, ext2mode(buffer.title.replace(/^.*\./, '')));
-    cm.setValue(buffer.text);
-    if (buffer.dropbox != null) {
-      $('#file-tabs > li.active > a').data('dropbox', buffer.dropbox);
-    }
-  }
-
-  $("#setting input[name=\"keyboard\"][value=\"" + config.keyboard + "\"]").attr('checked', '');
-
-  if (config['user-defined-keyboard'] != null) {
-    $('#setting input[name="keyboard-height-portrait"]').value(config['user-defined-keyboard'].portrait);
-    $('#setting input[name="keyboard-height-landscape"]').value(config['user-defined-keyboard'].landscape);
-  }
-
-  $("#setting input[name=\"sandbox\"][value=\"" + (config.dropbox.sandbox.toString()) + "\"]").attr('checked', '');
-
-  if (config.compile) {
-    $("#setting input[name=\"compile\"]").attr('checked', '');
-  }
-
-  _ref6 = parentFolders(config.dropbox.currentFolder);
-  for (i = _i = 0, _len = _ref6.length; _i < _len; i = ++_i) {
-    e = _ref6[i];
-    if (i === 0) {
-      $('#download-modal .breadcrumb').append('<li><a href="#" data-path="/">Home</a></li>');
-    } else {
-      name = e.replace(/^.*\//, '');
-      $('#download-modal .breadcrumb').append("<li>\n    <span class=\"divider\">/</span>\n    <a href=\"#\" data-path=\"" + e + "\">" + name + "</a>\n</li>");
-    }
-  }
-
-  $('#download-modal .breadcrumb > li:last-child').addClass('active');
+  restore();
 
   spinner = new Spinner({
     color: '#fff'
@@ -452,26 +443,26 @@
 
   lessParser = new less.Parser();
 
-  _ref7 = $('.navbar-fixed-bottom');
-  for (_j = 0, _len1 = _ref7.length; _j < _len1; _j++) {
-    e = _ref7[_j];
+  _ref = $('.navbar-fixed-bottom');
+  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+    e = _ref[_i];
     new NoClickDelay(e, false);
   }
 
   $('#previous-button').on('click', function() {
-    var _ref8;
+    var cm, _ref1;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref8 = cm.siphon.autoComplete) != null) {
-      _ref8.previous();
+    if ((_ref1 = cm.siphon.autoComplete) != null) {
+      _ref1.previous();
     }
     return cm.focus();
   });
 
   $('#next-button').on('click', function() {
-    var _ref8;
+    var cm, _ref1;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref8 = cm.siphon.autoComplete) != null) {
-      _ref8.next();
+    if ((_ref1 = cm.siphon.autoComplete) != null) {
+      _ref1.next();
     }
     return cm.focus();
   });
@@ -491,7 +482,7 @@
     filename = this.value.replace(/^.*\\/, '');
     reader = new FileReader();
     reader.onload = function() {
-      var $active, mode;
+      var $active, cm, mode;
       $active = $('#file-tabs > li.active > a');
       cm = $active.data('editor');
       if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
@@ -506,7 +497,7 @@
   });
 
   $('#file-tabs').on('click', 'button.close', function() {
-    var $first, $tabAnchor, $this;
+    var $first, $tabAnchor, $this, cm;
     $this = $(this);
     $tabAnchor = $this.parent();
     if (confirm("Do you really delete \"" + ($tabAnchor.children('span').text()) + "\" locally?")) {
@@ -574,7 +565,7 @@
     stat = $('#download-modal table tr.info').data('dropbox');
     if (stat != null ? stat.isFile : void 0) {
       dropbox.readFile(stat.path, null, function(error, string, stat) {
-        var $active, extension;
+        var $active, cm, extension;
         $active = $('#file-tabs > li.active > a');
         cm = $active.data('editor');
         extension = stat.name.replace(/^.*\./, '');
@@ -637,7 +628,7 @@
   });
 
   $('#eval').on('click', function() {
-    var line;
+    var cm, line;
     cm = $('#file-tabs > li.active > a').data('editor');
     if (cm.getOption('mode') !== 'coffeescript') {
       return;

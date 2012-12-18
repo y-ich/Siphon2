@@ -2,8 +2,19 @@
 # (C) 2012 New 3 Rs (ICHIKAWA, Yuji)
 ###
 
+#
+# global variables
+#
+
 API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ=='
 API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw=='
+touchDevice =
+    try
+        document.createEvent 'TouchEvent'
+        true
+    catch error
+        false
+config = null
 
 #
 # function definitions
@@ -257,54 +268,56 @@ newTabAndEditor.num = 0
 parentFolders = (path) ->
     split = path.split '/'
     split[0..i].join '/' for e, i in split
-        
+
+#
+# initialize functions
+#
+       
+restore = ->
+    defaultConfig =
+        keyboard: 'normal'
+        compile: false
+        dropbox:
+            sandbox: true
+            currentFolder: '/'
+        autoSaveTime: 10000
+    config = JSON.parse localStorage['siphon-config'] ? '{}'
+    for key, value of defaultConfig
+        config[key] ?= value
+
+    for key, value of localStorage when /^siphon-buffer/.test key
+        buffer = JSON.parse value
+        cm = newTabAndEditor buffer.title, ext2mode buffer.title.replace /^.*\./, ''
+        cm.setValue buffer.text
+        $('#file-tabs > li.active > a').data 'dropbox', buffer.dropbox if buffer.dropbox?
+    
+    $("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
+    if config['user-defined-keyboard']?
+        $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
+        $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
+    $("#setting input[name=\"sandbox\"][value=\"#{config.dropbox.sandbox.toString()}\"]").attr 'checked', ''
+    $("#setting input[name=\"compile\"]").attr 'checked', '' if config.compile
+    for e, i in parentFolders config.dropbox.currentFolder
+        if i == 0
+            $('#download-modal .breadcrumb').append '<li><a href="#" data-path="/">Home</a></li>'
+        else
+            name = e.replace /^.*\//, ''
+            $('#download-modal .breadcrumb').append """
+                <li>
+                    <span class="divider">/</span>
+                    <a href="#" data-path="#{e}">#{name}</a>
+                </li>
+                """
+    $('#download-modal .breadcrumb > li:last-child').addClass 'active'
+
 #
 # main
 #
 
-touchDevice =
-    try
-        document.createEvent 'TouchEvent'
-        true
-    catch error
-        false
-
 $('#soft-key').css 'display', 'none' unless touchDevice
-
-config = JSON.parse localStorage['siphon-config'] ? '{}'
-config.keyboard ?= 'normal'
-config.compile ?= false
-config.dropbox ?= {}
-config.dropbox.sandbox ?= true
-config.dropbox.currentFolder = '/' if not config.dropbox.currentFolder? or config.dropbox.currentFolder is ''
-config.autoSaveTime ?= 10000
-
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null }, true
 
-for key, value of localStorage when /^siphon-buffer/.test key
-    buffer = JSON.parse value
-    cm = newTabAndEditor buffer.title, ext2mode buffer.title.replace /^.*\./, ''
-    cm.setValue buffer.text
-    $('#file-tabs > li.active > a').data 'dropbox', buffer.dropbox if buffer.dropbox?
-    
-$("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
-if config['user-defined-keyboard']?
-    $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
-    $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
-$("#setting input[name=\"sandbox\"][value=\"#{config.dropbox.sandbox.toString()}\"]").attr 'checked', ''
-$("#setting input[name=\"compile\"]").attr 'checked', '' if config.compile
-for e, i in parentFolders config.dropbox.currentFolder
-    if i == 0
-        $('#download-modal .breadcrumb').append '<li><a href="#" data-path="/">Home</a></li>'
-    else
-        name = e.replace /^.*\//, ''
-        $('#download-modal .breadcrumb').append """
-            <li>
-                <span class="divider">/</span>
-                <a href="#" data-path="#{e}">#{name}</a>
-            </li>
-            """
-$('#download-modal .breadcrumb > li:last-child').addClass 'active'
+restore()
 
 spinner = new Spinner(color: '#fff')
 
