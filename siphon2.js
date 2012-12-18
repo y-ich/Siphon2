@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, config, dropbox, e, evalCS, ext2mode, fireKeyEvent, getList, key, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, parentFolders, restore, showError, spinner, touchDevice, uploadFile, value, _i, _len, _ref;
+  var API_KEY_FULL, API_KEY_SANDBOX, config, dropbox, evalCS, ext2mode, fireKeyEvent, getList, initializeDropbox, initializeEventHandlers, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, parentFolders, restore, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -22,6 +22,14 @@
   })();
 
   config = null;
+
+  spinner = new Spinner({
+    color: '#fff'
+  });
+
+  lessParser = new less.Parser();
+
+  dropbox = null;
 
   ext2mode = function(str) {
     var exts, _ref;
@@ -395,6 +403,284 @@
     return $('#download-modal .breadcrumb > li:last-child').addClass('active');
   };
 
+  initializeDropbox = function() {
+    var e, key, value, _i, _len, _ref, _results;
+    dropbox = new Dropbox.Client({
+      key: config.dropbox.sandbox ? API_KEY_SANDBOX : API_KEY_FULL,
+      sandbox: config.dropbox.sandbox
+    });
+    dropbox.authDriver(new Dropbox.Drivers.Redirect({
+      rememberUser: true
+    }));
+    if (!/not_approved=true/.test(location.toString())) {
+      try {
+        for (key in localStorage) {
+          value = localStorage[key];
+          if (!(/^dropbox-auth/.test(key) && JSON.parse(value).key === dropbox.oauth.key)) {
+            continue;
+          }
+          $('#dropbox').button('loading');
+          dropbox.authenticate(function(error, client) {
+            if (error) {
+              showError(error);
+              return $('#dropbox').button('reset');
+            } else {
+              return $('#dropbox').button('signout');
+            }
+          });
+          break;
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    _ref = $('.navbar-fixed-bottom');
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      e = _ref[_i];
+      _results.push(new NoClickDelay(e, false));
+    }
+    return _results;
+  };
+
+  initializeEventHandlers = function() {
+    window.addEventListener('orientationchange', (function() {
+      if ($('.navbar-fixed-bottom').css('bottom') !== '0px') {
+        return $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
+      }
+    }), false);
+    window.addEventListener('scroll', (function() {
+      if ((document.body.scrollLeft !== 0 || document.body.scrollTop !== 0) && $('.open').length === 0) {
+        return scrollTo(0, 0);
+      }
+    }), false);
+    $('#previous-button').on('click', function() {
+      var cm, _ref;
+      cm = $('#file-tabs > li.active > a').data('editor');
+      if ((_ref = cm.siphon.autoComplete) != null) {
+        _ref.previous();
+      }
+      return cm.focus();
+    });
+    $('#next-button').on('click', function() {
+      var cm, _ref;
+      cm = $('#file-tabs > li.active > a').data('editor');
+      if ((_ref = cm.siphon.autoComplete) != null) {
+        _ref.next();
+      }
+      return cm.focus();
+    });
+    $('a.new-tab-type').on('click', function() {
+      newTabAndEditor('untitled', $(this).text().toLowerCase());
+      $(this).parent().parent().prev().dropdown('toggle');
+      return false;
+    });
+    $('#import').on('click', function() {
+      return $('#file-picker').click();
+    });
+    $('#file-picker').on('change', function(event) {
+      var filename, reader;
+      filename = this.value.replace(/^.*\\/, '');
+      reader = new FileReader();
+      reader.onload = function() {
+        var $active, cm, mode;
+        $active = $('#file-tabs > li.active > a');
+        cm = $active.data('editor');
+        if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
+          $active.children('span').text(filename);
+          mode = ext2mode(filename.replace(/^.*\./, ''));
+          cm.setOption('mode', mode);
+          cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
+          return cm.setValue(reader.result);
+        }
+      };
+      return reader.readAsText(event.target.files[0]);
+    });
+    $('#file-tabs').on('click', 'button.close', function() {
+      var $first, $tabAnchor, $this, cm;
+      $this = $(this);
+      $tabAnchor = $this.parent();
+      if (confirm("Do you really delete \"" + ($tabAnchor.children('span').text()) + "\" locally?")) {
+        cm = $tabAnchor.data('editor');
+        if (cm.siphon.timer != null) {
+          clearTimeout(cm.siphon.timer);
+        }
+        cm.siphon.timer = null;
+        if ($tabAnchor.data('dropbox') != null) {
+          localStorage.removeItem("siphon-buffer-" + ($tabAnchor.data('dropbox').path));
+        } else if ($tabAnchor.children('span').text() !== 'untitled') {
+          localStorage.removeItem("siphon-buffer-" + ($tabAnchor.children('span').text()));
+        }
+        if ($('#file-tabs > li:not(.dropdown)').length > 1) {
+          $tabAnchor.data('editor', null);
+          $tabAnchor.parent().remove();
+          $(cm.getWrapperElement()).remove();
+          $first = $('#file-tabs > li:first-child');
+          $first.addClass('active');
+          cm = $first.children('a').data('editor');
+          $(cm.getWrapperElement()).addClass('active');
+        } else {
+          $tabAnchor.children('span').text('untitled');
+          $tabAnchor.data('dropbox', null);
+          cm.setValue('');
+        }
+        return cm.focus();
+      }
+    });
+    $('#download-button').on('click', function() {
+      return getList(config.dropbox.currentFolder);
+    });
+    $('#download-modal .breadcrumb').on('click', 'li:not(.active) > a', function() {
+      var $this, path;
+      $this = $(this);
+      $this.parent().nextUntil().remove();
+      $this.parent().addClass('active');
+      path = $this.data('path');
+      getList(path);
+      config.dropbox.currentFolder = path;
+      localStorage['siphon-config'] = JSON.stringify(config);
+      return false;
+    });
+    $('#download-modal table').on('click', 'tr', function() {
+      var $this, stat;
+      $this = $(this);
+      stat = $this.data('dropbox');
+      if (stat.isFile) {
+        $('#download-modal table tr').removeClass('info');
+        return $this.addClass('info');
+      } else if (stat.isFolder) {
+        $('#download-modal .breadcrumb > li.active').removeClass('active');
+        $('#download-modal .breadcrumb').append($("<li class=\"active\">\n    <span class=\"divider\">/</span>\n    <a href=\"#\" data-path=\"" + stat.path + "\"}>" + stat.name + "</a>\n</li>"));
+        getList(stat.path);
+        config.dropbox.currentFolder = stat.path;
+        return localStorage['siphon-config'] = JSON.stringify(config);
+      }
+    });
+    $('#open').on('click', function() {
+      var stat;
+      stat = $('#download-modal table tr.info').data('dropbox');
+      if (stat != null ? stat.isFile : void 0) {
+        dropbox.readFile(stat.path, null, function(error, string, stat) {
+          var $active, cm, extension;
+          $active = $('#file-tabs > li.active > a');
+          cm = $active.data('editor');
+          extension = stat.name.replace(/^.*\./, '');
+          if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
+            $active.children('span').text(stat.name);
+            cm.setOption('mode', (function() {
+              switch (extension) {
+                case 'html':
+                  return 'text/html';
+                case 'css':
+                  return 'css';
+                case 'js':
+                  return 'javascript';
+                case 'coffee':
+                  return 'coffeescript';
+                case 'less':
+                  return 'less';
+                default:
+                  return null;
+              }
+            })());
+            if (extension !== 'html') {
+              cm.setOption('extraKeys', null);
+            }
+          } else {
+            cm = newTabAndEditor(stat.name, (function() {
+              switch (extension) {
+                case 'js':
+                  return 'javascript';
+                case 'coffee':
+                  return 'coffeescript';
+                default:
+                  return extension;
+              }
+            })());
+            $active = $('#file-tabs > li.active > a');
+          }
+          cm.setValue(string);
+          $active.data('dropbox', stat);
+          return spinner.stop();
+        });
+        return spinner.spin(document.body);
+      }
+    });
+    $('#upload').on('click', function() {
+      return uploadFile();
+    });
+    $('.key').on((touchDevice ? 'touchstart' : 'mousedown'), function() {
+      return fireKeyEvent('keydown', $(this).data('identifier'));
+    });
+    $('.key').on((touchDevice ? 'touchend' : 'mouseup'), function() {
+      return fireKeyEvent('keyup', $(this).data('identifier'));
+    });
+    $('#undo').on('click', function() {
+      return $('#file-tabs > li.active > a').data('editor').undo();
+    });
+    $('#eval').on('click', function() {
+      var cm, line;
+      cm = $('#file-tabs > li.active > a').data('editor');
+      if (cm.getOption('mode') !== 'coffeescript') {
+        return;
+      }
+      if (!cm.somethingSelected()) {
+        line = cm.getCursor().line;
+        cm.setSelection({
+          line: line,
+          ch: 0
+        }, {
+          line: line,
+          ch: cm.getLine(line).length
+        });
+      }
+      return cm.replaceSelection(evalCS(cm.getSelection()).toString());
+    });
+    $('#dropbox').on('click', function() {
+      var $this;
+      $this = $(this);
+      if ($this.text() === 'sign-in') {
+        $this.button('loading');
+        dropbox.reset();
+        dropbox.authenticate(function(error, client) {
+          spinner.stop();
+          if (error) {
+            return showError(error);
+          } else {
+            return $this.button('signout');
+          }
+        });
+      } else {
+        dropbox.signOut(function(error) {
+          spinner.stop();
+          if (error) {
+            showError(error);
+            return alart('pass');
+          } else {
+            return $this.button('reset');
+          }
+        });
+      }
+      return spinner.spin(document.body);
+    });
+    return $('#save-setting').on('click', function() {
+      config.keyboard = $('#setting input[name="keyboard"]:checked').val();
+      if (config.keyboard === 'user-defined') {
+        config['user-defined-keyboard'] = {
+          portrait: parseInt($('#setting input[name="keyboard-height-portrait"]').val()),
+          landscape: parseInt($('#setting input[name="keyboard-height-landscape"]').val())
+        };
+      }
+      if (config.dropbox.sandbox.toString() !== $('#setting input[name="sandbox"]:checked').val()) {
+        config.dropbox.sandbox = !config.dropbox.sandbox;
+      }
+      if ((typeof $('#setting input[name="compile"]').attr('checked') !== 'undefined') !== config.compile) {
+        config.compile = !config.compile;
+      }
+      return localStorage['siphon-config'] = JSON.stringify(config);
+    });
+  };
+
   if (!touchDevice) {
     $('#soft-key').css('display', 'none');
   }
@@ -405,302 +691,8 @@
 
   restore();
 
-  spinner = new Spinner({
-    color: '#fff'
-  });
+  initializeDropbox();
 
-  dropbox = new Dropbox.Client({
-    key: config.dropbox.sandbox ? API_KEY_SANDBOX : API_KEY_FULL,
-    sandbox: config.dropbox.sandbox
-  });
-
-  dropbox.authDriver(new Dropbox.Drivers.Redirect({
-    rememberUser: true
-  }));
-
-  if (!/not_approved=true/.test(location.toString())) {
-    try {
-      for (key in localStorage) {
-        value = localStorage[key];
-        if (!(/^dropbox-auth/.test(key) && JSON.parse(value).key === dropbox.oauth.key)) {
-          continue;
-        }
-        $('#dropbox').button('loading');
-        dropbox.authenticate(function(error, client) {
-          if (error) {
-            showError(error);
-            return $('#dropbox').button('reset');
-          } else {
-            return $('#dropbox').button('signout');
-          }
-        });
-        break;
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  lessParser = new less.Parser();
-
-  _ref = $('.navbar-fixed-bottom');
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    e = _ref[_i];
-    new NoClickDelay(e, false);
-  }
-
-  $('#previous-button').on('click', function() {
-    var cm, _ref1;
-    cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref1 = cm.siphon.autoComplete) != null) {
-      _ref1.previous();
-    }
-    return cm.focus();
-  });
-
-  $('#next-button').on('click', function() {
-    var cm, _ref1;
-    cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref1 = cm.siphon.autoComplete) != null) {
-      _ref1.next();
-    }
-    return cm.focus();
-  });
-
-  $('a.new-tab-type').on('click', function() {
-    newTabAndEditor('untitled', $(this).text().toLowerCase());
-    $(this).parent().parent().prev().dropdown('toggle');
-    return false;
-  });
-
-  $('#import').on('click', function() {
-    return $('#file-picker').click();
-  });
-
-  $('#file-picker').on('change', function(event) {
-    var filename, reader;
-    filename = this.value.replace(/^.*\\/, '');
-    reader = new FileReader();
-    reader.onload = function() {
-      var $active, cm, mode;
-      $active = $('#file-tabs > li.active > a');
-      cm = $active.data('editor');
-      if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
-        $active.children('span').text(filename);
-        mode = ext2mode(filename.replace(/^.*\./, ''));
-        cm.setOption('mode', mode);
-        cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
-        return cm.setValue(reader.result);
-      }
-    };
-    return reader.readAsText(event.target.files[0]);
-  });
-
-  $('#file-tabs').on('click', 'button.close', function() {
-    var $first, $tabAnchor, $this, cm;
-    $this = $(this);
-    $tabAnchor = $this.parent();
-    if (confirm("Do you really delete \"" + ($tabAnchor.children('span').text()) + "\" locally?")) {
-      cm = $tabAnchor.data('editor');
-      if (cm.siphon.timer != null) {
-        clearTimeout(cm.siphon.timer);
-      }
-      cm.siphon.timer = null;
-      if ($tabAnchor.data('dropbox') != null) {
-        localStorage.removeItem("siphon-buffer-" + ($tabAnchor.data('dropbox').path));
-      } else if ($tabAnchor.children('span').text() !== 'untitled') {
-        localStorage.removeItem("siphon-buffer-" + ($tabAnchor.children('span').text()));
-      }
-      if ($('#file-tabs > li:not(.dropdown)').length > 1) {
-        $tabAnchor.data('editor', null);
-        $tabAnchor.parent().remove();
-        $(cm.getWrapperElement()).remove();
-        $first = $('#file-tabs > li:first-child');
-        $first.addClass('active');
-        cm = $first.children('a').data('editor');
-        $(cm.getWrapperElement()).addClass('active');
-      } else {
-        $tabAnchor.children('span').text('untitled');
-        $tabAnchor.data('dropbox', null);
-        cm.setValue('');
-      }
-      return cm.focus();
-    }
-  });
-
-  $('#download-button').on('click', function() {
-    return getList(config.dropbox.currentFolder);
-  });
-
-  $('#download-modal .breadcrumb').on('click', 'li:not(.active) > a', function() {
-    var $this, path;
-    $this = $(this);
-    $this.parent().nextUntil().remove();
-    $this.parent().addClass('active');
-    path = $this.data('path');
-    getList(path);
-    config.dropbox.currentFolder = path;
-    localStorage['siphon-config'] = JSON.stringify(config);
-    return false;
-  });
-
-  $('#download-modal table').on('click', 'tr', function() {
-    var $this, stat;
-    $this = $(this);
-    stat = $this.data('dropbox');
-    if (stat.isFile) {
-      $('#download-modal table tr').removeClass('info');
-      return $this.addClass('info');
-    } else if (stat.isFolder) {
-      $('#download-modal .breadcrumb > li.active').removeClass('active');
-      $('#download-modal .breadcrumb').append($("<li class=\"active\">\n    <span class=\"divider\">/</span>\n    <a href=\"#\" data-path=\"" + stat.path + "\"}>" + stat.name + "</a>\n</li>"));
-      getList(stat.path);
-      config.dropbox.currentFolder = stat.path;
-      return localStorage['siphon-config'] = JSON.stringify(config);
-    }
-  });
-
-  $('#open').on('click', function() {
-    var stat;
-    stat = $('#download-modal table tr.info').data('dropbox');
-    if (stat != null ? stat.isFile : void 0) {
-      dropbox.readFile(stat.path, null, function(error, string, stat) {
-        var $active, cm, extension;
-        $active = $('#file-tabs > li.active > a');
-        cm = $active.data('editor');
-        extension = stat.name.replace(/^.*\./, '');
-        if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
-          $active.children('span').text(stat.name);
-          cm.setOption('mode', (function() {
-            switch (extension) {
-              case 'html':
-                return 'text/html';
-              case 'css':
-                return 'css';
-              case 'js':
-                return 'javascript';
-              case 'coffee':
-                return 'coffeescript';
-              case 'less':
-                return 'less';
-              default:
-                return null;
-            }
-          })());
-          if (extension !== 'html') {
-            cm.setOption('extraKeys', null);
-          }
-        } else {
-          cm = newTabAndEditor(stat.name, (function() {
-            switch (extension) {
-              case 'js':
-                return 'javascript';
-              case 'coffee':
-                return 'coffeescript';
-              default:
-                return extension;
-            }
-          })());
-          $active = $('#file-tabs > li.active > a');
-        }
-        cm.setValue(string);
-        $active.data('dropbox', stat);
-        return spinner.stop();
-      });
-      return spinner.spin(document.body);
-    }
-  });
-
-  $('#upload').on('click', function() {
-    return uploadFile();
-  });
-
-  $('.key').on((touchDevice ? 'touchstart' : 'mousedown'), function() {
-    return fireKeyEvent('keydown', $(this).data('identifier'));
-  });
-
-  $('.key').on((touchDevice ? 'touchend' : 'mouseup'), function() {
-    return fireKeyEvent('keyup', $(this).data('identifier'));
-  });
-
-  $('#undo').on('click', function() {
-    return $('#file-tabs > li.active > a').data('editor').undo();
-  });
-
-  $('#eval').on('click', function() {
-    var cm, line;
-    cm = $('#file-tabs > li.active > a').data('editor');
-    if (cm.getOption('mode') !== 'coffeescript') {
-      return;
-    }
-    if (!cm.somethingSelected()) {
-      line = cm.getCursor().line;
-      cm.setSelection({
-        line: line,
-        ch: 0
-      }, {
-        line: line,
-        ch: cm.getLine(line).length
-      });
-    }
-    return cm.replaceSelection(evalCS(cm.getSelection()).toString());
-  });
-
-  $('#dropbox').on('click', function() {
-    var $this;
-    $this = $(this);
-    if ($this.text() === 'sign-in') {
-      $this.button('loading');
-      dropbox.reset();
-      dropbox.authenticate(function(error, client) {
-        spinner.stop();
-        if (error) {
-          return showError(error);
-        } else {
-          return $this.button('signout');
-        }
-      });
-    } else {
-      dropbox.signOut(function(error) {
-        spinner.stop();
-        if (error) {
-          showError(error);
-          return alart('pass');
-        } else {
-          return $this.button('reset');
-        }
-      });
-    }
-    return spinner.spin(document.body);
-  });
-
-  window.addEventListener('orientationchange', (function() {
-    if ($('.navbar-fixed-bottom').css('bottom') !== '0px') {
-      return $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
-    }
-  }), false);
-
-  window.addEventListener('scroll', (function() {
-    if ((document.body.scrollLeft !== 0 || document.body.scrollTop !== 0) && $('.open').length === 0) {
-      return scrollTo(0, 0);
-    }
-  }), false);
-
-  $('#save-setting').on('click', function() {
-    config.keyboard = $('#setting input[name="keyboard"]:checked').val();
-    if (config.keyboard === 'user-defined') {
-      config['user-defined-keyboard'] = {
-        portrait: parseInt($('#setting input[name="keyboard-height-portrait"]').val()),
-        landscape: parseInt($('#setting input[name="keyboard-height-landscape"]').val())
-      };
-    }
-    if (config.dropbox.sandbox.toString() !== $('#setting input[name="sandbox"]:checked').val()) {
-      config.dropbox.sandbox = !config.dropbox.sandbox;
-    }
-    if ((typeof $('#setting input[name="compile"]').attr('checked') !== 'undefined') !== config.compile) {
-      config.compile = !config.compile;
-    }
-    return localStorage['siphon-config'] = JSON.stringify(config);
-  });
+  initializeEventHandlers();
 
 }).call(this);

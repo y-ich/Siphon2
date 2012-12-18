@@ -15,6 +15,9 @@ touchDevice =
     catch error
         false
 config = null
+spinner = new Spinner color: '#fff'
+lessParser = new less.Parser()
+dropbox = null
 
 #
 # function definitions
@@ -310,214 +313,216 @@ restore = ->
                 """
     $('#download-modal .breadcrumb > li:last-child').addClass 'active'
 
+initializeDropbox = ->
+    dropbox = new Dropbox.Client
+        key: if config.dropbox.sandbox then API_KEY_SANDBOX else API_KEY_FULL
+        sandbox: config.dropbox.sandbox
+    dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
+    if not /not_approved=true/.test location.toString() # if redirect result is not user reject
+        try
+            for key, value of localStorage when /^dropbox-auth/.test(key) and JSON.parse(value).key is dropbox.oauth.key
+                $('#dropbox').button 'loading'
+                dropbox.authenticate (error, client) ->
+                    if error
+                        showError error 
+                        $('#dropbox').button 'reset'
+                    else
+                        $('#dropbox').button 'signout'
+                break
+        catch error
+            console.log error
+
+    for e in $('.navbar-fixed-bottom') # removed .navbar for a work around for dropdown menu
+        new NoClickDelay e, false
+
+initializeEventHandlers = ->
+    window.addEventListener 'orientationchange', (->
+            if $('.navbar-fixed-bottom').css('bottom') isnt '0px'
+                $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
+        ), false
+
+    window.addEventListener 'scroll', (->
+        if (document.body.scrollLeft != 0 or document.body.scrollTop != 0) and $('.open').length == 0 then scrollTo 0, 0
+    ), false
+
+    $('#previous-button').on 'click', ->
+        cm = $('#file-tabs > li.active > a').data('editor')
+        cm.siphon.autoComplete?.previous()
+        cm.focus()
+        
+    $('#next-button').on 'click', ->
+        cm = $('#file-tabs > li.active > a').data('editor')
+        cm.siphon.autoComplete?.next()
+        cm.focus()
+        
+    $('a.new-tab-type').on 'click', ->
+        newTabAndEditor 'untitled', $(this).text().toLowerCase()
+        $(this).parent().parent().prev().dropdown 'toggle'
+        false # prevent default action
+
+    $('#import').on 'click', -> $('#file-picker').click()
+    $('#file-picker').on 'change', (event) ->
+        filename = this.value.replace /^.*\\/, ''
+        reader = new FileReader()
+        reader.onload = ->
+            $active = $('#file-tabs > li.active > a')
+            cm = $active.data 'editor'
+            if cm.getValue() is '' and $active.children('span').text() is 'untitled'
+                $active.children('span').text filename
+                mode = ext2mode filename.replace /^.*\./, ''
+                cm.setOption 'mode', mode
+                cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
+                cm.setValue reader.result
+        reader.readAsText event.target.files[0]
+
+    $('#file-tabs').on 'click', 'button.close', ->
+        $this = $(this)
+        $tabAnchor = $this.parent()
+        if confirm "Do you really delete \"#{$tabAnchor.children('span').text()}\" locally?" # slice removes close button "x"
+            cm = $tabAnchor.data 'editor'
+            clearTimeout cm.siphon.timer if cm.siphon.timer?
+            cm.siphon.timer = null
+            if $tabAnchor.data('dropbox')?
+                localStorage.removeItem "siphon-buffer-#{$tabAnchor.data('dropbox').path}"
+            else if $tabAnchor.children('span').text() isnt 'untitled'
+                localStorage.removeItem "siphon-buffer-#{$tabAnchor.children('span').text()}"
+            if $('#file-tabs > li:not(.dropdown)').length > 1
+                $tabAnchor.data 'editor', null
+                $tabAnchor.parent().remove()
+                $(cm.getWrapperElement()).remove()
+                $first = $('#file-tabs > li:first-child')
+                $first.addClass 'active'
+                cm = $first.children('a').data 'editor'
+                $(cm.getWrapperElement()).addClass 'active'
+            else
+                $tabAnchor.children('span').text 'untitled'
+                $tabAnchor.data 'dropbox', null
+                cm.setValue ''
+            cm.focus()
+
+    $('#download-button').on 'click', ->
+        getList config.dropbox.currentFolder
+
+    $('#download-modal .breadcrumb').on 'click', 'li:not(.active) > a', ->
+        $this = $(this)
+        $this.parent().nextUntil().remove()
+        $this.parent().addClass 'active'
+        path = $this.data 'path'
+        getList path
+        config.dropbox.currentFolder = path
+        localStorage['siphon-config'] = JSON.stringify config
+        false # prevent default
+    
+    $('#download-modal table').on 'click', 'tr', ->
+        $this =$(this)
+        stat = $this.data('dropbox')
+        if stat.isFile
+            $('#download-modal table tr').removeClass 'info'
+            $this.addClass 'info'
+        else if stat.isFolder
+            $('#download-modal .breadcrumb > li.active').removeClass 'active'
+            $('#download-modal .breadcrumb').append $("""
+                <li class="active">
+                    <span class="divider">/</span>
+                    <a href="#" data-path="#{stat.path}"}>#{stat.name}</a>
+                </li>
+                """)
+            getList stat.path
+            config.dropbox.currentFolder = stat.path
+            localStorage['siphon-config'] = JSON.stringify config
+    
+    $('#open').on 'click', ->
+        stat = $('#download-modal table tr.info').data('dropbox')
+        if stat?.isFile
+            dropbox.readFile stat.path, null, (error, string, stat) ->
+                $active = $('#file-tabs > li.active > a')
+                cm = $active.data 'editor'
+                extension = stat.name.replace /^.*\./, ''
+                if cm.getValue() is '' and $active.children('span').text() is 'untitled'
+                    $active.children('span').text stat.name
+                    cm.setOption 'mode', switch extension
+                        when 'html' then 'text/html'
+                        when 'css' then 'css'
+                        when 'js' then 'javascript'
+                        when 'coffee' then 'coffeescript'
+                        when 'less' then 'less'
+                        else null
+                    cm.setOption 'extraKeys', null unless extension is 'html'
+                else
+                    cm = newTabAndEditor stat.name, switch extension
+                            when 'js' then 'javascript'
+                            when 'coffee' then 'coffeescript'
+                            else extension
+                    $active = $('#file-tabs > li.active > a')
+                cm.setValue string
+                $active.data 'dropbox', stat
+                
+                spinner.stop()
+            spinner.spin document.body
+        
+
+    $('#upload').on 'click', ->
+        uploadFile()
+
+    $('.key').on (if touchDevice then 'touchstart' else 'mousedown'), -> fireKeyEvent 'keydown', $(this).data('identifier')
+    
+    $('.key').on (if touchDevice then 'touchend' else 'mouseup'), -> fireKeyEvent 'keyup', $(this).data('identifier')
+
+    $('#undo').on 'click', ->
+        $('#file-tabs > li.active > a').data('editor').undo()
+
+    $('#eval').on 'click', ->
+        cm = $('#file-tabs > li.active > a').data('editor')
+        return unless cm.getOption('mode') is 'coffeescript'
+        if not cm.somethingSelected()
+            line = cm.getCursor().line
+            cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
+        cm.replaceSelection evalCS(cm.getSelection()).toString()
+
+    $('#dropbox').on 'click', ->
+        $this = $(this)
+        if $this.text() is 'sign-in'
+            $this.button 'loading'
+            dropbox.reset()
+            dropbox.authenticate (error, client) ->
+                spinner.stop()
+                if error
+                    showError error 
+                else
+                    $this.button 'signout'
+        else
+            dropbox.signOut (error) ->
+                spinner.stop()
+                if error
+                    showError error
+                    alart 'pass'
+                else
+                    $this.button 'reset'
+            
+        spinner.spin document.body
+
+    $('#save-setting').on 'click', ->
+        config.keyboard = $('#setting input[name="keyboard"]:checked').val()
+        if config.keyboard is 'user-defined'
+            config['user-defined-keyboard'] =
+                portrait: parseInt $('#setting input[name="keyboard-height-portrait"]').val()
+                landscape: parseInt $('#setting input[name="keyboard-height-landscape"]').val()
+        if config.dropbox.sandbox.toString() isnt $('#setting input[name="sandbox"]:checked').val()
+            config.dropbox.sandbox = not config.dropbox.sandbox
+        if (typeof $('#setting input[name="compile"]').attr('checked') isnt 'undefined') isnt config.compile
+            config.compile = not config.compile
+        localStorage['siphon-config'] = JSON.stringify config
+    
 #
 # main
 #
 
 $('#soft-key').css 'display', 'none' unless touchDevice
+
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null }, true
 
 restore()
 
-spinner = new Spinner(color: '#fff')
+initializeDropbox()
 
-dropbox = new Dropbox.Client
-    key: if config.dropbox.sandbox then API_KEY_SANDBOX else API_KEY_FULL
-    sandbox: config.dropbox.sandbox
-dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
-if not /not_approved=true/.test location.toString() # if redirect result is not user reject
-    try
-        for key, value of localStorage when /^dropbox-auth/.test(key) and JSON.parse(value).key is dropbox.oauth.key
-            $('#dropbox').button 'loading'
-            dropbox.authenticate (error, client) ->
-                if error
-                    showError error 
-                    $('#dropbox').button 'reset'
-                else
-                    $('#dropbox').button 'signout'
-            break
-    catch error
-        console.log error
-
-lessParser = new less.Parser()
-
-for e in $('.navbar-fixed-bottom') # removed .navbar for a work around for dropdown menu
-    new NoClickDelay e, false
-
-$('#previous-button').on 'click', ->
-    cm = $('#file-tabs > li.active > a').data('editor')
-    cm.siphon.autoComplete?.previous()
-    cm.focus()
-        
-$('#next-button').on 'click', ->
-    cm = $('#file-tabs > li.active > a').data('editor')
-    cm.siphon.autoComplete?.next()
-    cm.focus()
-        
-$('a.new-tab-type').on 'click', ->
-    newTabAndEditor 'untitled', $(this).text().toLowerCase()
-    $(this).parent().parent().prev().dropdown 'toggle'
-    false # prevent default action
-
-$('#import').on 'click', -> $('#file-picker').click()
-$('#file-picker').on 'change', (event) ->
-    filename = this.value.replace /^.*\\/, ''
-    reader = new FileReader()
-    reader.onload = ->
-        $active = $('#file-tabs > li.active > a')
-        cm = $active.data 'editor'
-        if cm.getValue() is '' and $active.children('span').text() is 'untitled'
-            $active.children('span').text filename
-            mode = ext2mode filename.replace /^.*\./, ''
-            cm.setOption 'mode', mode
-            cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
-            cm.setValue reader.result
-    reader.readAsText event.target.files[0]
-
-$('#file-tabs').on 'click', 'button.close', ->
-    $this = $(this)
-    $tabAnchor = $this.parent()
-    if confirm "Do you really delete \"#{$tabAnchor.children('span').text()}\" locally?" # slice removes close button "x"
-        cm = $tabAnchor.data 'editor'
-        clearTimeout cm.siphon.timer if cm.siphon.timer?
-        cm.siphon.timer = null
-        if $tabAnchor.data('dropbox')?
-            localStorage.removeItem "siphon-buffer-#{$tabAnchor.data('dropbox').path}"
-        else if $tabAnchor.children('span').text() isnt 'untitled'
-            localStorage.removeItem "siphon-buffer-#{$tabAnchor.children('span').text()}"
-        if $('#file-tabs > li:not(.dropdown)').length > 1
-            $tabAnchor.data 'editor', null
-            $tabAnchor.parent().remove()
-            $(cm.getWrapperElement()).remove()
-            $first = $('#file-tabs > li:first-child')
-            $first.addClass 'active'
-            cm = $first.children('a').data 'editor'
-            $(cm.getWrapperElement()).addClass 'active'
-        else
-            $tabAnchor.children('span').text 'untitled'
-            $tabAnchor.data 'dropbox', null
-            cm.setValue ''
-        cm.focus()
-
-$('#download-button').on 'click', ->
-    getList config.dropbox.currentFolder
-
-$('#download-modal .breadcrumb').on 'click', 'li:not(.active) > a', ->
-    $this = $(this)
-    $this.parent().nextUntil().remove()
-    $this.parent().addClass 'active'
-    path = $this.data 'path'
-    getList path
-    config.dropbox.currentFolder = path
-    localStorage['siphon-config'] = JSON.stringify config
-    false # prevent default
-    
-$('#download-modal table').on 'click', 'tr', ->
-    $this =$(this)
-    stat = $this.data('dropbox')
-    if stat.isFile
-        $('#download-modal table tr').removeClass 'info'
-        $this.addClass 'info'
-    else if stat.isFolder
-        $('#download-modal .breadcrumb > li.active').removeClass 'active'
-        $('#download-modal .breadcrumb').append $("""
-            <li class="active">
-                <span class="divider">/</span>
-                <a href="#" data-path="#{stat.path}"}>#{stat.name}</a>
-            </li>
-            """)
-        getList stat.path
-        config.dropbox.currentFolder = stat.path
-        localStorage['siphon-config'] = JSON.stringify config
-    
-$('#open').on 'click', ->
-    stat = $('#download-modal table tr.info').data('dropbox')
-    if stat?.isFile
-        dropbox.readFile stat.path, null, (error, string, stat) ->
-            $active = $('#file-tabs > li.active > a')
-            cm = $active.data 'editor'
-            extension = stat.name.replace /^.*\./, ''
-            if cm.getValue() is '' and $active.children('span').text() is 'untitled'
-                $active.children('span').text stat.name
-                cm.setOption 'mode', switch extension
-                    when 'html' then 'text/html'
-                    when 'css' then 'css'
-                    when 'js' then 'javascript'
-                    when 'coffee' then 'coffeescript'
-                    when 'less' then 'less'
-                    else null
-                cm.setOption 'extraKeys', null unless extension is 'html'
-            else
-                cm = newTabAndEditor stat.name, switch extension
-                        when 'js' then 'javascript'
-                        when 'coffee' then 'coffeescript'
-                        else extension
-                $active = $('#file-tabs > li.active > a')
-            cm.setValue string
-            $active.data 'dropbox', stat
-                
-            spinner.stop()
-        spinner.spin document.body
-        
-
-$('#upload').on 'click', ->
-    uploadFile()
-
-$('.key').on (if touchDevice then 'touchstart' else 'mousedown'), -> fireKeyEvent 'keydown', $(this).data('identifier')
-    
-$('.key').on (if touchDevice then 'touchend' else 'mouseup'), -> fireKeyEvent 'keyup', $(this).data('identifier')
-
-$('#undo').on 'click', ->
-    $('#file-tabs > li.active > a').data('editor').undo()
-
-$('#eval').on 'click', ->
-    cm = $('#file-tabs > li.active > a').data('editor')
-    return unless cm.getOption('mode') is 'coffeescript'
-    if not cm.somethingSelected()
-        line = cm.getCursor().line
-        cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
-    cm.replaceSelection evalCS(cm.getSelection()).toString()
-
-$('#dropbox').on 'click', ->
-    $this = $(this)
-    if $this.text() is 'sign-in'
-        $this.button 'loading'
-        dropbox.reset()
-        dropbox.authenticate (error, client) ->
-            spinner.stop()
-            if error
-                showError error 
-            else
-                $this.button 'signout'
-    else
-        dropbox.signOut (error) ->
-            spinner.stop()
-            if error
-                showError error
-                alart 'pass'
-            else
-                $this.button 'reset'
-            
-    spinner.spin document.body
-
-
-window.addEventListener 'orientationchange', (->
-        if $('.navbar-fixed-bottom').css('bottom') isnt '0px'
-            $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
-    ), false
-
-window.addEventListener 'scroll', (->
-    if (document.body.scrollLeft != 0 or document.body.scrollTop != 0) and $('.open').length == 0 then scrollTo 0, 0
-), false
-
-$('#save-setting').on 'click', ->
-    config.keyboard = $('#setting input[name="keyboard"]:checked').val()
-    if config.keyboard is 'user-defined'
-        config['user-defined-keyboard'] =
-            portrait: parseInt $('#setting input[name="keyboard-height-portrait"]').val()
-            landscape: parseInt $('#setting input[name="keyboard-height-landscape"]').val()
-    if config.dropbox.sandbox.toString() isnt $('#setting input[name="sandbox"]:checked').val()
-        config.dropbox.sandbox = not config.dropbox.sandbox
-    if (typeof $('#setting input[name="compile"]').attr('checked') isnt 'undefined') isnt config.compile
-        config.compile = not config.compile
-    localStorage['siphon-config'] = JSON.stringify config
+initializeEventHandlers()
