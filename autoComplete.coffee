@@ -128,3 +128,5 @@ class AutoComplete
             @cm.replaceRange @candidates[@index], @start, @end
             @end = @cm.getCursor()
             @cm.setSelection @start, @end
+
+window.AutoComplete = AutoComplete
