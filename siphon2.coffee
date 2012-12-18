@@ -5,6 +5,10 @@
 API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ=='
 API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw=='
 
+#
+# function definitions
+#
+
 ext2mode = (str) ->
     exts =
         c: 'clike'
@@ -33,10 +37,6 @@ ext2mode = (str) ->
         st: 'smalltalk'
         tex: 'stex'
     exts[str] ? str.toLowerCase()
-
-#
-# function definitions
-#
 
 newCodeMirror = (tabAnchor, options, active) ->
     defaultOptions =
@@ -118,6 +118,11 @@ uploadFile = ->
         folder = $('#download-modal .breadcrumb > li.active > a').data('path')
         filename = prompt "Input file name. (current folder is #{folder}.)", $active.children('span').text()
         return unless filename
+        $active.children('span').text filename
+        cm = $active.data('editor')
+        mode = ext2mode filename.replace /^.*\./, ''
+        cm.setOption 'mode', mode
+        cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
         path = folder + '/' + filename
     
     fileDeferred = $.Deferred()
@@ -274,12 +279,11 @@ config.dropbox.sandbox ?= true
 config.dropbox.currentFolder = '/' if not config.dropbox.currentFolder? or config.dropbox.currentFolder is ''
 config.autoSaveTime ?= 10000
 
-newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
+newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null }, true
 
 for key, value of localStorage when /^siphon-buffer/.test key
     buffer = JSON.parse value
     cm = newTabAndEditor buffer.title, ext2mode buffer.title.replace /^.*\./, ''
-    console.log cm.getWrapperElement()
     cm.setValue buffer.text
     $('#file-tabs > li.active > a').data 'dropbox', buffer.dropbox if buffer.dropbox?
     
@@ -344,16 +348,16 @@ $('a.new-tab-type').on 'click', ->
 
 $('#import').on 'click', -> $('#file-picker').click()
 $('#file-picker').on 'change', (event) ->
-    fileName = this.value.replace /^.*\\/, ''
+    filename = this.value.replace /^.*\\/, ''
     reader = new FileReader()
     reader.onload = ->
         $active = $('#file-tabs > li.active > a')
         cm = $active.data 'editor'
         if cm.getValue() is '' and $active.children('span').text() is 'untitled'
-            $active.children('span').text fileName
-            mode = ext2mode fileName.replace /^.*\./, ''
-            cm.setOption mode
-            cm.setOption if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
+            $active.children('span').text filename
+            mode = ext2mode filename.replace /^.*\./, ''
+            cm.setOption 'mode', mode
+            cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
             cm.setValue reader.result
     reader.readAsText event.target.files[0]
 

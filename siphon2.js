@@ -340,7 +340,7 @@
   };
 
   uploadFile = function() {
-    var $active, compileDeferred, compiled, fileDeferred, filename, folder, path, stat;
+    var $active, cm, compileDeferred, compiled, fileDeferred, filename, folder, mode, path, stat;
     $active = $('#file-tabs > li.active > a');
     stat = $active.data('dropbox');
     if (stat != null) {
@@ -351,6 +351,11 @@
       if (!filename) {
         return;
       }
+      $active.children('span').text(filename);
+      cm = $active.data('editor');
+      mode = ext2mode(filename.replace(/^.*\./, ''));
+      cm.setOption('mode', mode);
+      cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
       path = folder + '/' + filename;
     }
     fileDeferred = $.Deferred();
@@ -559,8 +564,7 @@
   }
 
   newCodeMirror($('#file-tabs > li.active > a')[0], {
-    extraKeys: null,
-    mode: 'coffeescript'
+    extraKeys: null
   }, true);
 
   for (key in localStorage) {
@@ -570,7 +574,6 @@
     }
     buffer = JSON.parse(value);
     cm = newTabAndEditor(buffer.title, ext2mode(buffer.title.replace(/^.*\./, '')));
-    console.log(cm.getWrapperElement());
     cm.setValue(buffer.text);
     if (buffer.dropbox != null) {
       $('#file-tabs > li.active > a').data('dropbox', buffer.dropbox);
@@ -676,18 +679,18 @@
   });
 
   $('#file-picker').on('change', function(event) {
-    var fileName, reader;
-    fileName = this.value.replace(/^.*\\/, '');
+    var filename, reader;
+    filename = this.value.replace(/^.*\\/, '');
     reader = new FileReader();
     reader.onload = function() {
       var $active, mode;
       $active = $('#file-tabs > li.active > a');
       cm = $active.data('editor');
       if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
-        $active.children('span').text(fileName);
-        mode = ext2mode(fileName.replace(/^.*\./, ''));
-        cm.setOption(mode);
-        cm.setOption(mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
+        $active.children('span').text(filename);
+        mode = ext2mode(filename.replace(/^.*\./, ''));
+        cm.setOption('mode', mode);
+        cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
         return cm.setValue(reader.result);
       }
     };
