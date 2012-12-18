@@ -80,7 +80,9 @@ newCodeMirror = (tabAnchor, options, active) ->
     $wrapper = $(result.getWrapperElement())
     $wrapper.attr 'id', "cm#{newCodeMirror.number}"
     $wrapper.addClass 'tab-pane'
-    $wrapper.addClass 'active' if active
+    if active
+        $('#editor-pane .CodeMirror').removeClass 'active'
+        $wrapper.addClass 'active' 
     newCodeMirror.number += 1
     result.siphon = {}
     $(tabAnchor).data 'editor', result
@@ -272,9 +274,12 @@ config.dropbox.sandbox ?= true
 config.dropbox.currentFolder = '/' if not config.dropbox.currentFolder? or config.dropbox.currentFolder is ''
 config.autoSaveTime ?= 10000
 
+newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
+
 for key, value of localStorage when /^siphon-buffer/.test key
     buffer = JSON.parse value
     cm = newTabAndEditor buffer.title, ext2mode buffer.title.replace /^.*\./, ''
+    console.log cm.getWrapperElement()
     cm.setValue buffer.text
     $('#file-tabs > li.active > a').data 'dropbox', buffer.dropbox if buffer.dropbox?
     
@@ -318,8 +323,6 @@ if not /not_approved=true/.test location.toString() # if redirect result is not 
         console.log error
 
 lessParser = new less.Parser()
-
-newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null, mode: 'coffeescript' }, true
 
 for e in $('.navbar-fixed-bottom') # removed .navbar for a work around for dropdown menu
     new NoClickDelay e, false

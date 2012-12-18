@@ -298,6 +298,7 @@
     $wrapper.attr('id', "cm" + newCodeMirror.number);
     $wrapper.addClass('tab-pane');
     if (active) {
+      $('#editor-pane .CodeMirror').removeClass('active');
       $wrapper.addClass('active');
     }
     newCodeMirror.number += 1;
@@ -557,6 +558,11 @@
     config.autoSaveTime = 10000;
   }
 
+  newCodeMirror($('#file-tabs > li.active > a')[0], {
+    extraKeys: null,
+    mode: 'coffeescript'
+  }, true);
+
   for (key in localStorage) {
     value = localStorage[key];
     if (!(/^siphon-buffer/.test(key))) {
@@ -564,6 +570,7 @@
     }
     buffer = JSON.parse(value);
     cm = newTabAndEditor(buffer.title, ext2mode(buffer.title.replace(/^.*\./, '')));
+    console.log(cm.getWrapperElement());
     cm.setValue(buffer.text);
     if (buffer.dropbox != null) {
       $('#file-tabs > li.active > a').data('dropbox', buffer.dropbox);
@@ -633,11 +640,6 @@
   }
 
   lessParser = new less.Parser();
-
-  newCodeMirror($('#file-tabs > li.active > a')[0], {
-    extraKeys: null,
-    mode: 'coffeescript'
-  }, true);
 
   _ref8 = $('.navbar-fixed-bottom');
   for (_k = 0, _len2 = _ref8.length; _k < _len2; _k++) {
