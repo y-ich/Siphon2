@@ -499,10 +499,6 @@
     }
   })();
 
-  if (/iPhone|iPad/.test(navigator.userAgent)) {
-    $('#file').css('display', 'none');
-  }
-
   if (!touchDevice) {
     $('#soft-key').css('display', 'none');
   }
@@ -628,7 +624,7 @@
     return false;
   });
 
-  $('#file').on('click', function() {
+  $('#import').on('click', function() {
     return $('#file-picker').click();
   });
 

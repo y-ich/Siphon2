@@ -224,7 +224,6 @@ touchDevice =
     catch error
         false
 
-$('#file').css 'display', 'none' if /iPhone|iPad/.test navigator.userAgent
 $('#soft-key').css 'display', 'none' unless touchDevice
 
 config = JSON.parse localStorage['siphon-config'] ? '{}'
@@ -296,7 +295,7 @@ $('a.new-tab-type').on 'click', ->
     newTabAndEditor 'untitled', $(this).text().toLowerCase()
     false # prevent default action
 
-$('#file').on 'click', -> $('#file-picker').click()
+$('#import').on 'click', -> $('#file-picker').click()
 $('#file-picker').on 'change', (event) ->
     fileName = this.value.replace /^.*\\/, ''
     reader = new FileReader()
