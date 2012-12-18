@@ -17,6 +17,20 @@ newCodeMirror = (tabAnchor, options, active) ->
             $('.navbar-fixed-bottom').css 'bottom', ''           
         # CodeMirror 2
         onChange: (cm, change)->
+            clearTimeout cm.siphon.timer if cm.siphon.timer?
+            cm.siphon.timer = setTimeout (->
+                if $(tabAnchor).data('dropbox')?
+                    path = $(tabAnchor).data('dropbox').path
+                else if $(tabAnchor).children('span').text() isnt 'untitled'
+                    path = $(tabAnchor).children('span').text()
+                else
+                    return
+                localStorage["siphon-buffer-#{path}"] = JSON.stringify
+                    title: $(tabAnchor).children('span').text()
+                    text: cm.getValue()
+                    dropbox: $(tabAnchor).data('dropbox') ? null
+                cm.siphon.timer = null
+            ), config.autoSaveTime
             if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
                 cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
                 cm.siphon.autoComplete.complete cm
@@ -232,14 +246,24 @@ config.compile ?= false
 config.dropbox ?= {}
 config.dropbox.sandbox ?= true
 config.dropbox.currentFolder = '/' if not config.dropbox.currentFolder? or config.dropbox.currentFolder is ''
+config.autoSaveTime ?= 10000
 
+for key, value of localStorage when /^siphon-buffer/.test key
+    buffer = JSON.parse value
+    extension = buffer.title.replace /^.*\./, ''
+    cm = newTabAndEditor buffer.title, switch extension
+        when 'js' then 'javascript'
+        when 'coffee' then 'cofeescript'
+        else extension
+    cm.setValue buffer.text
+    $('#file-tabs > li.active > a').data 'dropbox', buffer.dropbox if buffer.dropbox?
+    
 $("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
 if config['user-defined-keyboard']?
     $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
     $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
 $("#setting input[name=\"sandbox\"][value=\"#{config.dropbox.sandbox.toString()}\"]").attr 'checked', ''
 $("#setting input[name=\"compile\"]").attr 'checked', '' if config.compile
-console.log parentFolders config.dropbox.currentFolder
 for e, i in parentFolders config.dropbox.currentFolder
     if i == 0
         $('#download-modal .breadcrumb').append '<li><a href="#" data-path="/">Home</a></li>'
@@ -260,19 +284,18 @@ dropbox = new Dropbox.Client
     sandbox: config.dropbox.sandbox
 dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
 if not /not_approved=true/.test location.toString() # if redirect result is not user reject
-    for key, value of localStorage
-        try
-            if /^dropbox-auth/.test(key) and JSON.parse(value).key is dropbox.oauth.key
-                $('#dropbox').button 'loading'
-                dropbox.authenticate (error, client) ->
-                    if error
-                        showError error 
-                        $('#dropbox').button 'reset'
-                    else
-                        $('#dropbox').button 'signout'
-                break
-        catch error
-            console.log error
+    try
+        for key, value of localStorage when /^dropbox-auth/.test(key) and JSON.parse(value).key is dropbox.oauth.key
+            $('#dropbox').button 'loading'
+            dropbox.authenticate (error, client) ->
+                if error
+                    showError error 
+                    $('#dropbox').button 'reset'
+                else
+                    $('#dropbox').button 'signout'
+            break
+    catch error
+        console.log error
 
 lessParser = new less.Parser()
 
@@ -293,6 +316,7 @@ $('#next-button').on 'click', ->
         
 $('a.new-tab-type').on 'click', ->
     newTabAndEditor 'untitled', $(this).text().toLowerCase()
+    $(this).parent().parent().prev().dropdown 'toggle'
     false # prevent default action
 
 $('#import').on 'click', -> $('#file-picker').click()
@@ -320,8 +344,14 @@ $('#file-tabs').on 'click', 'button.close', ->
     $this = $(this)
     $tabAnchor = $this.parent()
     if confirm "Do you really delete \"#{$tabAnchor.children('span').text()}\" locally?" # slice removes close button "x"
+        cm = $tabAnchor.data 'editor'
+        clearTimeout cm.siphon.timer if cm.siphon.timer?
+        cm.siphon.timer = null
+        if $tabAnchor.data('dropbox')?
+            localStorage.removeItem "siphon-buffer-#{$tabAnchor.data('dropbox').path}"
+        else if $tabAnchor.children('span').text() isnt 'untitled'
+            localStorage.removeItem "siphon-buffer-#{$tabAnchor.children('span').text()}"
         if $('#file-tabs > li:not(.dropdown)').length > 1
-            cm = $tabAnchor.data 'editor'
             $tabAnchor.data 'editor', null
             $tabAnchor.parent().remove()
             $(cm.getWrapperElement()).remove()
@@ -332,7 +362,6 @@ $('#file-tabs').on 'click', 'button.close', ->
         else
             $tabAnchor.children('span').text 'untitled'
             $tabAnchor.data 'dropbox', null
-            cm = $tabAnchor.data('editor')
             cm.setValue ''
         cm.focus()
 

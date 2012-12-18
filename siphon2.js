@@ -7,7 +7,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, config, dropbox, e, evalCS, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, i, key, keyboardHeight, lessParser, name, newCodeMirror, newTabAndEditor, parentFolders, showError, spinner, touchDevice, uploadFile, value, variables, _base, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, buffer, classes, cm, config, dropbox, e, evalCS, extension, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, i, key, keyboardHeight, lessParser, name, newCodeMirror, newTabAndEditor, parentFolders, showError, spinner, touchDevice, uploadFile, value, variables, _base, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -213,6 +213,25 @@
         return $('.navbar-fixed-bottom').css('bottom', '');
       },
       onChange: function(cm, change) {
+        if (cm.siphon.timer != null) {
+          clearTimeout(cm.siphon.timer);
+        }
+        cm.siphon.timer = setTimeout((function() {
+          var path, _ref1;
+          if ($(tabAnchor).data('dropbox') != null) {
+            path = $(tabAnchor).data('dropbox').path;
+          } else if ($(tabAnchor).children('span').text() !== 'untitled') {
+            path = $(tabAnchor).children('span').text();
+          } else {
+            return;
+          }
+          localStorage["siphon-buffer-" + path] = JSON.stringify({
+            title: $(tabAnchor).children('span').text(),
+            text: cm.getValue(),
+            dropbox: (_ref1 = $(tabAnchor).data('dropbox')) != null ? _ref1 : null
+          });
+          return cm.siphon.timer = null;
+        }), config.autoSaveTime);
         if (!(cm.siphon.autoComplete != null) && change.text.length === 1 && change.text[0].length === 1) {
           cm.siphon.autoComplete = new AutoComplete(cm, change.text[change.text.length - 1]);
           return cm.siphon.autoComplete.complete(cm);
@@ -525,6 +544,33 @@
     config.dropbox.currentFolder = '/';
   }
 
+  if ((_ref6 = config.autoSaveTime) == null) {
+    config.autoSaveTime = 10000;
+  }
+
+  for (key in localStorage) {
+    value = localStorage[key];
+    if (!(/^siphon-buffer/.test(key))) {
+      continue;
+    }
+    buffer = JSON.parse(value);
+    extension = buffer.title.replace(/^.*\./, '');
+    cm = newTabAndEditor(buffer.title, (function() {
+      switch (extension) {
+        case 'js':
+          return 'javascript';
+        case 'coffee':
+          return 'cofeescript';
+        default:
+          return extension;
+      }
+    })());
+    cm.setValue(buffer.text);
+    if (buffer.dropbox != null) {
+      $('#file-tabs > li.active > a').data('dropbox', buffer.dropbox);
+    }
+  }
+
   $("#setting input[name=\"keyboard\"][value=\"" + config.keyboard + "\"]").attr('checked', '');
 
   if (config['user-defined-keyboard'] != null) {
@@ -538,11 +584,9 @@
     $("#setting input[name=\"compile\"]").attr('checked', '');
   }
 
-  console.log(parentFolders(config.dropbox.currentFolder));
-
-  _ref6 = parentFolders(config.dropbox.currentFolder);
-  for (i = _j = 0, _len1 = _ref6.length; _j < _len1; i = ++_j) {
-    e = _ref6[i];
+  _ref7 = parentFolders(config.dropbox.currentFolder);
+  for (i = _j = 0, _len1 = _ref7.length; _j < _len1; i = ++_j) {
+    e = _ref7[i];
     if (i === 0) {
       $('#download-modal .breadcrumb').append('<li><a href="#" data-path="/">Home</a></li>');
     } else {
@@ -567,24 +611,25 @@
   }));
 
   if (!/not_approved=true/.test(location.toString())) {
-    for (key in localStorage) {
-      value = localStorage[key];
-      try {
-        if (/^dropbox-auth/.test(key) && JSON.parse(value).key === dropbox.oauth.key) {
-          $('#dropbox').button('loading');
-          dropbox.authenticate(function(error, client) {
-            if (error) {
-              showError(error);
-              return $('#dropbox').button('reset');
-            } else {
-              return $('#dropbox').button('signout');
-            }
-          });
-          break;
+    try {
+      for (key in localStorage) {
+        value = localStorage[key];
+        if (!(/^dropbox-auth/.test(key) && JSON.parse(value).key === dropbox.oauth.key)) {
+          continue;
         }
-      } catch (error) {
-        console.log(error);
+        $('#dropbox').button('loading');
+        dropbox.authenticate(function(error, client) {
+          if (error) {
+            showError(error);
+            return $('#dropbox').button('reset');
+          } else {
+            return $('#dropbox').button('signout');
+          }
+        });
+        break;
       }
+    } catch (error) {
+      console.log(error);
     }
   }
 
@@ -595,32 +640,33 @@
     mode: 'coffeescript'
   }, true);
 
-  _ref7 = $('.navbar-fixed-bottom');
-  for (_k = 0, _len2 = _ref7.length; _k < _len2; _k++) {
-    e = _ref7[_k];
+  _ref8 = $('.navbar-fixed-bottom');
+  for (_k = 0, _len2 = _ref8.length; _k < _len2; _k++) {
+    e = _ref8[_k];
     new NoClickDelay(e, false);
   }
 
   $('#previous-button').on('click', function() {
-    var cm, _ref8;
+    var _ref9;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref8 = cm.siphon.autoComplete) != null) {
-      _ref8.previous();
+    if ((_ref9 = cm.siphon.autoComplete) != null) {
+      _ref9.previous();
     }
     return cm.focus();
   });
 
   $('#next-button').on('click', function() {
-    var cm, _ref8;
+    var _ref9;
     cm = $('#file-tabs > li.active > a').data('editor');
-    if ((_ref8 = cm.siphon.autoComplete) != null) {
-      _ref8.next();
+    if ((_ref9 = cm.siphon.autoComplete) != null) {
+      _ref9.next();
     }
     return cm.focus();
   });
 
   $('a.new-tab-type').on('click', function() {
     newTabAndEditor('untitled', $(this).text().toLowerCase());
+    $(this).parent().parent().prev().dropdown('toggle');
     return false;
   });
 
@@ -633,7 +679,7 @@
     fileName = this.value.replace(/^.*\\/, '');
     reader = new FileReader();
     reader.onload = function() {
-      var $active, cm, extension;
+      var $active;
       $active = $('#file-tabs > li.active > a');
       cm = $active.data('editor');
       if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
@@ -665,12 +711,21 @@
   });
 
   $('#file-tabs').on('click', 'button.close', function() {
-    var $first, $tabAnchor, $this, cm;
+    var $first, $tabAnchor, $this;
     $this = $(this);
     $tabAnchor = $this.parent();
     if (confirm("Do you really delete \"" + ($tabAnchor.children('span').text()) + "\" locally?")) {
+      cm = $tabAnchor.data('editor');
+      if (cm.siphon.timer != null) {
+        clearTimeout(cm.siphon.timer);
+      }
+      cm.siphon.timer = null;
+      if ($tabAnchor.data('dropbox') != null) {
+        localStorage.removeItem("siphon-buffer-" + ($tabAnchor.data('dropbox').path));
+      } else if ($tabAnchor.children('span').text() !== 'untitled') {
+        localStorage.removeItem("siphon-buffer-" + ($tabAnchor.children('span').text()));
+      }
       if ($('#file-tabs > li:not(.dropdown)').length > 1) {
-        cm = $tabAnchor.data('editor');
         $tabAnchor.data('editor', null);
         $tabAnchor.parent().remove();
         $(cm.getWrapperElement()).remove();
@@ -681,7 +736,6 @@
       } else {
         $tabAnchor.children('span').text('untitled');
         $tabAnchor.data('dropbox', null);
-        cm = $tabAnchor.data('editor');
         cm.setValue('');
       }
       return cm.focus();
@@ -725,7 +779,7 @@
     stat = $('#download-modal table tr.info').data('dropbox');
     if (stat != null ? stat.isFile : void 0) {
       dropbox.readFile(stat.path, null, function(error, string, stat) {
-        var $active, cm, extension;
+        var $active;
         $active = $('#file-tabs > li.active > a');
         cm = $active.data('editor');
         extension = stat.name.replace(/^.*\./, '');
@@ -788,7 +842,7 @@
   });
 
   $('#eval').on('click', function() {
-    var cm, line;
+    var line;
     cm = $('#file-tabs > li.active > a').data('editor');
     if (cm.getOption('mode') !== 'coffeescript') {
       return;
