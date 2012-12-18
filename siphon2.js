@@ -719,7 +719,7 @@
         $first = $('#file-tabs > li:first-child');
         $first.addClass('active');
         cm = $first.children('a').data('editor');
-        $(cm.getWrapperElement().parentElement).addClass('active');
+        $(cm.getWrapperElement()).addClass('active');
       } else {
         $tabAnchor.children('span').text('untitled');
         $tabAnchor.data('dropbox', null);
