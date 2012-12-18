@@ -5,6 +5,35 @@
 API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ=='
 API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw=='
 
+ext2mode = (str) ->
+    exts =
+        c: 'clike'
+        cc: 'clike'
+        clj: 'clojure'
+        coffee: 'coffeescript'
+        cpp: 'clike'
+        css: 'css'
+        erl: 'erlang'
+        h: 'clike'
+        hs: 'haskell'
+        htm: 'htmlmixed'
+        html: 'htmlmixed'
+        hx: 'haxe'
+        md: 'markdown'
+        ml: 'ocaml'
+        java: 'clike'
+        js: 'javascript'
+        lisp: 'commonlisp'
+        pas: 'pascal'
+        pl: 'perl'
+        py: 'python'
+        rb: 'ruby'
+        scm: 'scheme'
+        sh: 'shell'
+        st: 'smalltalk'
+        tex: 'stex'
+    exts[str] ? str.toLowerCase()
+
 #
 # function definitions
 #
@@ -213,14 +242,9 @@ newTabAndEditor = (title = 'untitled', mode) ->
         </li>
         """)
     $('#file-tabs > li.dropdown').before $tab
-    newCodeMirror $tab.children('a')[0], switch mode
-            when 'html' then mode: 'text/html'
-            when 'css' then { extraKeys: null, mode: 'css' }
-            when 'less' then { extraKyes: null, mode: 'less' }
-            when 'javascript' then { extraKeys: null, mode: 'javascript' }
-            when 'cofeescript' then { extraKeys: null, mode: 'coffeescript' }
-            else null
-        , true
+    options = mode: mode
+    options.extraKeys = null if mode isnt 'htmlmixed'
+    newCodeMirror $tab.children('a')[0], options, true
 newTabAndEditor.num = 0
 
 parentFolders = (path) ->
@@ -250,11 +274,7 @@ config.autoSaveTime ?= 10000
 
 for key, value of localStorage when /^siphon-buffer/.test key
     buffer = JSON.parse value
-    extension = buffer.title.replace /^.*\./, ''
-    cm = newTabAndEditor buffer.title, switch extension
-        when 'js' then 'javascript'
-        when 'coffee' then 'cofeescript'
-        else extension
+    cm = newTabAndEditor buffer.title, ext2mode buffer.title.replace /^.*\./, ''
     cm.setValue buffer.text
     $('#file-tabs > li.active > a').data 'dropbox', buffer.dropbox if buffer.dropbox?
     
@@ -328,15 +348,9 @@ $('#file-picker').on 'change', (event) ->
         cm = $active.data 'editor'
         if cm.getValue() is '' and $active.children('span').text() is 'untitled'
             $active.children('span').text fileName
-            extension = fileName.replace /^.*\./, ''
-            cm.setOption 'mode', switch extension
-                when 'html' then 'text/html'
-                when 'css' then 'css'
-                when 'js' then 'javascript'
-                when 'coffee' then 'coffeescript'
-                when 'less' then 'less'
-                else null
-            cm.setOption 'extraKeys', null unless extension is 'html'
+            mode = ext2mode fileName.replace /^.*\./, ''
+            cm.setOption mode
+            cm.setOption if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
             cm.setValue reader.result
     reader.readAsText event.target.files[0]
 

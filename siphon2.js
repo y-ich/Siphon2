@@ -7,7 +7,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, buffer, classes, cm, config, dropbox, e, evalCS, extension, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, i, key, keyboardHeight, lessParser, name, newCodeMirror, newTabAndEditor, parentFolders, showError, spinner, touchDevice, uploadFile, value, variables, _base, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
+  var API_KEY_FULL, API_KEY_SANDBOX, AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, buffer, classes, cm, config, dropbox, e, evalCS, ext2mode, fireKeyEvent, functions, getList, globalProperties, globalPropertiesPlusKeywords, i, key, keyboardHeight, lessParser, name, newCodeMirror, newTabAndEditor, parentFolders, showError, spinner, touchDevice, uploadFile, value, variables, _base, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
 
   JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
 
@@ -203,6 +203,38 @@
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
   API_KEY_SANDBOX = 'CCdH9UReG2A=|k8J5QIsJKiBxs2tvP5WxPZ5jhjIhJ1GS0sbPdv3xxw==';
+
+  ext2mode = function(str) {
+    var exts, _ref1;
+    exts = {
+      c: 'clike',
+      cc: 'clike',
+      clj: 'clojure',
+      coffee: 'coffeescript',
+      cpp: 'clike',
+      css: 'css',
+      erl: 'erlang',
+      h: 'clike',
+      hs: 'haskell',
+      htm: 'htmlmixed',
+      html: 'htmlmixed',
+      hx: 'haxe',
+      md: 'markdown',
+      ml: 'ocaml',
+      java: 'clike',
+      js: 'javascript',
+      lisp: 'commonlisp',
+      pas: 'pascal',
+      pl: 'perl',
+      py: 'python',
+      rb: 'ruby',
+      scm: 'scheme',
+      sh: 'shell',
+      st: 'smalltalk',
+      tex: 'stex'
+    };
+    return (_ref1 = exts[str]) != null ? _ref1 : str.toLowerCase();
+  };
 
   newCodeMirror = function(tabAnchor, options, active) {
     var $wrapper, defaultOptions, key, result, value, _ref1;
@@ -455,7 +487,7 @@
   };
 
   newTabAndEditor = function(title, mode) {
-    var $tab, id;
+    var $tab, id, options;
     if (title == null) {
       title = 'untitled';
     }
@@ -464,36 +496,13 @@
     id = "cm" + newTabAndEditor.num;
     $tab = $("<li class=\"active\">\n    <a href=\"#" + id + "\" data-toggle=\"tab\">\n        <button class=\"close\" type=\"button\">&times;</button>\n        <span>" + title + "</span>\n    </a>\n</li>");
     $('#file-tabs > li.dropdown').before($tab);
-    return newCodeMirror($tab.children('a')[0], (function() {
-      switch (mode) {
-        case 'html':
-          return {
-            mode: 'text/html'
-          };
-        case 'css':
-          return {
-            extraKeys: null,
-            mode: 'css'
-          };
-        case 'less':
-          return {
-            extraKyes: null,
-            mode: 'less'
-          };
-        case 'javascript':
-          return {
-            extraKeys: null,
-            mode: 'javascript'
-          };
-        case 'cofeescript':
-          return {
-            extraKeys: null,
-            mode: 'coffeescript'
-          };
-        default:
-          return null;
-      }
-    })(), true);
+    options = {
+      mode: mode
+    };
+    if (mode !== 'htmlmixed') {
+      options.extraKeys = null;
+    }
+    return newCodeMirror($tab.children('a')[0], options, true);
   };
 
   newTabAndEditor.num = 0;
@@ -554,17 +563,7 @@
       continue;
     }
     buffer = JSON.parse(value);
-    extension = buffer.title.replace(/^.*\./, '');
-    cm = newTabAndEditor(buffer.title, (function() {
-      switch (extension) {
-        case 'js':
-          return 'javascript';
-        case 'coffee':
-          return 'cofeescript';
-        default:
-          return extension;
-      }
-    })());
+    cm = newTabAndEditor(buffer.title, ext2mode(buffer.title.replace(/^.*\./, '')));
     cm.setValue(buffer.text);
     if (buffer.dropbox != null) {
       $('#file-tabs > li.active > a').data('dropbox', buffer.dropbox);
@@ -679,31 +678,14 @@
     fileName = this.value.replace(/^.*\\/, '');
     reader = new FileReader();
     reader.onload = function() {
-      var $active;
+      var $active, mode;
       $active = $('#file-tabs > li.active > a');
       cm = $active.data('editor');
       if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
         $active.children('span').text(fileName);
-        extension = fileName.replace(/^.*\./, '');
-        cm.setOption('mode', (function() {
-          switch (extension) {
-            case 'html':
-              return 'text/html';
-            case 'css':
-              return 'css';
-            case 'js':
-              return 'javascript';
-            case 'coffee':
-              return 'coffeescript';
-            case 'less':
-              return 'less';
-            default:
-              return null;
-          }
-        })());
-        if (extension !== 'html') {
-          cm.setOption('extraKeys', null);
-        }
+        mode = ext2mode(fileName.replace(/^.*\./, ''));
+        cm.setOption(mode);
+        cm.setOption(mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
         return cm.setValue(reader.result);
       }
     };
@@ -779,7 +761,7 @@
     stat = $('#download-modal table tr.info').data('dropbox');
     if (stat != null ? stat.isFile : void 0) {
       dropbox.readFile(stat.path, null, function(error, string, stat) {
-        var $active;
+        var $active, extension;
         $active = $('#file-tabs > li.active > a');
         cm = $active.data('editor');
         extension = stat.name.replace(/^.*\./, '');
