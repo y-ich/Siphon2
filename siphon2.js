@@ -97,7 +97,8 @@
         }
       },
       onFocus: function() {
-        return $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
+        $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
+        return scrollTo(0, 0);
       },
       onKeyEvent: function(cm, event) {
         switch (event.type) {
@@ -305,7 +306,7 @@
     };
     IPAD_SPLIT_KEYBOARD_HEIGHT = {
       portrait: 283,
-      landscape: 277
+      landscape: 329
     };
     return ((function() {
       switch (config.keyboard) {

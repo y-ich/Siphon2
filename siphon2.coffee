@@ -80,6 +80,7 @@ newCodeMirror = (tabAnchor, options, active) ->
         # end of CodeMirror 2
         onFocus: ->
             $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
+            scrollTo 0, 0
         onKeyEvent: (cm, event) ->
             switch event.type
                 when 'keydown'
@@ -243,7 +244,7 @@ keyboardHeight = (config) ->
         landscape: 395
     IPAD_SPLIT_KEYBOARD_HEIGHT =
         portrait: 283
-        landscape: 277
+        landscape: 329
 
     (switch config.keyboard
         when 'normal' then IPAD_KEYBOARD_HEIGHT
