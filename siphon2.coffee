@@ -91,6 +91,10 @@ newCodeMirror = (tabAnchor, options, active) ->
     if not touchDevice
         options.onBlur = null
         options.onFocus = null
+    options.onGutterClick = if options.mode is 'coffeescript'
+            CodeMirror.newFoldFunction CodeMirror.tagRangeFinder
+        else
+            CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
     result = CodeMirror $('#editor-pane')[0], options
     $wrapper = $(result.getWrapperElement())
     $wrapper.attr 'id', "cm#{newCodeMirror.number}"
@@ -138,6 +142,10 @@ uploadFile = ->
         mode = ext2mode filename.replace /^.*\./, ''
         cm.setOption 'mode', mode
         cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
+        cm.setOption 'onGutterClick', if options.mode is 'coffeescript'
+                CodeMirror.newFoldFunction CodeMirror.tagRangeFinder
+            else
+                CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
         path = folder + '/' + filename
     
     fileDeferred = $.Deferred()
@@ -373,6 +381,10 @@ initializeEventHandlers = ->
                 mode = ext2mode filename.replace /^.*\./, ''
                 cm.setOption 'mode', mode
                 cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
+                cm.setOption 'onGutterClick', if mode is 'coffeescript'
+                        CodeMirror.newFoldFunction CodeMirror.tagRangeFinder
+                    else
+                        CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
                 cm.setValue reader.result
         reader.readAsText event.target.files[0]
 
@@ -449,6 +461,10 @@ initializeEventHandlers = ->
                         when 'less' then 'less'
                         else null
                     cm.setOption 'extraKeys', null unless extension is 'html'
+                    cm.setOption 'onGutterClick', if cm.getOption('mode') is 'coffeescript'
+                            CodeMirror.newFoldFunction CodeMirror.tagRangeFinder
+                        else
+                            CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
                 else
                     cm = newTabAndEditor stat.name, switch extension
                             when 'js' then 'javascript'
