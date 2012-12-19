@@ -561,51 +561,68 @@
       }
     });
     $('#open').on('click', function() {
-      var stat;
+      var $tabs, stat;
       stat = $('#download-modal table tr.info').data('dropbox');
       if (stat != null ? stat.isFile : void 0) {
+        $tabs = $('#file-tabs > li > a').filter(function() {
+          var _ref;
+          return ((_ref = $(this).data('dropbox')) != null ? _ref.path : void 0) === stat.path;
+        });
+        if ($tabs.length > 0 && !confirm("There is a buffer editing. Do you want to discard a content of the buffer and update to the server's?")) {
+          $tabs = null;
+        }
         dropbox.readFile(stat.path, null, function(error, string, stat) {
-          var $active, cm, extension;
-          $active = $('#file-tabs > li.active > a');
-          cm = $active.data('editor');
-          extension = stat.name.replace(/^.*\./, '');
-          if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
-            $active.children('span').text(stat.name);
-            cm.setOption('mode', (function() {
-              switch (extension) {
-                case 'html':
-                  return 'text/html';
-                case 'css':
-                  return 'css';
-                case 'js':
-                  return 'javascript';
-                case 'coffee':
-                  return 'coffeescript';
-                case 'less':
-                  return 'less';
-                default:
-                  return null;
-              }
-            })());
-            if (extension !== 'html') {
-              cm.setOption('extraKeys', null);
+          var $active, cm, e, extension, _i, _len;
+          if (($tabs != null) && $tabs.length > 0) {
+            for (_i = 0, _len = $tabs.length; _i < _len; _i++) {
+              e = $tabs[_i];
+              $(e).data('dropbox', stat);
+              $(e).data('editor').setValue(string);
             }
-            cm.setOption('onGutterClick', cm.getOption('mode') === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
+            console.log($tabs.first());
+            $tabs.first().trigger('click');
           } else {
-            cm = newTabAndEditor(stat.name, (function() {
-              switch (extension) {
-                case 'js':
-                  return 'javascript';
-                case 'coffee':
-                  return 'coffeescript';
-                default:
-                  return extension;
-              }
-            })());
             $active = $('#file-tabs > li.active > a');
+            cm = $active.data('editor');
+            extension = stat.name.replace(/^.*\./, '');
+            if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
+              $active.children('span').text(stat.name);
+              cm.setOption('mode', (function() {
+                switch (extension) {
+                  case 'html':
+                    return 'text/html';
+                  case 'css':
+                    return 'css';
+                  case 'js':
+                    return 'javascript';
+                  case 'coffee':
+                    return 'coffeescript';
+                  case 'less':
+                    return 'less';
+                  default:
+                    return null;
+                }
+              })());
+              if (extension !== 'html') {
+                cm.setOption('extraKeys', null);
+              }
+              cm.setOption('onGutterClick', cm.getOption('mode') === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
+            } else {
+              cm = newTabAndEditor(stat.name, (function() {
+                switch (extension) {
+                  case 'js':
+                    return 'javascript';
+                  case 'coffee':
+                    return 'coffeescript';
+                  default:
+                    return extension;
+                }
+              })());
+              $active = $('#file-tabs > li.active > a');
+            }
+            cm.setValue(string);
+            $active.data('dropbox', stat);
           }
-          cm.setValue(string);
-          $active.data('dropbox', stat);
           return spinner.stop();
         });
         return spinner.spin(document.body);

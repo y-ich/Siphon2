@@ -447,32 +447,42 @@ initializeEventHandlers = ->
     $('#open').on 'click', ->
         stat = $('#download-modal table tr.info').data('dropbox')
         if stat?.isFile
+            $tabs = $('#file-tabs > li > a').filter -> $(this).data('dropbox')?.path is stat.path
+            $tabs = null if $tabs.length > 0 and
+                not confirm "There is a buffer editing. Do you want to discard a content of the buffer and update to the server's?"
             dropbox.readFile stat.path, null, (error, string, stat) ->
-                $active = $('#file-tabs > li.active > a')
-                cm = $active.data 'editor'
-                extension = stat.name.replace /^.*\./, ''
-                if cm.getValue() is '' and $active.children('span').text() is 'untitled'
-                    $active.children('span').text stat.name
-                    cm.setOption 'mode', switch extension
-                        when 'html' then 'text/html'
-                        when 'css' then 'css'
-                        when 'js' then 'javascript'
-                        when 'coffee' then 'coffeescript'
-                        when 'less' then 'less'
-                        else null
-                    cm.setOption 'extraKeys', null unless extension is 'html'
-                    cm.setOption 'onGutterClick', if cm.getOption('mode') is 'coffeescript'
-                            CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
-                        else
-                            CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
+                if $tabs? and $tabs.length > 0
+                    for e in $tabs
+                        $(e).data 'dropbox', stat
+                        $(e).data('editor').setValue string
+                    console.log $tabs.first()
+                    $tabs.first().trigger 'click'
                 else
-                    cm = newTabAndEditor stat.name, switch extension
+                    $active = $('#file-tabs > li.active > a')
+                    cm = $active.data 'editor'
+                    extension = stat.name.replace /^.*\./, ''
+                    if cm.getValue() is '' and $active.children('span').text() is 'untitled'
+                        $active.children('span').text stat.name
+                        cm.setOption 'mode', switch extension
+                            when 'html' then 'text/html'
+                            when 'css' then 'css'
                             when 'js' then 'javascript'
                             when 'coffee' then 'coffeescript'
-                            else extension
-                    $active = $('#file-tabs > li.active > a')
-                cm.setValue string
-                $active.data 'dropbox', stat
+                            when 'less' then 'less'
+                            else null
+                        cm.setOption 'extraKeys', null unless extension is 'html'
+                        cm.setOption 'onGutterClick', if cm.getOption('mode') is 'coffeescript'
+                                CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
+                            else
+                                CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
+                    else
+                        cm = newTabAndEditor stat.name, switch extension
+                                when 'js' then 'javascript'
+                                when 'coffee' then 'coffeescript'
+                                else extension
+                        $active = $('#file-tabs > li.active > a')
+                    cm.setValue string
+                    $active.data 'dropbox', stat
                 
                 spinner.stop()
             spinner.spin document.body
