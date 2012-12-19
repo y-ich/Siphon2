@@ -577,10 +577,9 @@
             for (_i = 0, _len = $tabs.length; _i < _len; _i++) {
               e = $tabs[_i];
               $(e).data('dropbox', stat);
+              $(e).trigger('click');
               $(e).data('editor').setValue(string);
             }
-            console.log($tabs.first());
-            $tabs.first().trigger('click');
           } else {
             $active = $('#file-tabs > li.active > a');
             cm = $active.data('editor');

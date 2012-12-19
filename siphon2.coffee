@@ -454,9 +454,8 @@ initializeEventHandlers = ->
                 if $tabs? and $tabs.length > 0
                     for e in $tabs
                         $(e).data 'dropbox', stat
+                        $(e).trigger 'click' # You need an editor to be active in order to render successfully when setValue.
                         $(e).data('editor').setValue string
-                    console.log $tabs.first()
-                    $tabs.first().trigger 'click'
                 else
                     $active = $('#file-tabs > li.active > a')
                     cm = $active.data 'editor'
