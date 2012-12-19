@@ -121,7 +121,7 @@
       options.onBlur = null;
       options.onFocus = null;
     }
-    options.onGutterClick = options.mode === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.tagRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder);
+    options.onGutterClick = options.mode === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder);
     result = CodeMirror($('#editor-pane')[0], options);
     $wrapper = $(result.getWrapperElement());
     $wrapper.attr('id', "cm" + newCodeMirror.number);
@@ -185,7 +185,7 @@
       mode = ext2mode(filename.replace(/^.*\./, ''));
       cm.setOption('mode', mode);
       cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
-      cm.setOption('onGutterClick', options.mode === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.tagRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
+      cm.setOption('onGutterClick', options.mode === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
       path = folder + '/' + filename;
     }
     fileDeferred = $.Deferred();
@@ -494,7 +494,7 @@
           mode = ext2mode(filename.replace(/^.*\./, ''));
           cm.setOption('mode', mode);
           cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
-          cm.setOption('onGutterClick', mode === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.tagRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
+          cm.setOption('onGutterClick', mode === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
           return cm.setValue(reader.result);
         }
       };
@@ -590,7 +590,7 @@
             if (extension !== 'html') {
               cm.setOption('extraKeys', null);
             }
-            cm.setOption('onGutterClick', cm.getOption('mode') === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.tagRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
+            cm.setOption('onGutterClick', cm.getOption('mode') === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
           } else {
             cm = newTabAndEditor(stat.name, (function() {
               switch (extension) {

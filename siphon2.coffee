@@ -92,7 +92,7 @@ newCodeMirror = (tabAnchor, options, active) ->
         options.onBlur = null
         options.onFocus = null
     options.onGutterClick = if options.mode is 'coffeescript'
-            CodeMirror.newFoldFunction CodeMirror.tagRangeFinder
+            CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
         else
             CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
     result = CodeMirror $('#editor-pane')[0], options
@@ -143,7 +143,7 @@ uploadFile = ->
         cm.setOption 'mode', mode
         cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
         cm.setOption 'onGutterClick', if options.mode is 'coffeescript'
-                CodeMirror.newFoldFunction CodeMirror.tagRangeFinder
+                CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
             else
                 CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
         path = folder + '/' + filename
@@ -382,7 +382,7 @@ initializeEventHandlers = ->
                 cm.setOption 'mode', mode
                 cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
                 cm.setOption 'onGutterClick', if mode is 'coffeescript'
-                        CodeMirror.newFoldFunction CodeMirror.tagRangeFinder
+                        CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
                     else
                         CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
                 cm.setValue reader.result
@@ -462,7 +462,7 @@ initializeEventHandlers = ->
                         else null
                     cm.setOption 'extraKeys', null unless extension is 'html'
                     cm.setOption 'onGutterClick', if cm.getOption('mode') is 'coffeescript'
-                            CodeMirror.newFoldFunction CodeMirror.tagRangeFinder
+                            CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
                         else
                             CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
                 else
