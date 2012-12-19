@@ -7,17 +7,27 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, CORE_CLASSES, DATE_PROPERTIES, JS_KEYWORDS, KEYWORDS, KEYWORDS_COMPLETE, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, e, functions, globalProperties, globalPropertiesPlusKeywords, variables, _i, _len, _ref;
+  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CORE_CLASSES, CS_KEYWORDS_COMPLETE, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_COMPLETE, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, cs_keywords, cs_operators, e, functions, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
 
-  JS_KEYWORDS = ['true', 'false', 'null', 'this', 'new', 'delete', 'typeof', 'in', 'instanceof', 'return', 'throw', 'break', 'continue', 'debugger', 'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally', 'class', 'extends', 'super'];
+  COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while'];
 
-  COFFEE_KEYWORDS = ['undefined', 'then', 'unless', 'until', 'loop', 'of', 'by', 'when', 'yes', 'no', 'on', 'off'];
+  JS_KEYWORDS = ['case', 'default', 'function', 'var', 'void', 'with'];
 
-  OPERATORS_WITH_EQUAL = ['-', '+', '*', '/', '%', '<', '>', '&', '|', '^', '!', '?', '='];
+  COFFEE_KEYWORDS = ['by', 'class', 'extends', 'loop', 'no', 'of', 'off', 'on', 'super', 'then', 'undefined', 'unless', 'until', 'when', 'yes'];
 
-  OPERATORS = ['->', '=>', 'and', 'or', 'is', 'isnt', 'not', '&&', '||'];
+  OPERATORS_WITH_EQUAL = ['-', '+', '*', '/', '%', '<<', '>>', '>>>', '<', '>', '&', '|', '^', '!', '='];
 
-  OPERATORS = OPERATORS.concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map(function(e) {
+  OPERATORS = ['&&', '||', '~'];
+
+  JS_OPERATORS = ['++', '--', '===', '!=='];
+
+  CS_OPERATORS = ['->', '=>', 'and', 'or', 'is', 'isnt', 'not', '?', '?='];
+
+  cs_operators = OPERATORS.concat(CS_OPERATORS).concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map(function(e) {
+    return e + '=';
+  }))).sort();
+
+  js_operators = OPERATORS.concat(JS_OPERATORS).concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map(function(e) {
     return e + '=';
   }))).sort();
 
@@ -50,15 +60,19 @@
     URIError: []
   };
 
-  KEYWORDS = JS_KEYWORDS.concat(COFFEE_KEYWORDS).sort();
+  js_keywords = COMMON_KEYWORDS.concat(JS_KEYWORDS).sort();
 
-  KEYWORDS_COMPLETE = {
+  cs_keywords = COMMON_KEYWORDS.concat(COFFEE_KEYWORDS).sort();
+
+  CS_KEYWORDS_COMPLETE = {
     "if": ['else', 'then else'],
     "for": ['in', 'in when', 'of', 'of when'],
     "try": ['catch finally', 'catch'],
     "class": ['extends'],
     "switch": ['when else', 'when', 'when then else', 'when then']
   };
+
+  JS_KEYWORDS_COMPLETE = {};
 
   globalProperties = (function() {
     var _results;
@@ -69,7 +83,9 @@
     return _results;
   })();
 
-  globalPropertiesPlusKeywords = globalProperties.concat(KEYWORDS).sort();
+  globalPropertiesPlusJSKeywords = globalProperties.concat(js_keywords).sort();
+
+  globalPropertiesPlusCSKeywords = globalProperties.concat(cs_keywords).sort();
 
   variables = [];
 
@@ -102,7 +118,7 @@
     }
 
     AutoComplete.prototype.complete = function() {
-      var candidates, cursor, key, object, pos, propertyChain, target, token;
+      var cursor;
       if (this.candidates != null) {
         return;
       }
@@ -110,53 +126,10 @@
       cursor = this.cm.getCursor();
       switch (this.cm.getOption('mode')) {
         case 'coffeescript':
-          if (/[a-zA-Z_$\.]/.test(this.char)) {
-            propertyChain = [];
-            pos = cursor;
-            while ((token = this.cm.getTokenAt(pos)).string.charAt(0) === '.') {
-              propertyChain.push(token);
-              pos = {
-                line: cursor.line,
-                ch: token.start - 1
-              };
-            }
-            propertyChain.push(token);
-            propertyChain.reverse();
-            if (propertyChain.length === 1) {
-              candidates = globalPropertiesPlusKeywords;
-            } else {
-              try {
-                object = eval(propertyChain.map(function(e) {
-                  return e.string;
-                }).slice(0, -1).join());
-                candidates = (function() {
-                  var _results;
-                  _results = [];
-                  for (key in object) {
-                    _results.push(key);
-                  }
-                  return _results;
-                })();
-              } catch (err) {
-                console.log(err);
-                candidates = [];
-              }
-            }
-            target = propertyChain[propertyChain.length - 1].string.replace(/^\./, '');
-            this.candidates = candidates.filter(function(e) {
-              return new RegExp('^' + target).test(e);
-            }).map(function(e) {
-              return e.slice(target.length);
-            });
-          } else if (this.char === ' ') {
-            token = this.cm.getTokenAt({
-              line: cursor.line,
-              ch: cursor.ch - 1
-            });
-            if (KEYWORDS_COMPLETE.hasOwnProperty(token.string)) {
-              this.candidates = KEYWORDS_COMPLETE[token.string];
-            }
-          }
+          this.setCandidates_(cursor, globalPropertiesPlusCSKeywords, CS_KEYWORDS_COMPLETE);
+          break;
+        case 'javascript':
+          this.setCandidates_(cursor, globalPropertiesPlusJSKeywords, JS_KEYWORDS_COMPLETE);
       }
       if (this.candidates.length > 0) {
         this.index = 0;
@@ -188,6 +161,57 @@
         this.cm.replaceRange(this.candidates[this.index], this.start, this.end);
         this.end = this.cm.getCursor();
         return this.cm.setSelection(this.start, this.end);
+      }
+    };
+
+    AutoComplete.prototype.setCandidates_ = function(cursor, globalPropertiesPlusKeywords, keywords_complete) {
+      var candidates, key, object, pos, propertyChain, target, token;
+      if (/[a-zA-Z_$\.]/.test(this.char)) {
+        propertyChain = [];
+        pos = cursor;
+        while ((token = this.cm.getTokenAt(pos)).string.charAt(0) === '.') {
+          propertyChain.push(token);
+          pos = {
+            line: cursor.line,
+            ch: token.start - 1
+          };
+        }
+        propertyChain.push(token);
+        propertyChain.reverse();
+        if (propertyChain.length === 1) {
+          candidates = globalPropertiesPlusKeywords;
+        } else {
+          try {
+            object = eval(propertyChain.map(function(e) {
+              return e.string;
+            }).slice(0, -1).join());
+            candidates = (function() {
+              var _results;
+              _results = [];
+              for (key in object) {
+                _results.push(key);
+              }
+              return _results;
+            })();
+          } catch (err) {
+            console.log(err);
+            candidates = [];
+          }
+        }
+        target = propertyChain[propertyChain.length - 1].string.replace(/^\./, '');
+        return this.candidates = candidates.filter(function(e) {
+          return new RegExp('^' + target).test(e);
+        }).map(function(e) {
+          return e.slice(target.length);
+        });
+      } else if (this.char === ' ') {
+        token = this.cm.getTokenAt({
+          line: cursor.line,
+          ch: cursor.ch - 1
+        });
+        if (keywords_complete.hasOwnProperty(token.string)) {
+          return this.candidates = keywords_complete[token.string];
+        }
       }
     };
 

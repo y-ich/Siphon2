@@ -4,22 +4,22 @@
 ###
 
 # JavaScript/CoffeeScript constants
-JS_KEYWORDS = [
-  'true', 'false', 'null', 'this'
-  'new', 'delete', 'typeof', 'in', 'instanceof'
-  'return', 'throw', 'break', 'continue', 'debugger'
-  'if', 'else', 'switch', 'for', 'while', 'do', 'try', 'catch', 'finally'
-  'class', 'extends', 'super'
+COMMON_KEYWORDS = [
+    'break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for',
+    'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true',
+    'try', 'typeof', 'while'
 ]
+JS_KEYWORDS = ['case', 'default', 'function', 'var', 'void', 'with']
 
 # CoffeeScript-only keywords.
-COFFEE_KEYWORDS = ['undefined', 'then', 'unless', 'until', 'loop', 'of', 'by', 'when', 'yes', 'no', 'on', 'off']
+COFFEE_KEYWORDS = ['by', 'class', 'extends', 'loop', 'no', 'of', 'off', 'on', 'super', 'then', 'undefined', 'unless', 'until', 'when', 'yes']
 
-OPERATORS_WITH_EQUAL = ['-','+','*','/','%','<','>','&','|','^','!','?','=']
-OPERATORS = [
-    '->', '=>', 'and', 'or', 'is', 'isnt', 'not', '&&', '||'
-]
-OPERATORS = OPERATORS.concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map((e) -> e + '='))).sort()
+OPERATORS_WITH_EQUAL = ['-', '+', '*', '/', '%', '<<', '>>', '>>>', '<','>','&','|','^','!', '=']
+OPERATORS = ['&&', '||',  '~',]
+JS_OPERATORS = ['++', '--', '===', '!==']
+CS_OPERATORS = ['->', '=>', 'and', 'or', 'is', 'isnt', 'not', '?', '?=']
+cs_operators = OPERATORS.concat(CS_OPERATORS).concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map((e) -> e + '='))).sort()
+js_operators = OPERATORS.concat(JS_OPERATORS).concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map((e) -> e + '='))).sort()
 
 UTC_PROPERTIES = ['Date', 'Day', 'FullYear', 'Hours', 'Milliseconds', 'Minutes', 'Month', 'Seconds']
 DATE_PROPERTIES = ['Time', 'Year'].concat UTC_PROPERTIES.reduce ((a, b) -> a.concat [b, 'UTC' + b]), []
@@ -46,17 +46,21 @@ CORE_CLASSES =
     TypeError: []
     URIError: []
 
-KEYWORDS = JS_KEYWORDS.concat(COFFEE_KEYWORDS).sort()
+js_keywords = COMMON_KEYWORDS.concat(JS_KEYWORDS).sort()
+cs_keywords = COMMON_KEYWORDS.concat(COFFEE_KEYWORDS).sort()
 
-KEYWORDS_COMPLETE =
+CS_KEYWORDS_COMPLETE =
     if: ['else', 'then else']
     for: ['in', 'in when', 'of', 'of when']
     try: ['catch finally', 'catch']
     class: ['extends']
     switch: ['when else', 'when', 'when then else', 'when then']
 
+JS_KEYWORDS_COMPLETE = {}
+
 globalProperties = (e for e of window)
-globalPropertiesPlusKeywords = globalProperties.concat(KEYWORDS).sort()
+globalPropertiesPlusJSKeywords = globalProperties.concat(js_keywords).sort()
+globalPropertiesPlusCSKeywords = globalProperties.concat(cs_keywords).sort()
 variables = []
 functions = []
 classes = []
@@ -80,31 +84,9 @@ class AutoComplete
 
         switch @cm.getOption 'mode'
             when 'coffeescript'
-                if /[a-zA-Z_$\.]/.test @char
-                    propertyChain = []
-                    pos = cursor
-                    while (token = @cm.getTokenAt pos).string.charAt(0) is '.'
-                        propertyChain.push token
-                        pos = { line: cursor.line, ch: token.start - 1 }
-                    propertyChain.push token
-                    propertyChain.reverse()
-                        
-                    if propertyChain.length == 1
-                        candidates = globalPropertiesPlusKeywords
-                    else
-                        try
-                            object = eval propertyChain.map((e) -> e.string)[0..-2].join()
-                            candidates = (key for key of object)
-                        catch err
-                            console.log err
-                            candidates = []
-                    target = propertyChain[propertyChain.length - 1].string.replace(/^\./, '')
-                    @candidates = candidates.filter((e) -> new RegExp('^' + target).test e)
-                                            .map (e) -> e[target.length..]
-                else if @char is ' '
-                    token = @cm.getTokenAt { line: cursor.line, ch: cursor.ch - 1 }
-                    if KEYWORDS_COMPLETE.hasOwnProperty token.string
-                        @candidates = KEYWORDS_COMPLETE[token.string]
+                @setCandidates_ cursor, globalPropertiesPlusCSKeywords, CS_KEYWORDS_COMPLETE
+            when 'javascript'
+                @setCandidates_ cursor, globalPropertiesPlusJSKeywords, JS_KEYWORDS_COMPLETE
 
         if @candidates.length > 0
             @index = 0
@@ -129,4 +111,31 @@ class AutoComplete
             @end = @cm.getCursor()
             @cm.setSelection @start, @end
 
+    setCandidates_: (cursor, globalPropertiesPlusKeywords, keywords_complete) ->
+        if /[a-zA-Z_$\.]/.test @char
+            propertyChain = []
+            pos = cursor
+            while (token = @cm.getTokenAt pos).string.charAt(0) is '.'
+                propertyChain.push token
+                pos = { line: cursor.line, ch: token.start - 1 }
+            propertyChain.push token
+            propertyChain.reverse()
+                        
+            if propertyChain.length == 1
+                candidates = globalPropertiesPlusKeywords
+            else
+                try
+                    object = eval propertyChain.map((e) -> e.string)[0..-2].join()
+                    candidates = (key for key of object)
+                catch err
+                    console.log err
+                    candidates = []
+            target = propertyChain[propertyChain.length - 1].string.replace(/^\./, '')
+            @candidates = candidates.filter((e) -> new RegExp('^' + target).test e)
+                                    .map (e) -> e[target.length..]
+        else if @char is ' '
+            token = @cm.getTokenAt { line: cursor.line, ch: cursor.ch - 1 }
+            if keywords_complete.hasOwnProperty token.string
+                @candidates = keywords_complete[token.string]
+        
 window.AutoComplete = AutoComplete
