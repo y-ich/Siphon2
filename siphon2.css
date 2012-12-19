@@ -13,6 +13,9 @@ a.btn:focus {
   margin: -2px 0 0 10px;
   font-size: 18px;
 }
+#query {
+  width: 160px;
+}
 #editor-pane {
   position: absolute;
   width: 100%;
