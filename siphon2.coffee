@@ -70,7 +70,7 @@ newCodeMirror = (tabAnchor, options, active) ->
                     return
                 localStorage["siphon-buffer-#{path}"] = JSON.stringify
                     title: $(tabAnchor).children('span').text()
-                    text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join ' '))
+                    text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
                     dropbox: $(tabAnchor).data('dropbox') ? null
                 cm.siphon.timer = null
             ), config.autoSaveTime
@@ -141,7 +141,7 @@ uploadFile = ->
         path = folder + '/' + filename
     
     fileDeferred = $.Deferred()
-    dropbox.writeFile path, $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join ' ')), null, (error, stat) ->
+    dropbox.writeFile path, $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' '), null, (error, stat) ->
         if error
             alert error
         else
@@ -153,7 +153,7 @@ uploadFile = ->
         switch path.replace /^.*\./, ''
             when 'coffee'
                 try
-                    compiled = CoffeeScript.compile $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join ' '))
+                    compiled = CoffeeScript.compile $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
                     dropbox.writeFile path.replace(/coffee$/, 'js'), compiled, null, (error, stat) ->
                         if error
                             alert error
@@ -162,7 +162,7 @@ uploadFile = ->
                     compileDeferred.resolve()
                     alert error
             when 'less'
-                lessParser.parse $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join ' ')), (error, tree) ->
+                lessParser.parse $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' '), (error, tree) ->
                     if error?
                         compileDeferred.resolve()                
                         alert "Line #{error.line}: #{error.message}"
@@ -514,6 +514,29 @@ initializeEventHandlers = ->
             config.compile = not config.compile
         localStorage['siphon-config'] = JSON.stringify config
     
+    (->
+        searchCursor = null
+        query = null
+        $('#search').on 'submit', (e)->
+            cm = $('#file-tabs > .active > a').data 'editor'
+            query = $('#search > input[name="query"]').val()
+            searchCursor = cm.getSearchCursor query, cm.getCursor(), false
+            if searchCursor.findNext()
+                cm.setSelection searchCursor.from(), searchCursor.to()
+            else
+                alert "No more \"#{query}\""
+            false
+        $('#search-backward').on 'click', ->
+            if searchCursor.findPrevious()
+                searchCursor.cm.setSelection searchCursor.from(), searchCursor.to()
+            else
+                alert "No more \"#{query}\""
+        $('#search-forward').on 'click', ->
+            if searchCursor.findNext()
+                searchCursor.cm.setSelection searchCursor.from(), searchCursor.to()
+            else
+                alert "No more \"#{query}\""
+    )()
 #
 # main
 #

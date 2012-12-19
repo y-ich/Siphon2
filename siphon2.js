@@ -86,7 +86,7 @@
           }
           localStorage["siphon-buffer-" + path] = JSON.stringify({
             title: $(tabAnchor).children('span').text(),
-            text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join(' '))),
+            text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
             dropbox: (_ref = $(tabAnchor).data('dropbox')) != null ? _ref : null
           });
           return cm.siphon.timer = null;
@@ -187,7 +187,7 @@
       path = folder + '/' + filename;
     }
     fileDeferred = $.Deferred();
-    dropbox.writeFile(path, $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join(' '))), null, function(error, stat) {
+    dropbox.writeFile(path, $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')), null, function(error, stat) {
       if (error) {
         alert(error);
       } else {
@@ -200,7 +200,7 @@
       switch (path.replace(/^.*\./, '')) {
         case 'coffee':
           try {
-            compiled = CoffeeScript.compile($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join(' '))));
+            compiled = CoffeeScript.compile($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')));
             dropbox.writeFile(path.replace(/coffee$/, 'js'), compiled, null, function(error, stat) {
               if (error) {
                 alert(error);
@@ -213,7 +213,7 @@
           }
           break;
         case 'less':
-          lessParser.parse($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join(' '))), function(error, tree) {
+          lessParser.parse($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')), function(error, tree) {
             if (error != null) {
               compileDeferred.resolve();
               return alert("Line " + error.line + ": " + error.message);
@@ -664,7 +664,7 @@
       }
       return spinner.spin(document.body);
     });
-    return $('#save-setting').on('click', function() {
+    $('#save-setting').on('click', function() {
       config.keyboard = $('#setting input[name="keyboard"]:checked').val();
       if (config.keyboard === 'user-defined') {
         config['user-defined-keyboard'] = {
@@ -680,6 +680,37 @@
       }
       return localStorage['siphon-config'] = JSON.stringify(config);
     });
+    return (function() {
+      var query, searchCursor;
+      searchCursor = null;
+      query = null;
+      $('#search').on('submit', function(e) {
+        var cm;
+        cm = $('#file-tabs > .active > a').data('editor');
+        query = $('#search > input[name="query"]').val();
+        searchCursor = cm.getSearchCursor(query, cm.getCursor(), false);
+        if (searchCursor.findNext()) {
+          cm.setSelection(searchCursor.from(), searchCursor.to());
+        } else {
+          alert("No more \"" + query + "\"");
+        }
+        return false;
+      });
+      $('#search-backward').on('click', function() {
+        if (searchCursor.findPrevious()) {
+          return searchCursor.cm.setSelection(searchCursor.from(), searchCursor.to());
+        } else {
+          return alert("No more \"" + query + "\"");
+        }
+      });
+      return $('#search-forward').on('click', function() {
+        if (searchCursor.findNext()) {
+          return searchCursor.cm.setSelection(searchCursor.from(), searchCursor.to());
+        } else {
+          return alert("No more \"" + query + "\"");
+        }
+      });
+    })();
   };
 
   if (!touchDevice) {
