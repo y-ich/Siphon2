@@ -86,7 +86,7 @@
           }
           localStorage["siphon-buffer-" + path] = JSON.stringify({
             title: $(tabAnchor).children('span').text(),
-            text: cm.getValue(),
+            text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join(' '))),
             dropbox: (_ref = $(tabAnchor).data('dropbox')) != null ? _ref : null
           });
           return cm.siphon.timer = null;
@@ -187,7 +187,7 @@
       path = folder + '/' + filename;
     }
     fileDeferred = $.Deferred();
-    dropbox.writeFile(path, $active.data('editor').getValue(), null, function(error, stat) {
+    dropbox.writeFile(path, $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join(' '))), null, function(error, stat) {
       if (error) {
         alert(error);
       } else {
@@ -200,7 +200,7 @@
       switch (path.replace(/^.*\./, '')) {
         case 'coffee':
           try {
-            compiled = CoffeeScript.compile($active.data('editor').getValue());
+            compiled = CoffeeScript.compile($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join(' '))));
             dropbox.writeFile(path.replace(/coffee$/, 'js'), compiled, null, function(error, stat) {
               if (error) {
                 alert(error);
@@ -213,7 +213,7 @@
           }
           break;
         case 'less':
-          lessParser.parse($active.data('editor').getValue(), function(error, tree) {
+          lessParser.parse($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join(' '))), function(error, tree) {
             if (error != null) {
               compileDeferred.resolve();
               return alert("Line " + error.line + ": " + error.message);

@@ -70,7 +70,7 @@ newCodeMirror = (tabAnchor, options, active) ->
                     return
                 localStorage["siphon-buffer-#{path}"] = JSON.stringify
                     title: $(tabAnchor).children('span').text()
-                    text: cm.getValue()
+                    text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join ' '))
                     dropbox: $(tabAnchor).data('dropbox') ? null
                 cm.siphon.timer = null
             ), config.autoSaveTime
@@ -141,7 +141,7 @@ uploadFile = ->
         path = folder + '/' + filename
     
     fileDeferred = $.Deferred()
-    dropbox.writeFile path, $active.data('editor').getValue(), null, (error, stat) ->
+    dropbox.writeFile path, $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join ' ')), null, (error, stat) ->
         if error
             alert error
         else
@@ -153,7 +153,7 @@ uploadFile = ->
         switch path.replace /^.*\./, ''
             when 'coffee'
                 try
-                    compiled = CoffeeScript.compile $active.data('editor').getValue()
+                    compiled = CoffeeScript.compile $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join ' '))
                     dropbox.writeFile path.replace(/coffee$/, 'js'), compiled, null, (error, stat) ->
                         if error
                             alert error
@@ -162,7 +162,7 @@ uploadFile = ->
                     compileDeferred.resolve()
                     alert error
             when 'less'
-                lessParser.parse $active.data('editor').getValue(), (error, tree) ->
+                lessParser.parse $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize').join ' ')), (error, tree) ->
                     if error?
                         compileDeferred.resolve()                
                         alert "Line #{error.line}: #{error.message}"
