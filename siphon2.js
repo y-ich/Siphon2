@@ -759,6 +759,8 @@
     })();
   };
 
+  scrollTo(0, 0);
+
   if (touchDevice) {
     $('#soft-key').css('display', 'block');
   }

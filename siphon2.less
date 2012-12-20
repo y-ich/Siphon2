@@ -36,7 +36,7 @@ a.btn:focus {
 #editor-pane {
     position: absolute;
     width: 100%;
-    top: (@header-height + @tab-height);
+    top: @header-height + @tab-height;
     bottom: 0px;
     background-color: black;
 }
@@ -57,3 +57,9 @@ a.btn:focus {
     overflow: visible;
 }
 */
+
+@media screen and (orientation:landscape) {
+#editor-pane {
+    bottom: -@header-height;
+}
+}

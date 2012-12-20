@@ -47,3 +47,8 @@ a.btn:focus {
     overflow: visible;
 }
 */
+@media screen and (orientation: landscape) {
+  #editor-pane {
+    bottom: -42px;
+  }
+}

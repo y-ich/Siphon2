@@ -561,6 +561,7 @@ initializeEventHandlers = ->
 # main
 #
 
+scrollTo 0, 0 # reset previous scroll position
 $('#soft-key').css 'display', 'block' if touchDevice
 
 $('#import').addClass 'disabled' if /iPad|iPhone/.test navigator.userAgent
