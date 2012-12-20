@@ -32,11 +32,6 @@
                 <a id="download-button" href="#download-modal" role="button" class="btn" data-toggle="modal"><i class="icon-download"></i></a>
                 <button type="button" id="upload" class="btn"><i class="icon-upload"></i></button>
             </div>
-            <form id="search" action="" class="navbar-search">
-                <input id="query" name="query" type="text" class="search-query" placeholder="Search">
-            </form>
-            <button id="search-backward" type="button" class="btn"><i class="icon-step-backward"></i></button>
-            <button id="search-forward" type="button" class="btn"><i class="icon-step-forward"></i></button>
             <div class="pull-right">
                 Dropbox:
                 <button type="button" id="dropbox" class="btn" data-loading-text="signing-in..." data-signout-text="sign-out">sign-in</button>
@@ -58,6 +53,15 @@
                 <li><a class="new-tab-type" href="#">CoffeeScript</a></li>
             </ul>
         </li>
+        <div class="pull-right">
+            <form id="search" action="" class="navbar-search">
+                <input id="query" name="query" type="text" class="search-query" placeholder="Search">
+                <div class="btn-group">
+                    <button id="search-backward" type="button" class="btn"><i class="icon-step-backward"></i></button>
+                    <button id="search-forward" type="button" class="btn"><i class="icon-step-forward"></i></button>            
+                </div>
+            </form>
+        </div>
     </ul>
     <div id="editor-pane" class="tab-content"></div>
     <div class="navbar navbar-fixed-bottom">

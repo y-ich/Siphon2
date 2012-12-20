@@ -345,7 +345,7 @@
     $('#file-tabs > li.active, #editor-pane > .active').removeClass('active');
     id = "cm" + newTabAndEditor.num;
     newTabAndEditor.num += 1;
-    $tab = $("<li class=\"active\">\n    <a href=\"#" + id + "\" data-toggle=\"tab\">\n        <button class=\"close\" type=\"button\">&times;</button>\n        <span>" + title + "</span>\n    </a>\n</li>");
+    $tab = $("<li class=\"active\">\n    <a href=\"#" + id + "\" class=\"editor-anchor\" data-toggle=\"tab\">\n        <button class=\"close\" type=\"button\">&times;</button>\n        <span>" + title + "</span>\n    </a>\n</li>");
     $('#file-tabs > li.dropdown').before($tab);
     options = {
       mode: mode
@@ -583,7 +583,7 @@
       var $tabs, stat;
       stat = $('#download-modal table tr.info').data('dropbox-stat');
       if (stat != null ? stat.isFile : void 0) {
-        $tabs = $('#file-tabs > li > a').filter(function() {
+        $tabs = $('#file-tabs > li > a.editor-anchor').filter(function() {
           var _ref;
           return ((_ref = $(this).data('editor').siphon['dropbox-stat']) != null ? _ref.path : void 0) === stat.path;
         });

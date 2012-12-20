@@ -254,7 +254,7 @@ newTabAndEditor = (title = 'untitled', mode = null) ->
     newTabAndEditor.num += 1
     $tab = $("""
         <li class="active">
-            <a href="##{id}" data-toggle="tab">
+            <a href="##{id}" class="editor-anchor" data-toggle="tab">
                 <button class="close" type="button">&times;</button>
                 <span>#{title}</span>
             </a>
@@ -441,7 +441,7 @@ initializeEventHandlers = ->
     $('#open').on 'click', ->
         stat = $('#download-modal table tr.info').data('dropbox-stat')
         if stat?.isFile
-            $tabs = $('#file-tabs > li > a').filter -> $(this).data('editor').siphon['dropbox-stat']?.path is stat.path
+            $tabs = $('#file-tabs > li > a.editor-anchor').filter -> $(this).data('editor').siphon['dropbox-stat']?.path is stat.path
             $tabs = null if $tabs.length > 0 and
                 not confirm "There is a buffer editing. Do you want to discard a content of the buffer and update to the server's?"
             dropbox.readFile stat.path, null, (error, string, stat) ->
