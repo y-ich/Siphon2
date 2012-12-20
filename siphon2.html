@@ -29,11 +29,11 @@
             <div class="pull-left">
                 <button id="import" class="btn"><i class="icon-download-alt"></i></button>
                 <input type="file" id="file-picker" style="display: none;"></input>
-                <a id="download-button" href="#download-modal" role="button" class="btn" data-toggle="modal"><i class="icon-download"></i></a>
-                <button type="button" id="upload" class="btn"><i class="icon-upload"></i></button>
             </div>
             <div class="pull-right">
                 Dropbox:
+                <a id="download-button" href="#download-modal" role="button" class="btn" data-toggle="modal"><i class="icon-download"></i></a>
+                <button type="button" id="upload" class="btn"><i class="icon-upload"></i></button>
                 <button type="button" id="dropbox" class="btn" data-loading-text="signing-in..." data-signout-text="sign-out">sign-in</button>
                 <a href="#setting-modal" role="button" class="btn" data-toggle="modal"><i class="icon-cog"></i></a>                
             </div>
@@ -65,7 +65,7 @@
     </ul>
     <div id="editor-pane" class="tab-content"></div>
     <div class="navbar navbar-fixed-bottom">
-        <div id="soft-key" class="pull-left">
+        <div id="soft-key" class="pull-left" style="display: none;">
             <button data-identifier="U+0009" class="btn key">Tab</button>
             <button id="undo" class="btn">Undo</button>
             <div class="btn-group">

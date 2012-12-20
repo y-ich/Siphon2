@@ -498,6 +498,9 @@
       return false;
     });
     $('#import').on('click', function() {
+      if ($(this).hasClass('disabled')) {
+        return;
+      }
       return $('#file-picker').click();
     });
     $('#file-picker').on('change', function(event) {
@@ -752,12 +755,12 @@
     })();
   };
 
-  if (!touchDevice) {
-    $('#soft-key').css('display', 'none');
+  if (touchDevice) {
+    $('#soft-key').css('display', 'block');
   }
 
   if (/iPad|iPhone/.test(navigator.userAgent)) {
-    $('#import').css('display', 'none');
+    $('#import').addClass('disabled');
   }
 
   newTabAndEditor();

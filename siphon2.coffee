@@ -363,7 +363,9 @@ initializeEventHandlers = ->
         $(this).parent().parent().prev().dropdown 'toggle'
         false # prevent default action
 
-    $('#import').on 'click', -> $('#file-picker').click()
+    $('#import').on 'click', ->
+        return if $(this).hasClass 'disabled'
+        $('#file-picker').click()
     $('#file-picker').on 'change', (event) ->
         filename = this.value.replace /^.*\\/, ''
         reader = new FileReader()
@@ -560,9 +562,9 @@ initializeEventHandlers = ->
 # main
 #
 
-$('#soft-key').css 'display', 'none' unless touchDevice
+$('#soft-key').css 'display', 'block' if touchDevice
 
-$('#import').css 'display', 'none' if /iPad|iPhone/.test navigator.userAgent
+$('#import').addClass 'disabled' if /iPad|iPhone/.test navigator.userAgent
 
 newTabAndEditor()
 
