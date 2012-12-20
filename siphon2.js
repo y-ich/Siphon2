@@ -66,9 +66,6 @@
 
   newCodeMirror = function(id, options, title) {
     var $wrapper, defaultOptions, key, result, value, _ref;
-    if (title == null) {
-      title = null;
-    }
     defaultOptions = {
       lineNumbers: true,
       lineWrapping: true,
@@ -126,29 +123,24 @@
   };
 
   newCodeMirror.onChange = function(cm, change) {
+    var path;
+    if (!(cm.siphon.autoComplete != null) && change.text.length === 1 && change.text[0].length === 1) {
+      cm.siphon.autoComplete = new AutoComplete(cm, change.text[change.text.length - 1]);
+      cm.siphon.autoComplete.complete(cm);
+    }
     if (cm.siphon.timer != null) {
       clearTimeout(cm.siphon.timer);
     }
-    cm.siphon.timer = setTimeout((function() {
-      var path, _ref;
-      if (cm.siphon['dropbox-stat'] != null) {
-        path = cm.siphon['dropbox-stat'].path;
-      } else if (cm.siphon.title != null) {
-        path = cm.siphon.title;
-      } else {
-        return;
-      }
+    path = cm.siphon['dropbox-stat'] != null ? cm.siphon['dropbox-stat'].path : cm.siphon.title !== 'untitled' ? cm.siphon.title : null;
+    return cm.siphon.timer = path != null ? setTimeout((function() {
+      var _ref;
       localStorage["siphon-buffer-" + path] = JSON.stringify({
         title: cm.siphon.title,
         text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
         dropbox: (_ref = cm.siphon['dropbox-stat']) != null ? _ref : null
       });
       return cm.siphon.timer = null;
-    }), config.autoSaveTime);
-    if (!(cm.siphon.autoComplete != null) && change.text.length === 1 && change.text[0].length === 1) {
-      cm.siphon.autoComplete = new AutoComplete(cm, change.text[change.text.length - 1]);
-      return cm.siphon.autoComplete.complete(cm);
-    }
+    }), config.autoSaveTime) : null;
   };
 
   newCodeMirror.onFocus = function() {

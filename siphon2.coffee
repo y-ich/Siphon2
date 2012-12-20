@@ -53,7 +53,7 @@ ext2mode = (str) ->
         tex: 'stex'
     exts[str] ? str.toLowerCase()
 
-newCodeMirror = (id, options, title = null) ->
+newCodeMirror = (id, options, title) ->
     defaultOptions =
         lineNumbers: true
         lineWrapping: true
@@ -84,23 +84,29 @@ newCodeMirror = (id, options, title = null) ->
 
 newCodeMirror.onBlur = -> $('.navbar-fixed-bottom').css 'bottom', '' # replace according to onscreen keyboard
 newCodeMirror.onChange = (cm, change) ->
-    clearTimeout cm.siphon.timer if cm.siphon.timer?
-    cm.siphon.timer = setTimeout (->
-        if cm.siphon['dropbox-stat']?
-            path = cm.siphon['dropbox-stat'].path
-        else if cm.siphon.title?
-            path = cm.siphon.title
-        else
-            return
-        localStorage["siphon-buffer-#{path}"] = JSON.stringify
-            title: cm.siphon.title
-            text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
-            dropbox: cm.siphon['dropbox-stat'] ? null
-        cm.siphon.timer = null
-    ), config.autoSaveTime
     if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
         cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
         cm.siphon.autoComplete.complete cm
+
+    # auto save
+    clearTimeout cm.siphon.timer if cm.siphon.timer?
+    path = if cm.siphon['dropbox-stat']?
+            cm.siphon['dropbox-stat'].path
+        else if cm.siphon.title isnt 'untitled'
+            cm.siphon.title
+        else
+            null
+    cm.siphon.timer = if path?
+            setTimeout (->
+                localStorage["siphon-buffer-#{path}"] = JSON.stringify
+                    title: cm.siphon.title
+                    text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
+                    dropbox: cm.siphon['dropbox-stat'] ? null
+                cm.siphon.timer = null
+            ), config.autoSaveTime
+        else
+            null
+        
 newCodeMirror.onFocus = ->
     $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
     scrollTo 0, 0
