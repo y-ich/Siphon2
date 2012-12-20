@@ -39,6 +39,15 @@
             </div>
         </div>
     </div>
+    <div id="search-bar" class="pull-right">
+        <form id="search" action="" class="navbar-search">
+            <input id="query" name="query" type="text" class="search-query" placeholder="Search">
+            <div class="btn-group">
+                <button id="search-backward" type="button" class="btn"><i class="icon-step-backward"></i></button>
+                <button id="search-forward" type="button" class="btn"><i class="icon-step-forward"></i></button>            
+            </div>
+        </form>
+    </div>
     <ul id="file-tabs" class="nav nav-tabs">
         <li class="dropdown">
             <a class="dropdown-toggle" data-toggle="dropdown">
@@ -53,15 +62,6 @@
                 <li><a class="new-tab-type" href="#">CoffeeScript</a></li>
             </ul>
         </li>
-        <div class="pull-right">
-            <form id="search" action="" class="navbar-search">
-                <input id="query" name="query" type="text" class="search-query" placeholder="Search">
-                <div class="btn-group">
-                    <button id="search-backward" type="button" class="btn"><i class="icon-step-backward"></i></button>
-                    <button id="search-forward" type="button" class="btn"><i class="icon-step-forward"></i></button>            
-                </div>
-            </form>
-        </div>
     </ul>
     <div id="editor-pane" class="tab-content"></div>
     <div class="navbar navbar-fixed-bottom">

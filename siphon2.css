@@ -13,7 +13,7 @@ a.btn:focus {
   margin: -2px 0 0 10px;
   font-size: 18px;
 }
-.nav-tabs > .pull-right {
+#search-bar {
   padding-right: 20px;
 }
 #query {
