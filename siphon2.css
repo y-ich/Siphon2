@@ -9,6 +9,12 @@ body {
 a.btn:focus {
   outline: none;
 }
+.navbar {
+  margin: 0px;
+}
+#header {
+  position: relative;
+}
 .nav-tabs > li .close {
   margin: -2px 0 0 10px;
   font-size: 18px;
@@ -22,7 +28,7 @@ a.btn:focus {
 #editor-pane {
   position: absolute;
   width: 100%;
-  top: 120px;
+  top: 100px;
   bottom: 0px;
   background-color: black;
   -webkit-overflow-scrolling: touch;
@@ -39,11 +45,3 @@ a.btn:focus {
     overflow: visible;
 }
 */
-@media screen and (orientation: landscape) {
-  #header {
-    display: none;
-  }
-  #editor-pane {
-    top: 58px;
-  }
-}

@@ -82,7 +82,9 @@ newCodeMirror = (id, options, title) ->
         title: title
     result
 
-newCodeMirror.onBlur = -> $('.navbar-fixed-bottom').css 'bottom', '' # replace according to onscreen keyboard
+newCodeMirror.onBlur = ->
+    $('.navbar-fixed-bottom').css 'bottom', '' # replace according to onscreen keyboard
+    scrollTo 0, 0
 newCodeMirror.onChange = (cm, change) ->
     if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
         cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
@@ -106,10 +108,9 @@ newCodeMirror.onChange = (cm, change) ->
             ), config.autoSaveTime
         else
             null
-        
 newCodeMirror.onFocus = ->
-    $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
-    scrollTo 0, 0
+    $('.navbar-fixed-bottom').css 'bottom', "#{footerHeight config}px"
+    setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # hide header when landscape
 newCodeMirror.onKeyEvent = (cm, event) ->
     switch event.type
         when 'keydown'
@@ -235,7 +236,7 @@ showError = (error) ->
         else
             alert 'Sorry, there seems something wrong in software.'
 
-keyboardHeight = (config) ->
+footerHeight = (config) ->
     IPAD_KEYBOARD_HEIGHT =
         portrait: 307
         landscape: 395
@@ -243,10 +244,11 @@ keyboardHeight = (config) ->
         portrait: 283
         landscape: 329
 
+    top = if isPortrait() then 0 else $('#header').outerHeight(true)
     (switch config.keyboard
         when 'normal' then IPAD_KEYBOARD_HEIGHT
         when 'split' then IPAD_SPLIT_KEYBOARD_HEIGHT
-        when 'user-defined' then config['user-defined-keyboard'])[if orientation % 180 == 0 then 'portrait' else 'landscape']
+        when 'user-defined' then config['user-defined-keyboard'])[if isPortrait() then 'portrait' else 'landscape'] - top
 
 newTabAndEditor = (title = 'untitled', mode = null) ->
     $('#file-tabs > li.active, #editor-pane > .active').removeClass 'active'
@@ -275,6 +277,8 @@ ancestorFolders = (path) ->
     split = path.split '/'
     split[0..i].join '/' for e, i in split
 
+isPortrait = -> orientation % 180 == 0
+    
 #
 # initialize functions
 #
@@ -341,13 +345,16 @@ initializeDropbox = ->
 initializeEventHandlers = ->
     window.addEventListener 'orientationchange', (->
             if $('.navbar-fixed-bottom').css('bottom') isnt '0px'
-                $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
+                $('.navbar-fixed-bottom').css 'bottom', "#{footerHeight config}px"
+            scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)
         ), false
 
+    ###
     window.addEventListener 'scroll', (->
         if (document.body.scrollLeft != 0 or document.body.scrollTop != 0) and $('.open').length == 0 then scrollTo 0, 0
     ), false
-
+    ###
+    
     $('#previous-button').on 'click', ->
         cm = $('#file-tabs > li.active > a').data('editor')
         cm.siphon.autoComplete?.previous()

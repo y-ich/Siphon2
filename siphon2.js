@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dropbox, evalCS, ext2mode, fireKeyEvent, getList, initializeDropbox, initializeEventHandlers, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, restore, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dropbox, evalCS, ext2mode, fireKeyEvent, footerHeight, getList, initializeDropbox, initializeEventHandlers, isPortrait, lessParser, newCodeMirror, newTabAndEditor, restore, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -119,7 +119,8 @@
   };
 
   newCodeMirror.onBlur = function() {
-    return $('.navbar-fixed-bottom').css('bottom', '');
+    $('.navbar-fixed-bottom').css('bottom', '');
+    return scrollTo(0, 0);
   };
 
   newCodeMirror.onChange = function(cm, change) {
@@ -144,8 +145,10 @@
   };
 
   newCodeMirror.onFocus = function() {
-    $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
-    return scrollTo(0, 0);
+    $('.navbar-fixed-bottom').css('bottom', "" + (footerHeight(config)) + "px");
+    return setTimeout((function() {
+      return scrollTo(0, isPortrait() ? 0 : $('#header').outerHeight(true));
+    }), 0);
   };
 
   newCodeMirror.onKeyEvent = function(cm, event) {
@@ -312,8 +315,8 @@
     }
   };
 
-  keyboardHeight = function(config) {
-    var IPAD_KEYBOARD_HEIGHT, IPAD_SPLIT_KEYBOARD_HEIGHT;
+  footerHeight = function(config) {
+    var IPAD_KEYBOARD_HEIGHT, IPAD_SPLIT_KEYBOARD_HEIGHT, top;
     IPAD_KEYBOARD_HEIGHT = {
       portrait: 307,
       landscape: 395
@@ -322,6 +325,7 @@
       portrait: 283,
       landscape: 329
     };
+    top = isPortrait() ? 0 : $('#header').outerHeight(true);
     return ((function() {
       switch (config.keyboard) {
         case 'normal':
@@ -331,7 +335,7 @@
         case 'user-defined':
           return config['user-defined-keyboard'];
       }
-    })())[orientation % 180 === 0 ? 'portrait' : 'landscape'];
+    })())[isPortrait() ? 'portrait' : 'landscape'] - top;
   };
 
   newTabAndEditor = function(title, mode) {
@@ -371,6 +375,10 @@
       _results.push(split.slice(0, +i + 1 || 9e9).join('/'));
     }
     return _results;
+  };
+
+  isPortrait = function() {
+    return orientation % 180 === 0;
   };
 
   restore = function() {
@@ -468,14 +476,16 @@
   initializeEventHandlers = function() {
     window.addEventListener('orientationchange', (function() {
       if ($('.navbar-fixed-bottom').css('bottom') !== '0px') {
-        return $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
+        $('.navbar-fixed-bottom').css('bottom', "" + (footerHeight(config)) + "px");
       }
+      return scrollTo(0, isPortrait() ? 0 : $('#header').outerHeight(true));
     }), false);
-    window.addEventListener('scroll', (function() {
-      if ((document.body.scrollLeft !== 0 || document.body.scrollTop !== 0) && $('.open').length === 0) {
-        return scrollTo(0, 0);
-      }
-    }), false);
+    /*
+        window.addEventListener 'scroll', (->
+            if (document.body.scrollLeft != 0 or document.body.scrollTop != 0) and $('.open').length == 0 then scrollTo 0, 0
+        ), false
+    */
+
     $('#previous-button').on('click', function() {
       var cm, _ref;
       cm = $('#file-tabs > li.active > a').data('editor');
