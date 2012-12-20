@@ -50,6 +50,7 @@
       ml: 'ocaml',
       java: 'clike',
       js: 'javascript',
+      less: 'less',
       lisp: 'commonlisp',
       pas: 'pascal',
       pl: 'perl',
@@ -68,44 +69,8 @@
     defaultOptions = {
       lineNumbers: true,
       lineWrapping: true,
-      onBlur: function() {
-        return $('.navbar-fixed-bottom').css('bottom', '');
-      },
-      onChange: function(cm, change) {
-        if (cm.siphon.timer != null) {
-          clearTimeout(cm.siphon.timer);
-        }
-        cm.siphon.timer = setTimeout((function() {
-          var path, _ref;
-          if ($(tabAnchor).data('dropbox') != null) {
-            path = $(tabAnchor).data('dropbox').path;
-          } else if ($(tabAnchor).children('span').text() !== 'untitled') {
-            path = $(tabAnchor).children('span').text();
-          } else {
-            return;
-          }
-          localStorage["siphon-buffer-" + path] = JSON.stringify({
-            title: $(tabAnchor).children('span').text(),
-            text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
-            dropbox: (_ref = $(tabAnchor).data('dropbox')) != null ? _ref : null
-          });
-          return cm.siphon.timer = null;
-        }), config.autoSaveTime);
-        if (!(cm.siphon.autoComplete != null) && change.text.length === 1 && change.text[0].length === 1) {
-          cm.siphon.autoComplete = new AutoComplete(cm, change.text[change.text.length - 1]);
-          return cm.siphon.autoComplete.complete(cm);
-        }
-      },
-      onFocus: function() {
-        $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
-        return scrollTo(0, 0);
-      },
-      onKeyEvent: function(cm, event) {
-        switch (event.type) {
-          case 'keydown':
-            return cm.siphon.autoComplete = null;
-        }
-      },
+      onChange: newCodeMirror.onChange,
+      onKeyEvent: newCodeMirror.onKeyEvent,
       theme: 'blackboard'
     };
     if (options == null) {
@@ -117,11 +82,32 @@
         options[key] = value;
       }
     }
-    if (!touchDevice) {
-      options.onBlur = null;
-      options.onFocus = null;
+    if (touchDevice) {
+      options.onBlur = newCodeMirror.onBlur;
+      options.onFocus = newCodeMirror.onFocus;
     }
-    options.onGutterClick = options.mode === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder);
+    options.onGutterClick = (function() {
+      switch (options.mode) {
+        case 'clike':
+        case 'clojure':
+        case 'haxe':
+        case 'java':
+        case 'javascript':
+        case 'commonlisp':
+        case 'css':
+        case 'less':
+        case 'scheme':
+          return CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder);
+        case 'htmlmixed':
+          return CodeMirror.newFoldFunction(CodeMirror.tagRangeFinder);
+        case 'coffeescript':
+        case 'haskell':
+        case 'ocaml':
+          return CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder);
+        default:
+          return null;
+      }
+    })();
     result = CodeMirror($('#editor-pane')[0], options);
     $wrapper = $(result.getWrapperElement());
     $wrapper.attr('id', "cm" + newCodeMirror.number);
@@ -133,17 +119,52 @@
     newCodeMirror.number += 1;
     result.siphon = {};
     $(tabAnchor).data('editor', result);
-    /* CodeMirror 3
-    CodeMirror.on result, 'change', (cm, change)->
-        if change.origin is 'input'
-            cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
-            cm.siphon.autoComplete.complete cm
-    */
-
     return result;
   };
 
   newCodeMirror.number = 0;
+
+  newCodeMirror.onBlur = function() {
+    return $('.navbar-fixed-bottom').css('bottom', '');
+  };
+
+  newCodeMirror.onChange = function(cm, change) {
+    if (cm.siphon.timer != null) {
+      clearTimeout(cm.siphon.timer);
+    }
+    cm.siphon.timer = setTimeout((function() {
+      var path, _ref;
+      if ($(tabAnchor).data('dropbox') != null) {
+        path = $(tabAnchor).data('dropbox').path;
+      } else if ($(tabAnchor).children('span').text() !== 'untitled') {
+        path = $(tabAnchor).children('span').text();
+      } else {
+        return;
+      }
+      localStorage["siphon-buffer-" + path] = JSON.stringify({
+        title: $(tabAnchor).children('span').text(),
+        text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
+        dropbox: (_ref = $(tabAnchor).data('dropbox')) != null ? _ref : null
+      });
+      return cm.siphon.timer = null;
+    }), config.autoSaveTime);
+    if (!(cm.siphon.autoComplete != null) && change.text.length === 1 && change.text[0].length === 1) {
+      cm.siphon.autoComplete = new AutoComplete(cm, change.text[change.text.length - 1]);
+      return cm.siphon.autoComplete.complete(cm);
+    }
+  };
+
+  newCodeMirror.onFocus = function() {
+    $('.navbar-fixed-bottom').css('bottom', "" + (keyboardHeight(config)) + "px");
+    return scrollTo(0, 0);
+  };
+
+  newCodeMirror.onKeyEvent = function(cm, event) {
+    switch (event.type) {
+      case 'keydown':
+        return cm.siphon.autoComplete = null;
+    }
+  };
 
   getList = function(path) {
     var $table;
@@ -735,6 +756,10 @@
 
   if (!touchDevice) {
     $('#soft-key').css('display', 'none');
+  }
+
+  if (/iPad|iPhone/.test(navigator.userAgent)) {
+    $('#import').css('display', 'none');
   }
 
   newCodeMirror($('#file-tabs > li.active > a')[0], {

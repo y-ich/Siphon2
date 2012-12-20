@@ -41,6 +41,7 @@ ext2mode = (str) ->
         ml: 'ocaml'
         java: 'clike'
         js: 'javascript'
+        less: 'less'
         lisp: 'commonlisp'
         pas: 'pascal'
         pl: 'perl'
@@ -56,45 +57,23 @@ newCodeMirror = (tabAnchor, options, active) ->
     defaultOptions =
         lineNumbers: true
         lineWrapping: true
-        onBlur: ->
-            $('.navbar-fixed-bottom').css 'bottom', ''           
-        # CodeMirror 2
-        onChange: (cm, change)->
-            clearTimeout cm.siphon.timer if cm.siphon.timer?
-            cm.siphon.timer = setTimeout (->
-                if $(tabAnchor).data('dropbox')?
-                    path = $(tabAnchor).data('dropbox').path
-                else if $(tabAnchor).children('span').text() isnt 'untitled'
-                    path = $(tabAnchor).children('span').text()
-                else
-                    return
-                localStorage["siphon-buffer-#{path}"] = JSON.stringify
-                    title: $(tabAnchor).children('span').text()
-                    text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
-                    dropbox: $(tabAnchor).data('dropbox') ? null
-                cm.siphon.timer = null
-            ), config.autoSaveTime
-            if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
-                cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
-                cm.siphon.autoComplete.complete cm
-        # end of CodeMirror 2
-        onFocus: ->
-            $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
-            scrollTo 0, 0
-        onKeyEvent: (cm, event) ->
-            switch event.type
-                when 'keydown'
-                    cm.siphon.autoComplete = null # reset
+        onChange: newCodeMirror.onChange
+        onKeyEvent: newCodeMirror.onKeyEvent
         theme: 'blackboard'
     options ?= {}
     options[key] ?= value for key, value of defaultOptions
-    if not touchDevice
-        options.onBlur = null
-        options.onFocus = null
-    options.onGutterClick = if options.mode is 'coffeescript'
+    if touchDevice
+        options.onBlur = newCodeMirror.onBlur
+        options.onFocus = newCodeMirror.onFocus
+    options.onGutterClick = switch options.mode
+        when 'clike', 'clojure', 'haxe', 'java', 'javascript', 'commonlisp', 'css', 'less', 'scheme'
+            CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
+        when 'htmlmixed'
+            CodeMirror.newFoldFunction CodeMirror.tagRangeFinder        
+        when 'coffeescript', 'haskell', 'ocaml'
             CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
         else
-            CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
+            null
     result = CodeMirror $('#editor-pane')[0], options
     $wrapper = $(result.getWrapperElement())
     $wrapper.attr 'id', "cm#{newCodeMirror.number}"
@@ -105,14 +84,35 @@ newCodeMirror = (tabAnchor, options, active) ->
     newCodeMirror.number += 1
     result.siphon = {}
     $(tabAnchor).data 'editor', result
-    ### CodeMirror 3
-    CodeMirror.on result, 'change', (cm, change)->
-        if change.origin is 'input'
-            cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
-            cm.siphon.autoComplete.complete cm
-    ###
     result
+
 newCodeMirror.number = 0
+newCodeMirror.onBlur = -> $('.navbar-fixed-bottom').css 'bottom', ''
+newCodeMirror.onChange = (cm, change) ->
+    clearTimeout cm.siphon.timer if cm.siphon.timer?
+    cm.siphon.timer = setTimeout (->
+        if $(tabAnchor).data('dropbox')?
+            path = $(tabAnchor).data('dropbox').path
+        else if $(tabAnchor).children('span').text() isnt 'untitled'
+            path = $(tabAnchor).children('span').text()
+        else
+            return
+        localStorage["siphon-buffer-#{path}"] = JSON.stringify
+            title: $(tabAnchor).children('span').text()
+            text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
+            dropbox: $(tabAnchor).data('dropbox') ? null
+        cm.siphon.timer = null
+    ), config.autoSaveTime
+    if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
+        cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
+        cm.siphon.autoComplete.complete cm
+newCodeMirror.onFocus = ->
+    $('.navbar-fixed-bottom').css 'bottom', "#{keyboardHeight config}px"
+    scrollTo 0, 0
+newCodeMirror.onKeyEvent = (cm, event) ->
+    switch event.type
+        when 'keydown'
+            cm.siphon.autoComplete = null # reset
 
 getList = (path) ->
     $table = $('#download-modal table')
@@ -567,6 +567,8 @@ initializeEventHandlers = ->
 #
 
 $('#soft-key').css 'display', 'none' unless touchDevice
+
+$('#import').css 'display', 'none' if /iPad|iPhone/.test navigator.userAgent
 
 newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null }, true
 
