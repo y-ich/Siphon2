@@ -98,7 +98,7 @@
   };
 
   newCodeMirror.onBlur = function() {
-    $('.navbar-fixed-bottom').css('bottom', '');
+    $('#key-extension').css('display', '');
     return scrollTo(0, 0);
   };
 
@@ -117,7 +117,8 @@
   };
 
   newCodeMirror.onFocus = function() {
-    $('.navbar-fixed-bottom').css('bottom', "" + (footerHeight(config)) + "px");
+    $('#key-extension').css('display', 'block');
+    $('#key-extension').css('bottom', "" + (footerHeight(config)) + "px");
     return setTimeout((function() {
       return scrollTo(0, isPortrait() ? 0 : $('#header').outerHeight(true));
     }), 0);
@@ -475,7 +476,7 @@
         console.log(error);
       }
     }
-    _ref = $('.navbar-fixed-bottom');
+    _ref = $('#key-extension');
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       e = _ref[_i];
@@ -486,10 +487,8 @@
 
   initializeEventHandlers = function() {
     window.addEventListener('orientationchange', (function() {
-      if ($('.navbar-fixed-bottom').css('bottom') !== '0px') {
-        $('.navbar-fixed-bottom').css('bottom', "" + (footerHeight(config)) + "px");
-      }
-      return scrollTo(0, isPortrait() ? 0 : $('#header').outerHeight(true));
+      $('#key-extension').css('bottom', "" + (footerHeight(config)) + "px");
+      return scrollTo(0, !isPortrait() && $('CodeMirror :focus').length > 0 ? $('#header').outerHeight(true) : 0);
     }), false);
     /*
         window.addEventListener 'scroll', (->

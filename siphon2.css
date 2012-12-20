@@ -47,6 +47,9 @@ a.btn:focus {
     overflow: visible;
 }
 */
+#key-extension {
+  display: none;
+}
 @media screen and (orientation: landscape) {
   #editor-pane {
     bottom: -42px;

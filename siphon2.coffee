@@ -75,7 +75,7 @@ newCodeMirror = (id, options, title) ->
     result
 
 newCodeMirror.onBlur = ->
-    $('.navbar-fixed-bottom').css 'bottom', '' # replace according to onscreen keyboard
+    $('#key-extension').css 'display', ''
     scrollTo 0, 0
 newCodeMirror.onChange = (cm, change) ->
     if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
@@ -90,7 +90,8 @@ newCodeMirror.onChange = (cm, change) ->
         ), config.autoSaveTime
 
 newCodeMirror.onFocus = ->
-    $('.navbar-fixed-bottom').css 'bottom', "#{footerHeight config}px"
+    $('#key-extension').css 'display', 'block'
+    $('#key-extension').css 'bottom', "#{footerHeight config}px"
     setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # hide header when landscape
 newCodeMirror.onKeyEvent = (cm, event) ->
     switch event.type
@@ -344,14 +345,13 @@ initializeDropbox = ->
         catch error
             console.log error
 
-    for e in $('.navbar-fixed-bottom') # removed .navbar for a work around for dropdown menu
+    for e in $('#key-extension') # removed .navbar for a work around for dropdown menu
         new NoClickDelay e, false
 
 initializeEventHandlers = ->
     window.addEventListener 'orientationchange', (->
-            if $('.navbar-fixed-bottom').css('bottom') isnt '0px'
-                $('.navbar-fixed-bottom').css 'bottom', "#{footerHeight config}px"
-            scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)
+            $('#key-extension').css 'bottom', "#{footerHeight config}px"
+            scrollTo 0, if not isPortrait() and $('CodeMirror :focus').length > 0 then $('#header').outerHeight(true) else 0
         ), false
 
     ###
