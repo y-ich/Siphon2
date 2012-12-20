@@ -65,15 +65,7 @@ newCodeMirror = (id, options, title) ->
     if touchDevice
         options.onBlur = newCodeMirror.onBlur
         options.onFocus = newCodeMirror.onFocus
-    options.onGutterClick = switch options.mode
-        when 'clike', 'clojure', 'haxe', 'java', 'javascript', 'commonlisp', 'css', 'less', 'scheme'
-            CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
-        when 'htmlmixed'
-            CodeMirror.newFoldFunction CodeMirror.tagRangeFinder        
-        when 'coffeescript', 'haskell', 'ocaml'
-            CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
-        else
-            null
+    options.onGutterClick = foldFunction options.mode
     result = CodeMirror $('#editor-pane')[0], options
     $wrapper = $(result.getWrapperElement())
     $wrapper.attr 'id', id
@@ -92,22 +84,11 @@ newCodeMirror.onChange = (cm, change) ->
 
     # auto save
     clearTimeout cm.siphon.timer if cm.siphon.timer?
-    path = if cm.siphon['dropbox-stat']?
-            cm.siphon['dropbox-stat'].path
-        else if cm.siphon.title isnt 'untitled'
-            cm.siphon.title
-        else
-            null
-    cm.siphon.timer = if path?
-            setTimeout (->
-                localStorage["siphon-buffer-#{path}"] = JSON.stringify
-                    title: cm.siphon.title
-                    text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
-                    dropbox: cm.siphon['dropbox-stat'] ? null
-                cm.siphon.timer = null
-            ), config.autoSaveTime
-        else
-            null
+    cm.siphon.timer = setTimeout (->
+            saveBuffer cm
+            cm.siphon.timer = null
+        ), config.autoSaveTime
+
 newCodeMirror.onFocus = ->
     $('.navbar-fixed-bottom').css 'bottom', "#{footerHeight config}px"
     setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # hide header when landscape
@@ -115,6 +96,30 @@ newCodeMirror.onKeyEvent = (cm, event) ->
     switch event.type
         when 'keydown'
             cm.siphon.autoComplete = null # reset
+
+foldFunction = (mode) ->
+    switch mode
+        when 'clike', 'clojure', 'haxe', 'java', 'javascript', 'commonlisp', 'css', 'less', 'scheme'
+            CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
+        when 'htmlmixed'
+            CodeMirror.newFoldFunction CodeMirror.tagRangeFinder        
+        when 'coffeescript', 'haskell', 'ocaml'
+            CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
+        else
+            null
+
+saveBuffer = (cm) ->
+    path = if cm.siphon['dropbox-stat']?
+            cm.siphon['dropbox-stat'].path
+        else if cm.siphon.title isnt 'untitled'
+            cm.siphon.title
+        else
+            null
+    return if path?
+    localStorage["siphon-buffer-#{path}"] = JSON.stringify
+        title: cm.siphon.title
+        text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
+        dropbox: cm.siphon['dropbox-stat'] ? null
 
 getList = (path) ->
     $table = $('#download-modal table')
@@ -144,10 +149,7 @@ uploadFile = ->
         mode = ext2mode filename.replace /^.*\./, ''
         cm.setOption 'mode', mode
         cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
-        cm.setOption 'onGutterClick', if options.mode is 'coffeescript'
-                CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
-            else
-                CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
+        cm.setOption 'onGutterClick', foldFunction options.mode         
         $active.children('span').text filename
         path = folder + '/' + filename
     
@@ -388,10 +390,7 @@ initializeEventHandlers = ->
                 mode = ext2mode filename.replace /^.*\./, ''
                 cm.setOption 'mode', mode
                 cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
-                cm.setOption 'onGutterClick', if mode is 'coffeescript'
-                        CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
-                    else
-                        CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
+                cm.setOption 'onGutterClick', foldFunction mode     
                 cm.setValue reader.result
         reader.readAsText event.target.files[0]
 
@@ -469,18 +468,9 @@ initializeEventHandlers = ->
                     extension = stat.name.replace /^.*\./, ''
                     if cm.getValue() is '' and $active.children('span').text() is 'untitled'
                         $active.children('span').text stat.name
-                        cm.setOption 'mode', switch extension
-                            when 'html' then 'text/html'
-                            when 'css' then 'css'
-                            when 'js' then 'javascript'
-                            when 'coffee' then 'coffeescript'
-                            when 'less' then 'less'
-                            else null
-                        cm.setOption 'extraKeys', null unless extension is 'html'
-                        cm.setOption 'onGutterClick', if cm.getOption('mode') is 'coffeescript'
-                                CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
-                            else
-                                CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
+                        cm.setOption 'mode', ext2mode extension
+                        cm.setOption 'extraKeys', null unless extension is 'htmlmixed'
+                        cm.setOption 'onGutterClick', foldFunction cm.getOption 'mode'     
                     else
                         cm = newTabAndEditor stat.name, switch extension
                                 when 'js' then 'javascript'
@@ -489,7 +479,7 @@ initializeEventHandlers = ->
                         $active = $('#file-tabs > li.active > a')
                     cm.setValue string
                     cm.siphon['dropbox-stat'] = stat
-                
+                    saveBuffer cm
                 spinner.stop()
             spinner.spin document.body
         

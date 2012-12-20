@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dropbox, evalCS, ext2mode, fireKeyEvent, footerHeight, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, restore, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dropbox, evalCS, ext2mode, fireKeyEvent, foldFunction, footerHeight, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, restore, saveBuffer, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -86,28 +86,7 @@
       options.onBlur = newCodeMirror.onBlur;
       options.onFocus = newCodeMirror.onFocus;
     }
-    options.onGutterClick = (function() {
-      switch (options.mode) {
-        case 'clike':
-        case 'clojure':
-        case 'haxe':
-        case 'java':
-        case 'javascript':
-        case 'commonlisp':
-        case 'css':
-        case 'less':
-        case 'scheme':
-          return CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder);
-        case 'htmlmixed':
-          return CodeMirror.newFoldFunction(CodeMirror.tagRangeFinder);
-        case 'coffeescript':
-        case 'haskell':
-        case 'ocaml':
-          return CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder);
-        default:
-          return null;
-      }
-    })();
+    options.onGutterClick = foldFunction(options.mode);
     result = CodeMirror($('#editor-pane')[0], options);
     $wrapper = $(result.getWrapperElement());
     $wrapper.attr('id', id);
@@ -124,7 +103,6 @@
   };
 
   newCodeMirror.onChange = function(cm, change) {
-    var path;
     if (!(cm.siphon.autoComplete != null) && change.text.length === 1 && change.text[0].length === 1) {
       cm.siphon.autoComplete = new AutoComplete(cm, change.text[change.text.length - 1]);
       cm.siphon.autoComplete.complete(cm);
@@ -132,16 +110,10 @@
     if (cm.siphon.timer != null) {
       clearTimeout(cm.siphon.timer);
     }
-    path = cm.siphon['dropbox-stat'] != null ? cm.siphon['dropbox-stat'].path : cm.siphon.title !== 'untitled' ? cm.siphon.title : null;
-    return cm.siphon.timer = path != null ? setTimeout((function() {
-      var _ref;
-      localStorage["siphon-buffer-" + path] = JSON.stringify({
-        title: cm.siphon.title,
-        text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
-        dropbox: (_ref = cm.siphon['dropbox-stat']) != null ? _ref : null
-      });
+    return cm.siphon.timer = setTimeout((function() {
+      saveBuffer(cm);
       return cm.siphon.timer = null;
-    }), config.autoSaveTime) : null;
+    }), config.autoSaveTime);
   };
 
   newCodeMirror.onFocus = function() {
@@ -156,6 +128,42 @@
       case 'keydown':
         return cm.siphon.autoComplete = null;
     }
+  };
+
+  foldFunction = function(mode) {
+    switch (mode) {
+      case 'clike':
+      case 'clojure':
+      case 'haxe':
+      case 'java':
+      case 'javascript':
+      case 'commonlisp':
+      case 'css':
+      case 'less':
+      case 'scheme':
+        return CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder);
+      case 'htmlmixed':
+        return CodeMirror.newFoldFunction(CodeMirror.tagRangeFinder);
+      case 'coffeescript':
+      case 'haskell':
+      case 'ocaml':
+        return CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder);
+      default:
+        return null;
+    }
+  };
+
+  saveBuffer = function(cm) {
+    var path, _ref;
+    path = cm.siphon['dropbox-stat'] != null ? cm.siphon['dropbox-stat'].path : cm.siphon.title !== 'untitled' ? cm.siphon.title : null;
+    if (path != null) {
+      return;
+    }
+    return localStorage["siphon-buffer-" + path] = JSON.stringify({
+      title: cm.siphon.title,
+      text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
+      dropbox: (_ref = cm.siphon['dropbox-stat']) != null ? _ref : null
+    });
   };
 
   getList = function(path) {
@@ -198,7 +206,7 @@
       mode = ext2mode(filename.replace(/^.*\./, ''));
       cm.setOption('mode', mode);
       cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
-      cm.setOption('onGutterClick', options.mode === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
+      cm.setOption('onGutterClick', foldFunction(options.mode));
       $active.children('span').text(filename);
       path = folder + '/' + filename;
     }
@@ -532,7 +540,7 @@
           mode = ext2mode(filename.replace(/^.*\./, ''));
           cm.setOption('mode', mode);
           cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
-          cm.setOption('onGutterClick', mode === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
+          cm.setOption('onGutterClick', foldFunction(mode));
           return cm.setValue(reader.result);
         }
       };
@@ -624,26 +632,11 @@
             extension = stat.name.replace(/^.*\./, '');
             if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
               $active.children('span').text(stat.name);
-              cm.setOption('mode', (function() {
-                switch (extension) {
-                  case 'html':
-                    return 'text/html';
-                  case 'css':
-                    return 'css';
-                  case 'js':
-                    return 'javascript';
-                  case 'coffee':
-                    return 'coffeescript';
-                  case 'less':
-                    return 'less';
-                  default:
-                    return null;
-                }
-              })());
-              if (extension !== 'html') {
+              cm.setOption('mode', ext2mode(extension));
+              if (extension !== 'htmlmixed') {
                 cm.setOption('extraKeys', null);
               }
-              cm.setOption('onGutterClick', cm.getOption('mode') === 'coffeescript' ? CodeMirror.newFoldFunction(CodeMirror.indentRangeFinder) : CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder));
+              cm.setOption('onGutterClick', foldFunction(cm.getOption('mode')));
             } else {
               cm = newTabAndEditor(stat.name, (function() {
                 switch (extension) {
@@ -659,6 +652,7 @@
             }
             cm.setValue(string);
             cm.siphon['dropbox-stat'] = stat;
+            saveBuffer(cm);
           }
           return spinner.stop();
         });
