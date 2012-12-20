@@ -64,13 +64,10 @@
     return (_ref = exts[str]) != null ? _ref : str.toLowerCase();
   };
 
-  newCodeMirror = function(id, options, title, active) {
+  newCodeMirror = function(id, options, title) {
     var $wrapper, defaultOptions, key, result, value, _ref;
     if (title == null) {
       title = null;
-    }
-    if (active == null) {
-      active = false;
     }
     defaultOptions = {
       lineNumbers: true,
@@ -118,10 +115,6 @@
     $wrapper = $(result.getWrapperElement());
     $wrapper.attr('id', id);
     $wrapper.addClass('tab-pane');
-    if (active) {
-      $('#editor-pane .CodeMirror').removeClass('active');
-      $wrapper.addClass('active');
-    }
     result.siphon = {
       title: title
     };
@@ -370,6 +363,8 @@
     }
     cm = newCodeMirror(id, options, title, true);
     $tab.children('a').data('editor', cm);
+    $('#editor-pane .CodeMirror').removeClass('active');
+    $(cm.getWrapperElement()).addClass('active');
     return cm;
   };
 

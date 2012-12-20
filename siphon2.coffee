@@ -53,7 +53,7 @@ ext2mode = (str) ->
         tex: 'stex'
     exts[str] ? str.toLowerCase()
 
-newCodeMirror = (id, options, title = null, active = false) ->
+newCodeMirror = (id, options, title = null) ->
     defaultOptions =
         lineNumbers: true
         lineWrapping: true
@@ -78,9 +78,6 @@ newCodeMirror = (id, options, title = null, active = false) ->
     $wrapper = $(result.getWrapperElement())
     $wrapper.attr 'id', id
     $wrapper.addClass 'tab-pane'
-    if active
-        $('#editor-pane .CodeMirror').removeClass 'active'
-        $wrapper.addClass 'active' 
     result.siphon =
         title: title
     result
@@ -262,6 +259,8 @@ newTabAndEditor = (title = 'untitled', mode = null) ->
     options.extraKeys = null if mode isnt 'htmlmixed'
     cm = newCodeMirror id, options, title, true
     $tab.children('a').data 'editor', cm
+    $('#editor-pane .CodeMirror').removeClass 'active'
+    $(cm.getWrapperElement()).addClass 'active' 
     cm
 newTabAndEditor.num = 0
 
