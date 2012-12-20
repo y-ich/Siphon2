@@ -87,7 +87,7 @@ newCodeMirror = (tabAnchor, options, active) ->
     result
 
 newCodeMirror.number = 0
-newCodeMirror.onBlur = -> $('.navbar-fixed-bottom').css 'bottom', ''
+newCodeMirror.onBlur = -> $('.navbar-fixed-bottom').css 'bottom', '' # replace according to onscreen keyboard
 newCodeMirror.onChange = (cm, change) ->
     clearTimeout cm.siphon.timer if cm.siphon.timer?
     cm.siphon.timer = setTimeout (->
@@ -264,7 +264,8 @@ newTabAndEditor = (title = 'untitled', mode) ->
     newCodeMirror $tab.children('a')[0], options, true
 newTabAndEditor.num = 0
 
-parentFolders = (path) ->
+# '/a/b/c' => ['', '/a', '/a/b', '/a/b/c']
+ancestorFolders = (path) ->
     split = path.split '/'
     split[0..i].join '/' for e, i in split
 
@@ -296,7 +297,7 @@ restore = ->
         $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
     $("#setting input[name=\"sandbox\"][value=\"#{config.dropbox.sandbox.toString()}\"]").attr 'checked', ''
     $("#setting input[name=\"compile\"]").attr 'checked', '' if config.compile
-    for e, i in parentFolders config.dropbox.currentFolder
+    for e, i in ancestorFolders config.dropbox.currentFolder
         if i == 0
             $('#download-modal .breadcrumb').append '<li><a href="#" data-path="/">Home</a></li>'
         else

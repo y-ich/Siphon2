@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, config, dropbox, evalCS, ext2mode, fireKeyEvent, getList, initializeDropbox, initializeEventHandlers, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, parentFolders, restore, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dropbox, evalCS, ext2mode, fireKeyEvent, getList, initializeDropbox, initializeEventHandlers, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, restore, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -365,7 +365,7 @@
 
   newTabAndEditor.num = 0;
 
-  parentFolders = function(path) {
+  ancestorFolders = function(path) {
     var e, i, split, _i, _len, _results;
     split = path.split('/');
     _results = [];
@@ -415,7 +415,7 @@
     if (config.compile) {
       $("#setting input[name=\"compile\"]").attr('checked', '');
     }
-    _ref2 = parentFolders(config.dropbox.currentFolder);
+    _ref2 = ancestorFolders(config.dropbox.currentFolder);
     for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
       e = _ref2[i];
       if (i === 0) {
