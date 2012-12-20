@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dropbox, evalCS, ext2mode, fireKeyEvent, footerHeight, getList, initializeDropbox, initializeEventHandlers, isPortrait, lessParser, newCodeMirror, newTabAndEditor, restore, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dropbox, evalCS, ext2mode, fireKeyEvent, footerHeight, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, restore, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -315,8 +315,8 @@
     }
   };
 
-  footerHeight = function(config) {
-    var IPAD_KEYBOARD_HEIGHT, IPAD_SPLIT_KEYBOARD_HEIGHT, top;
+  keyboardHeight = function(config) {
+    var IPAD_KEYBOARD_HEIGHT, IPAD_SPLIT_KEYBOARD_HEIGHT;
     IPAD_KEYBOARD_HEIGHT = {
       portrait: 307,
       landscape: 395
@@ -325,7 +325,6 @@
       portrait: 283,
       landscape: 329
     };
-    top = isPortrait() ? 0 : $('#header').outerHeight(true);
     return ((function() {
       switch (config.keyboard) {
         case 'normal':
@@ -335,7 +334,11 @@
         case 'user-defined':
           return config['user-defined-keyboard'];
       }
-    })())[isPortrait() ? 'portrait' : 'landscape'] - top;
+    })())[isPortrait() ? 'portrait' : 'landscape'];
+  };
+
+  footerHeight = function(config) {
+    return keyboardHeight(config) - (isPortrait() ? 0 : $('#header').outerHeight(true));
   };
 
   newTabAndEditor = function(title, mode) {
@@ -736,7 +739,7 @@
       return localStorage['siphon-config'] = JSON.stringify(config);
     });
     return (function() {
-      var query, searchCursor;
+      var find, query, searchCursor;
       searchCursor = null;
       query = null;
       $('#search').on('submit', function(e) {
@@ -751,19 +754,21 @@
         }
         return false;
       });
-      $('#search-backward').on('click', function() {
-        if (searchCursor.findPrevious()) {
-          return searchCursor.cm.setSelection(searchCursor.from(), searchCursor.to());
+      find = function(method) {
+        var pos;
+        if (searchCursor[method]()) {
+          searchCursor.cm.setSelection(searchCursor.from(), searchCursor.to());
+          pos = searchCursor.cm.cursorCoords(true, 'local');
+          return searchCursor.cm.scrollTo(0, pos.y - ($(searchCursor.cm.getScrollerElement()).height() - keyboardHeight(config)) / 2);
         } else {
           return alert("No more \"" + query + "\"");
         }
+      };
+      $('#search-backward').on('click', function() {
+        return find('findPrevious');
       });
       return $('#search-forward').on('click', function() {
-        if (searchCursor.findNext()) {
-          return searchCursor.cm.setSelection(searchCursor.from(), searchCursor.to());
-        } else {
-          return alert("No more \"" + query + "\"");
-        }
+        return find('findNext');
       });
     })();
   };

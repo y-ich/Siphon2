@@ -236,7 +236,8 @@ showError = (error) ->
         else
             alert 'Sorry, there seems something wrong in software.'
 
-footerHeight = (config) ->
+
+keyboardHeight = (config) ->
     IPAD_KEYBOARD_HEIGHT =
         portrait: 307
         landscape: 395
@@ -244,12 +245,14 @@ footerHeight = (config) ->
         portrait: 283
         landscape: 329
 
-    top = if isPortrait() then 0 else $('#header').outerHeight(true)
     (switch config.keyboard
         when 'normal' then IPAD_KEYBOARD_HEIGHT
         when 'split' then IPAD_SPLIT_KEYBOARD_HEIGHT
-        when 'user-defined' then config['user-defined-keyboard'])[if isPortrait() then 'portrait' else 'landscape'] - top
+        when 'user-defined' then config['user-defined-keyboard'])[if isPortrait() then 'portrait' else 'landscape']
 
+footerHeight = (config) ->
+    keyboardHeight(config) - if isPortrait() then 0 else $('#header').outerHeight(true)
+    
 newTabAndEditor = (title = 'untitled', mode = null) ->
     $('#file-tabs > li.active, #editor-pane > .active').removeClass 'active'
     id = "cm#{newTabAndEditor.num}"
@@ -555,16 +558,16 @@ initializeEventHandlers = ->
             else
                 alert "No more \"#{query}\""
             false
-        $('#search-backward').on 'click', ->
-            if searchCursor.findPrevious()
+        find = (method) ->
+            if searchCursor[method]()
                 searchCursor.cm.setSelection searchCursor.from(), searchCursor.to()
+                pos = searchCursor.cm.cursorCoords true, 'local'
+                searchCursor.cm.scrollTo 0, pos.y - ($(searchCursor.cm.getScrollerElement()).height() -  keyboardHeight(config)) / 2
             else
                 alert "No more \"#{query}\""
-        $('#search-forward').on 'click', ->
-            if searchCursor.findNext()
-                searchCursor.cm.setSelection searchCursor.from(), searchCursor.to()
-            else
-                alert "No more \"#{query}\""
+            
+        $('#search-backward').on 'click', -> find 'findPrevious'
+        $('#search-forward').on 'click', -> find 'findNext'
     )()
 #
 # main
