@@ -154,15 +154,15 @@
   };
 
   saveBuffer = function(cm) {
-    var path, _ref;
+    var path, _ref, _ref1;
     path = cm.siphon['dropbox-stat'] != null ? cm.siphon['dropbox-stat'].path : cm.siphon.title !== 'untitled' ? cm.siphon.title : null;
-    if (path != null) {
+    if (path == null) {
       return;
     }
     return localStorage["siphon-buffer-" + path] = JSON.stringify({
-      title: cm.siphon.title,
+      title: (_ref = cm.siphon['dropbox-stat'].name) != null ? _ref : cm.siphon.title,
       text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
-      dropbox: (_ref = cm.siphon['dropbox-stat']) != null ? _ref : null
+      dropbox: (_ref1 = cm.siphon['dropbox-stat']) != null ? _ref1 : null
     });
   };
 
@@ -638,21 +638,13 @@
               }
               cm.setOption('onGutterClick', foldFunction(cm.getOption('mode')));
             } else {
-              cm = newTabAndEditor(stat.name, (function() {
-                switch (extension) {
-                  case 'js':
-                    return 'javascript';
-                  case 'coffee':
-                    return 'coffeescript';
-                  default:
-                    return extension;
-                }
-              })());
+              cm = newTabAndEditor(stat.name, ext2mode(extension));
               $active = $('#file-tabs > li.active > a');
             }
             cm.setValue(string);
             cm.siphon['dropbox-stat'] = stat;
             saveBuffer(cm);
+            console.log('saved');
           }
           return spinner.stop();
         });

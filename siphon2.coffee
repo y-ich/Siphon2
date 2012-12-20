@@ -115,9 +115,9 @@ saveBuffer = (cm) ->
             cm.siphon.title
         else
             null
-    return if path?
+    return unless path?
     localStorage["siphon-buffer-#{path}"] = JSON.stringify
-        title: cm.siphon.title
+        title: cm.siphon['dropbox-stat'].name ? cm.siphon.title
         text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
         dropbox: cm.siphon['dropbox-stat'] ? null
 
@@ -472,14 +472,12 @@ initializeEventHandlers = ->
                         cm.setOption 'extraKeys', null unless extension is 'htmlmixed'
                         cm.setOption 'onGutterClick', foldFunction cm.getOption 'mode'     
                     else
-                        cm = newTabAndEditor stat.name, switch extension
-                                when 'js' then 'javascript'
-                                when 'coffee' then 'coffeescript'
-                                else extension
+                        cm = newTabAndEditor stat.name, ext2mode extension
                         $active = $('#file-tabs > li.active > a')
                     cm.setValue string
                     cm.siphon['dropbox-stat'] = stat
                     saveBuffer cm
+                    console.log 'saved'
                 spinner.stop()
             spinner.spin document.body
         
