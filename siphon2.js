@@ -502,6 +502,9 @@
       }
       return cm.focus();
     });
+    $('#plus-editor').on('touchstart', function() {
+      return scrollTo(0, 0);
+    });
     $('a.new-tab-type').on('click', function() {
       newTabAndEditor('untitled', $(this).text().toLowerCase());
       $(this).parent().parent().prev().dropdown('toggle');
