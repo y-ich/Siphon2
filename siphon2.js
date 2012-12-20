@@ -111,12 +111,12 @@
     result = CodeMirror($('#editor-pane')[0], options);
     $wrapper = $(result.getWrapperElement());
     $wrapper.attr('id', "cm" + newCodeMirror.number);
+    newCodeMirror.number += 1;
     $wrapper.addClass('tab-pane');
     if (active) {
       $('#editor-pane .CodeMirror').removeClass('active');
       $wrapper.addClass('active');
     }
-    newCodeMirror.number += 1;
     result.siphon = {};
     $(tabAnchor).data('editor', result);
     return result;
@@ -303,21 +303,22 @@
     }
     switch (error.status) {
       case 401:
-        return null;
+        alert('Authentication is expired. Please sign-in again.');
+        return $('#dropbox').button('reset');
       case 404:
-        return null;
+        return alert('No such file or folder.');
       case 507:
-        return null;
+        return alert('Your Dropbox seems full.');
       case 503:
-        return null;
+        return alert('Dropbox seems busy. Please try again later.');
       case 400:
-        return null;
+        return alert('Bad input parameter.');
       case 403:
-        return null;
+        return alert('Please sign-in at first.');
       case 405:
-        return null;
+        return alert('Request method not expected.');
       default:
-        return null;
+        return alert('Sorry, there seems something wrong in software.');
     }
   };
 

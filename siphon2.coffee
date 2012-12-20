@@ -77,11 +77,11 @@ newCodeMirror = (tabAnchor, options, active) ->
     result = CodeMirror $('#editor-pane')[0], options
     $wrapper = $(result.getWrapperElement())
     $wrapper.attr 'id', "cm#{newCodeMirror.number}"
+    newCodeMirror.number += 1
     $wrapper.addClass 'tab-pane'
     if active
         $('#editor-pane .CodeMirror').removeClass 'active'
         $wrapper.addClass 'active' 
-    newCodeMirror.number += 1
     result.siphon = {}
     $(tabAnchor).data 'editor', result
     result
@@ -216,35 +216,22 @@ showError = (error) ->
     console.error error if (window.console)
     switch error.status
         when 401
-            # If you're using dropbox.js, the only cause behind this error is that
-            # the user token expired.
-            # Get the user through the authentication flow again.
-            null
+            alert 'Authentication is expired. Please sign-in again.'
+            $('#dropbox').button 'reset'
         when 404
-            # The file or folder you tried to access is not in the user's Dropbox.
-            # Handling this error is specific to your application.
-            null            
+            alert 'No such file or folder.'
         when 507
-            # The user is over their Dropbox quota.
-            # Tell them their Dropbox is full. Refreshing the page won't help.
-            null
+            alert 'Your Dropbox seems full.'
         when 503
-            # Too many API requests. Tell the user to try again later.
-            # Long-term, optimize your code to use fewer API calls.
-            null
+            alert 'Dropbox seems busy. Please try again later.'
         when 400
-            # Bad input parameter
-            null
+            alert 'Bad input parameter.'
         when 403  
-            # Bad OAuth request.
-            null
+            alert 'Please sign-in at first.'
         when 405
-            # Request method not expected
-            null
+            alert 'Request method not expected.'
         else
-            # Caused by a bug in dropbox.js, in your application, or in Dropbox.
-            # Tell the user an error occurred, ask them to refresh the page.
-            null
+            alert 'Sorry, there seems something wrong in software.'
 
 keyboardHeight = (config) ->
     IPAD_KEYBOARD_HEIGHT =
