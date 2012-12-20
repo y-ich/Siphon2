@@ -537,23 +537,21 @@ initializeEventHandlers = ->
     (->
         searchCursor = null
         query = null
-        $('#search').on 'submit', (e)->
-            cm = $('#file-tabs > .active > a').data 'editor'
-            query = $('#search > input[name="query"]').val()
-            searchCursor = cm.getSearchCursor query, cm.getCursor(), false
-            if searchCursor.findNext()
-                cm.setSelection searchCursor.from(), searchCursor.to()
-            else
-                alert "No more \"#{query}\""
-            false
         find = (method) ->
+            if not searchCursor?
+                cm = $('#file-tabs > .active > a').data 'editor'
+                query = $('#search > input[name="query"]').val()
+                searchCursor = cm.getSearchCursor query, cm.getCursor(), false                
             if searchCursor[method]()
                 searchCursor.cm.setSelection searchCursor.from(), searchCursor.to()
                 pos = searchCursor.cm.cursorCoords true, 'local'
                 searchCursor.cm.scrollTo 0, pos.y - ($(searchCursor.cm.getScrollerElement()).height() -  keyboardHeight(config)) / 2
             else
                 alert "No more \"#{query}\""
-            
+        $('#search').on 'change', -> searchCursor = null            
+        $('#search').on 'submit', ->
+            find 'findNext'
+            false
         $('#search-backward').on 'click', -> find 'findPrevious'
         $('#search-forward').on 'click', -> find 'findNext'
     )()

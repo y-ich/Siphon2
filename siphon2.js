@@ -727,20 +727,13 @@
       var find, query, searchCursor;
       searchCursor = null;
       query = null;
-      $('#search').on('submit', function(e) {
-        var cm;
-        cm = $('#file-tabs > .active > a').data('editor');
-        query = $('#search > input[name="query"]').val();
-        searchCursor = cm.getSearchCursor(query, cm.getCursor(), false);
-        if (searchCursor.findNext()) {
-          cm.setSelection(searchCursor.from(), searchCursor.to());
-        } else {
-          alert("No more \"" + query + "\"");
-        }
-        return false;
-      });
       find = function(method) {
-        var pos;
+        var cm, pos;
+        if (!(searchCursor != null)) {
+          cm = $('#file-tabs > .active > a').data('editor');
+          query = $('#search > input[name="query"]').val();
+          searchCursor = cm.getSearchCursor(query, cm.getCursor(), false);
+        }
         if (searchCursor[method]()) {
           searchCursor.cm.setSelection(searchCursor.from(), searchCursor.to());
           pos = searchCursor.cm.cursorCoords(true, 'local');
@@ -749,6 +742,13 @@
           return alert("No more \"" + query + "\"");
         }
       };
+      $('#search').on('change', function() {
+        return searchCursor = null;
+      });
+      $('#search').on('submit', function() {
+        find('findNext');
+        return false;
+      });
       $('#search-backward').on('click', function() {
         return find('findPrevious');
       });
