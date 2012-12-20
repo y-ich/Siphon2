@@ -53,7 +53,7 @@ ext2mode = (str) ->
         tex: 'stex'
     exts[str] ? str.toLowerCase()
 
-newCodeMirror = (tabAnchor, options, active) ->
+newCodeMirror = (id, options, title = null, active = false) ->
     defaultOptions =
         lineNumbers: true
         lineWrapping: true
@@ -76,31 +76,29 @@ newCodeMirror = (tabAnchor, options, active) ->
             null
     result = CodeMirror $('#editor-pane')[0], options
     $wrapper = $(result.getWrapperElement())
-    $wrapper.attr 'id', "cm#{newCodeMirror.number}"
-    newCodeMirror.number += 1
+    $wrapper.attr 'id', id
     $wrapper.addClass 'tab-pane'
     if active
         $('#editor-pane .CodeMirror').removeClass 'active'
         $wrapper.addClass 'active' 
-    result.siphon = {}
-    $(tabAnchor).data 'editor', result
+    result.siphon =
+        title: title
     result
 
-newCodeMirror.number = 0
 newCodeMirror.onBlur = -> $('.navbar-fixed-bottom').css 'bottom', '' # replace according to onscreen keyboard
 newCodeMirror.onChange = (cm, change) ->
     clearTimeout cm.siphon.timer if cm.siphon.timer?
     cm.siphon.timer = setTimeout (->
-        if $(tabAnchor).data('dropbox')?
-            path = $(tabAnchor).data('dropbox').path
-        else if $(tabAnchor).children('span').text() isnt 'untitled'
-            path = $(tabAnchor).children('span').text()
+        if cm.siphon['dropbox-stat']?
+            path = cm.siphon['dropbox-stat'].path
+        else if cm.siphon.title?
+            path = cm.siphon.title
         else
             return
         localStorage["siphon-buffer-#{path}"] = JSON.stringify
-            title: $(tabAnchor).children('span').text()
+            title: cm.siphon.title
             text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
-            dropbox: $(tabAnchor).data('dropbox') ? null
+            dropbox: cm.siphon['dropbox-stat'] ? null
         cm.siphon.timer = null
     ), config.autoSaveTime
     if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
@@ -125,20 +123,20 @@ getList = (path) ->
         else
             for e in stats
                 $tr = $("<tr><td>#{e.name}</td></tr>")
-                $tr.data 'dropbox', e
+                $tr.data 'dropbox-stat', e
                 $table.append $tr
 
 uploadFile = ->
     $active = $('#file-tabs > li.active > a')
-    stat = $active.data 'dropbox'
+    cm = $active.data('editor')
+    stat = cm.siphon['dropbox-stat']
     if stat?
         path = stat.path
     else
         folder = $('#download-modal .breadcrumb > li.active > a').data('path')
-        filename = prompt "Input file name. (current folder is #{folder}.)", $active.children('span').text()
+        filename = prompt "Input file name. (current folder is #{folder}.)", cm.siphon.title ? 'untitled'
         return unless filename
-        $active.children('span').text filename
-        cm = $active.data('editor')
+        cm.siphon.title = filename
         mode = ext2mode filename.replace /^.*\./, ''
         cm.setOption 'mode', mode
         cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
@@ -146,6 +144,7 @@ uploadFile = ->
                 CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
             else
                 CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
+        $active.children('span').text filename
         path = folder + '/' + filename
     
     fileDeferred = $.Deferred()
@@ -153,7 +152,7 @@ uploadFile = ->
         if error
             alert error
         else
-            $active.data 'dropbox', stat
+            cm.siphon['dropbox-stat'] = stat
         fileDeferred.resolve()
 
     compileDeferred = $.Deferred()        
@@ -246,10 +245,10 @@ keyboardHeight = (config) ->
         when 'split' then IPAD_SPLIT_KEYBOARD_HEIGHT
         when 'user-defined' then config['user-defined-keyboard'])[if orientation % 180 == 0 then 'portrait' else 'landscape']
 
-newTabAndEditor = (title = 'untitled', mode) ->
-    $('#file-tabs > li.active, #editor-pane > *').removeClass 'active'
-    newTabAndEditor.num += 1
+newTabAndEditor = (title = 'untitled', mode = null) ->
+    $('#file-tabs > li.active, #editor-pane > .active').removeClass 'active'
     id = "cm#{newTabAndEditor.num}"
+    newTabAndEditor.num += 1
     $tab = $("""
         <li class="active">
             <a href="##{id}" data-toggle="tab">
@@ -261,7 +260,9 @@ newTabAndEditor = (title = 'untitled', mode) ->
     $('#file-tabs > li.dropdown').before $tab
     options = mode: mode
     options.extraKeys = null if mode isnt 'htmlmixed'
-    newCodeMirror $tab.children('a')[0], options, true
+    cm = newCodeMirror id, options, title, true
+    $tab.children('a').data 'editor', cm
+    cm
 newTabAndEditor.num = 0
 
 # '/a/b/c' => ['', '/a', '/a/b', '/a/b/c']
@@ -289,7 +290,7 @@ restore = ->
         buffer = JSON.parse value
         cm = newTabAndEditor buffer.title, ext2mode buffer.title.replace /^.*\./, ''
         cm.setValue buffer.text
-        $('#file-tabs > li.active > a').data 'dropbox', buffer.dropbox if buffer.dropbox?
+        cm.siphon['dropbox-stat'] = buffer.dropbox if buffer.dropbox?
     
     $("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
     if config['user-defined-keyboard']?
@@ -383,8 +384,8 @@ initializeEventHandlers = ->
             cm = $tabAnchor.data 'editor'
             clearTimeout cm.siphon.timer if cm.siphon.timer?
             cm.siphon.timer = null
-            if $tabAnchor.data('dropbox')?
-                localStorage.removeItem "siphon-buffer-#{$tabAnchor.data('dropbox').path}"
+            if cm.siphon['dropbox-stat']?
+                localStorage.removeItem "siphon-buffer-#{cm.siphon['dropbox-stat'].path}"
             else if $tabAnchor.children('span').text() isnt 'untitled'
                 localStorage.removeItem "siphon-buffer-#{$tabAnchor.children('span').text()}"
             if $('#file-tabs > li:not(.dropdown)').length > 1
@@ -397,7 +398,7 @@ initializeEventHandlers = ->
                 $(cm.getWrapperElement()).addClass 'active'
             else
                 $tabAnchor.children('span').text 'untitled'
-                $tabAnchor.data 'dropbox', null
+                cm.siphon['dropbox-stat'] = null
                 cm.setValue ''
             cm.focus()
 
@@ -416,7 +417,7 @@ initializeEventHandlers = ->
     
     $('#download-modal table').on 'click', 'tr', ->
         $this =$(this)
-        stat = $this.data('dropbox')
+        stat = $this.data('dropbox-stat')
         if stat.isFile
             $('#download-modal table tr').removeClass 'info'
             $this.addClass 'info'
@@ -433,17 +434,17 @@ initializeEventHandlers = ->
             localStorage['siphon-config'] = JSON.stringify config
     
     $('#open').on 'click', ->
-        stat = $('#download-modal table tr.info').data('dropbox')
+        stat = $('#download-modal table tr.info').data('dropbox-stat')
         if stat?.isFile
-            $tabs = $('#file-tabs > li > a').filter -> $(this).data('dropbox')?.path is stat.path
+            $tabs = $('#file-tabs > li > a').filter -> $(this).data('editor').siphon['dropbox-stat']?.path is stat.path
             $tabs = null if $tabs.length > 0 and
                 not confirm "There is a buffer editing. Do you want to discard a content of the buffer and update to the server's?"
             dropbox.readFile stat.path, null, (error, string, stat) ->
                 if $tabs? and $tabs.length > 0
                     for e in $tabs
-                        $(e).data 'dropbox', stat
                         $(e).trigger 'click' # You need an editor to be active in order to render successfully when setValue.
                         $(e).data('editor').setValue string
+                        $(e).data('editor').siphon['dropbox-stat'] = stat
                 else
                     $active = $('#file-tabs > li.active > a')
                     cm = $active.data 'editor'
@@ -469,7 +470,7 @@ initializeEventHandlers = ->
                                 else extension
                         $active = $('#file-tabs > li.active > a')
                     cm.setValue string
-                    $active.data 'dropbox', stat
+                    cm.siphon['dropbox-stat'] = stat
                 
                 spinner.stop()
             spinner.spin document.body
@@ -558,7 +559,7 @@ $('#soft-key').css 'display', 'none' unless touchDevice
 
 $('#import').css 'display', 'none' if /iPad|iPhone/.test navigator.userAgent
 
-newCodeMirror $('#file-tabs > li.active > a')[0], { extraKeys: null }, true
+newTabAndEditor()
 
 restore()
 
