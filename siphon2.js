@@ -528,7 +528,7 @@
       return scrollTo(0, 0);
     });
     $('a.new-tab-type').on('click', function() {
-      newTabAndEditor('untitled', $(this).text().toLowerCase());
+      newTabAndEditor('untitled', ext2mode($(this).text().toLowerCase()));
       $(this).parent().parent().prev().dropdown('toggle');
       return false;
     });

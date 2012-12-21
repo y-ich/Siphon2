@@ -382,7 +382,7 @@ initializeEventHandlers = ->
         
     $('#plus-editor').on 'touchstart', -> scrollTo 0, 0 # work around dropdown menu bug. When scrollTop is not 0, you can not touch correctly.
     $('a.new-tab-type').on 'click', ->
-        newTabAndEditor 'untitled', $(this).text().toLowerCase()
+        newTabAndEditor 'untitled', ext2mode $(this).text().toLowerCase()
         $(this).parent().parent().prev().dropdown 'toggle'
         false # prevent default action
 
