@@ -70,6 +70,7 @@
       lineNumbers: true,
       lineWrapping: true,
       onChange: newCodeMirror.onChange,
+      onCursorActivity: newCodeMirror.onCursorActivity,
       onKeyEvent: newCodeMirror.onKeyEvent,
       theme: 'blackboard'
     };
@@ -114,6 +115,12 @@
       saveBuffer(cm);
       return cm.siphon.timer = null;
     }), config.autoSaveTime);
+  };
+
+  newCodeMirror.onCursorActivity = function() {
+    return setTimeout((function() {
+      return scrollTo(0, isPortrait() ? 0 : $('#header').outerHeight(true));
+    }), 0);
   };
 
   newCodeMirror.onFocus = function() {

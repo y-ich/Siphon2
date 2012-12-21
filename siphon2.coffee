@@ -58,6 +58,7 @@ newCodeMirror = (id, options, title) ->
         lineNumbers: true
         lineWrapping: true
         onChange: newCodeMirror.onChange
+        onCursorActivity: newCodeMirror.onCursorActivity
         onKeyEvent: newCodeMirror.onKeyEvent
         theme: 'blackboard'
     options ?= {}
@@ -77,6 +78,7 @@ newCodeMirror = (id, options, title) ->
 newCodeMirror.onBlur = ->
     $('#key-extension').css 'display', ''
     scrollTo 0, 0
+
 newCodeMirror.onChange = (cm, change) ->
     if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
         cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
@@ -89,10 +91,14 @@ newCodeMirror.onChange = (cm, change) ->
             cm.siphon.timer = null
         ), config.autoSaveTime
 
+newCodeMirror.onCursorActivity = ->
+    setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # restore position against auto scroll of mobile safari
+
 newCodeMirror.onFocus = ->
     $('#key-extension').css 'display', 'block'
     $('#key-extension').css 'bottom', "#{footerHeight config}px"
     setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # hide header when landscape
+
 newCodeMirror.onKeyEvent = (cm, event) ->
     switch event.type
         when 'keydown'
