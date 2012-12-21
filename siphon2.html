@@ -39,31 +39,31 @@
             </div>
         </div>
     </div>
-    <div id="search-bar" class="pull-right">
-        <form id="search" action="" class="navbar-search">
-            <input id="query" name="query" type="text" class="search-query" placeholder="Search">
-            <div class="btn-group">
-                <button id="search-backward" type="button" class="btn"><i class="icon-step-backward"></i></button>
-                <button id="search-forward" type="button" class="btn"><i class="icon-step-forward"></i></button>            
-            </div>
-        </form>
+    <div class="tabbable">
+            <form id="search" action="" class="navbar-search">
+                <input id="query" name="query" type="text" class="search-query" placeholder="Search">
+                <div class="btn-group">
+                    <button id="search-backward" type="button" class="btn"><i class="icon-step-backward"></i></button>
+                    <button id="search-forward" type="button" class="btn"><i class="icon-step-forward"></i></button>            
+                </div>
+            </form>
+        <ul id="file-tabs" class="nav nav-tabs">
+            <li class="dropdown">
+                <a id="plus-editor" class="dropdown-toggle" data-toggle="dropdown">
+                    <i class="icon-plus"></i>
+                    <b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a class="new-tab-type" href="#">HTML</a></li>
+                    <li><a class="new-tab-type" href="#">CSS</a></li>
+                    <li><a class="new-tab-type" href="#">LESS</a></li>
+                    <li><a class="new-tab-type" href="#">JavaScript</a></li>
+                    <li><a class="new-tab-type" href="#">CoffeeScript</a></li>
+                </ul>
+            </li>
+        </ul>
+        <div id="editor-pane" class="tab-content"></div>
     </div>
-    <ul id="file-tabs" class="nav nav-tabs">
-        <li class="dropdown">
-            <a id="plus-editor" class="dropdown-toggle" data-toggle="dropdown">
-                <i class="icon-plus"></i>
-                <b class="caret"></b>
-            </a>
-            <ul class="dropdown-menu">
-                <li><a class="new-tab-type" href="#">HTML</a></li>
-                <li><a class="new-tab-type" href="#">CSS</a></li>
-                <li><a class="new-tab-type" href="#">LESS</a></li>
-                <li><a class="new-tab-type" href="#">JavaScript</a></li>
-                <li><a class="new-tab-type" href="#">CoffeeScript</a></li>
-            </ul>
-        </li>
-    </ul>
-    <div id="editor-pane" class="tab-content"></div>
     <div id="key-extension" class="navbar navbar-fixed-bottom">
         <div id="soft-key" class="pull-left" style="display: none;">
             <button data-identifier="U+0009" class="btn key">Tab</button>

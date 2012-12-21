@@ -118,7 +118,7 @@ saveBuffer = (cm) ->
             null
     return unless path?
     localStorage["siphon-buffer-#{path}"] = JSON.stringify
-        title: cm.siphon['dropbox-stat'].name ? cm.siphon.title
+        title: cm.siphon['dropbox-stat']?.name ? cm.siphon.title
         text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
         dropbox: cm.siphon['dropbox-stat'] ? null
 
@@ -283,7 +283,7 @@ ancestorFolders = (path) ->
     split = path.split '/'
     split[0..i].join '/' for e, i in split
 
-isPortrait = -> orientation % 180 == 0
+isPortrait = -> (orientation ? 0) % 180 == 0
     
 #
 # initialize functions
@@ -351,6 +351,10 @@ initializeDropbox = ->
 initializeEventHandlers = ->
     window.addEventListener 'orientationchange', (->
             $('#key-extension').css 'bottom', "#{footerHeight config}px"
+            if isPortrait()
+                $('.tabbable').removeClass 'tabs-left'
+            else
+                $('.tabbable').addClass 'tabs-left'
             scrollTo 0, if not isPortrait() and $('CodeMirror :focus').length > 0 then $('#header').outerHeight(true) else 0
         ), false
 
@@ -559,15 +563,13 @@ initializeEventHandlers = ->
 # main
 #
 
-scrollTo 0, 0 # reset previous scroll position
+unless isPortrait()
+    $('.tabbable').addClass 'tabs-left' 
+
 $('#soft-key').css 'display', 'block' if touchDevice
-
 $('#import').addClass 'disabled' if /iPad|iPhone/.test navigator.userAgent
-
 newTabAndEditor()
-
 restore()
-
 initializeDropbox()
-
 initializeEventHandlers()
+scrollTo 0, 0 # reset previous scroll position

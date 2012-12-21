@@ -155,15 +155,15 @@
   };
 
   saveBuffer = function(cm) {
-    var path, _ref, _ref1;
+    var path, _ref, _ref1, _ref2;
     path = cm.siphon['dropbox-stat'] != null ? cm.siphon['dropbox-stat'].path : cm.siphon.title !== 'untitled' ? cm.siphon.title : null;
     if (path == null) {
       return;
     }
     return localStorage["siphon-buffer-" + path] = JSON.stringify({
-      title: (_ref = cm.siphon['dropbox-stat'].name) != null ? _ref : cm.siphon.title,
+      title: (_ref = (_ref1 = cm.siphon['dropbox-stat']) != null ? _ref1.name : void 0) != null ? _ref : cm.siphon.title,
       text: cm.getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
-      dropbox: (_ref1 = cm.siphon['dropbox-stat']) != null ? _ref1 : null
+      dropbox: (_ref2 = cm.siphon['dropbox-stat']) != null ? _ref2 : null
     });
   };
 
@@ -390,7 +390,7 @@
   };
 
   isPortrait = function() {
-    return orientation % 180 === 0;
+    return (typeof orientation !== "undefined" && orientation !== null ? orientation : 0) % 180 === 0;
   };
 
   restore = function() {
@@ -488,6 +488,11 @@
   initializeEventHandlers = function() {
     window.addEventListener('orientationchange', (function() {
       $('#key-extension').css('bottom', "" + (footerHeight(config)) + "px");
+      if (isPortrait()) {
+        $('.tabbable').removeClass('tabs-left');
+      } else {
+        $('.tabbable').addClass('tabs-left');
+      }
       return scrollTo(0, !isPortrait() && $('CodeMirror :focus').length > 0 ? $('#header').outerHeight(true) : 0);
     }), false);
     /*
@@ -758,7 +763,9 @@
     })();
   };
 
-  scrollTo(0, 0);
+  if (!isPortrait()) {
+    $('.tabbable').addClass('tabs-left');
+  }
 
   if (touchDevice) {
     $('#soft-key').css('display', 'block');
@@ -775,5 +782,7 @@
   initializeDropbox();
 
   initializeEventHandlers();
+
+  scrollTo(0, 0);
 
 }).call(this);

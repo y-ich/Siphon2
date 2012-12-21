@@ -1,10 +1,15 @@
 @header-height: 42px;
 @tab-height: 58px;
+@tab-width: 180px;
+@search-query-padding: 14px;
+@search-buttons-width: 79px;
 
 html, body {
     height: 100%;
     margin: 0;
 }
+
+// bootstrap overrides
 
 .modal-body {
     -webkit-overflow-scrolling: touch;
@@ -18,28 +23,15 @@ a.btn:focus {
     margin: 0px
 }
 
-#header {
-    position: relative;
-}
-.nav-tabs > li .close {
-    margin: -2px 0 0 10px;
-    font-size: 18px;
+.tabs-left > .nav-tabs {
+    margin-right: 0px;
 }
 
-#search-bar {
+.navbar-search {
     padding-right: 20px;
 }
-#query {
-    width: 160px;
-}
 
-#editor-pane {
-    position: absolute;
-    width: 100%;
-    top: @header-height + @tab-height;
-    bottom: 0px;
-    background-color: black;
-}
+// CodeMirror overrides
 
 .CodeMirror {
     height: 100%;
@@ -58,12 +50,64 @@ a.btn:focus {
 }
 */
 
+// app
+
+#header {
+    position: relative;
+}
+.nav-tabs > li .close {
+    margin: -2px 0 0 10px;
+    font-size: 18px;
+}
+
+#query {
+    width: @tab-width - 2 * (@search-query-padding + 2px);
+}
+
+
 #key-extension {
     display: none;
 }
 
-@media screen and (orientation:landscape) {
-#editor-pane {
-    bottom: -@header-height;
+// responsive tab pane
+
+.tabbable .tab-content {
+    position: absolute;
+    width: 100%;
+    top: @header-height + @tab-height;
+    bottom: 0px;
+    background-color: black;
 }
+
+.tabbable .navbar-search {
+    float: right;
+}
+
+.tabbable.tabs-left .navbar-search {
+    float: none;
+}
+
+.tabbable.tabs-left .nav-tabs {
+    min-width: @tab-width;
+}
+
+.tabbable.tabs-left .navbar-search .search-query {
+    display: block;
+}
+
+.tabbable.tabs-left .navbar-search .btn-group {
+    left: @tab-width - @search-buttons-width;
+}
+
+.tabbable.tabs-left .tab-content {
+    width: auto;
+    left: @tab-width + 2px;
+    right: 0px;
+    top: @header-height;
+    bottom: 0px;
+    background-color: black;
+}
+
+
+@media screen and (orientation:landscape) {
 }

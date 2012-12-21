@@ -12,25 +12,11 @@ a.btn:focus {
 .navbar {
   margin: 0px;
 }
-#header {
-  position: relative;
+.tabs-left > .nav-tabs {
+  margin-right: 0px;
 }
-.nav-tabs > li .close {
-  margin: -2px 0 0 10px;
-  font-size: 18px;
-}
-#search-bar {
+.navbar-search {
   padding-right: 20px;
-}
-#query {
-  width: 160px;
-}
-#editor-pane {
-  position: absolute;
-  width: 100%;
-  top: 100px;
-  bottom: 0px;
-  background-color: black;
 }
 .CodeMirror {
   height: 100%;
@@ -47,11 +33,49 @@ a.btn:focus {
     overflow: visible;
 }
 */
+#header {
+  position: relative;
+}
+.nav-tabs > li .close {
+  margin: -2px 0 0 10px;
+  font-size: 18px;
+}
+#query {
+  width: 148px;
+}
 #key-extension {
   display: none;
 }
+.tabbable .tab-content {
+  position: absolute;
+  width: 100%;
+  top: 100px;
+  bottom: 0px;
+  background-color: black;
+}
+.tabbable .navbar-search {
+  float: right;
+}
+.tabbable.tabs-left .navbar-search {
+  float: none;
+}
+.tabbable.tabs-left .nav-tabs {
+  min-width: 180px;
+}
+.tabbable.tabs-left .navbar-search .search-query {
+  display: block;
+}
+.tabbable.tabs-left .navbar-search .btn-group {
+  left: 101px;
+}
+.tabbable.tabs-left .tab-content {
+  width: auto;
+  left: 182px;
+  right: 0px;
+  top: 42px;
+  bottom: 0px;
+  background-color: black;
+}
 @media screen and (orientation: landscape) {
-  #editor-pane {
-    bottom: -42px;
-  }
+  
 }
