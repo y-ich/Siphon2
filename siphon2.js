@@ -69,8 +69,10 @@
     defaultOptions = {
       lineNumbers: true,
       lineWrapping: true,
+      onBlur: newCodeMirror.onBlur,
       onChange: newCodeMirror.onChange,
       onCursorActivity: newCodeMirror.onCursorActivity,
+      onFocus: newCodeMirror.onFocus,
       onKeyEvent: newCodeMirror.onKeyEvent,
       theme: 'blackboard'
     };
@@ -82,10 +84,6 @@
       if ((_ref = options[key]) == null) {
         options[key] = value;
       }
-    }
-    if (touchDevice) {
-      options.onBlur = newCodeMirror.onBlur;
-      options.onFocus = newCodeMirror.onFocus;
     }
     options.onGutterClick = foldFunction(options.mode);
     result = CodeMirror($('#editor-pane')[0], options);
@@ -100,7 +98,9 @@
 
   newCodeMirror.onBlur = function() {
     $('#key-extension').css('display', '');
-    return scrollTo(0, 0);
+    if (touchDevice) {
+      return scrollTo(0, 0);
+    }
   };
 
   newCodeMirror.onChange = function(cm, change) {
@@ -125,10 +125,12 @@
 
   newCodeMirror.onFocus = function() {
     $('#key-extension').css('display', 'block');
-    $('#key-extension').css('bottom', "" + (footerHeight(config)) + "px");
-    return setTimeout((function() {
-      return scrollTo(0, isPortrait() ? 0 : $('#header').outerHeight(true));
-    }), 0);
+    if (touchDevice) {
+      $('#key-extension').css('bottom', "" + (footerHeight(config)) + "px");
+      return setTimeout((function() {
+        return scrollTo(0, isPortrait() ? 0 : $('#header').outerHeight(true));
+      }), 0);
+    }
   };
 
   newCodeMirror.onKeyEvent = function(cm, event) {
@@ -508,22 +510,6 @@
         ), false
     */
 
-    $('#previous-button').on('click', function() {
-      var cm, _ref;
-      cm = $('#file-tabs > li.active > a').data('editor');
-      if ((_ref = cm.siphon.autoComplete) != null) {
-        _ref.previous();
-      }
-      return cm.focus();
-    });
-    $('#next-button').on('click', function() {
-      var cm, _ref;
-      cm = $('#file-tabs > li.active > a').data('editor');
-      if ((_ref = cm.siphon.autoComplete) != null) {
-        _ref.next();
-      }
-      return cm.focus();
-    });
     $('#plus-editor').on('touchstart', function() {
       return scrollTo(0, 0);
     });
@@ -665,33 +651,6 @@
     $('#upload').on('click', function() {
       return uploadFile();
     });
-    $('.key').on((touchDevice ? 'touchstart' : 'mousedown'), function() {
-      return fireKeyEvent('keydown', $(this).data('identifier'));
-    });
-    $('.key').on((touchDevice ? 'touchend' : 'mouseup'), function() {
-      return fireKeyEvent('keyup', $(this).data('identifier'));
-    });
-    $('#undo').on('click', function() {
-      return $('#file-tabs > li.active > a').data('editor').undo();
-    });
-    $('#eval').on('click', function() {
-      var cm, line;
-      cm = $('#file-tabs > li.active > a').data('editor');
-      if (cm.getOption('mode') !== 'coffeescript') {
-        return;
-      }
-      if (!cm.somethingSelected()) {
-        line = cm.getCursor().line;
-        cm.setSelection({
-          line: line,
-          ch: 0
-        }, {
-          line: line,
-          ch: cm.getLine(line).length
-        });
-      }
-      return cm.replaceSelection(evalCS(cm.getSelection()).toString());
-    });
     $('#dropbox').on('click', function() {
       var $this;
       $this = $(this);
@@ -735,7 +694,7 @@
       }
       return localStorage['siphon-config'] = JSON.stringify(config);
     });
-    return (function() {
+    (function() {
       var find, query, searchCursor;
       searchCursor = null;
       query = null;
@@ -768,6 +727,59 @@
         return find('findNext');
       });
     })();
+    $('.key').on((touchDevice ? 'touchstart' : 'mousedown'), function() {
+      return fireKeyEvent('keydown', $(this).data('identifier'));
+    });
+    $('.key').on((touchDevice ? 'touchend' : 'mouseup'), function() {
+      return fireKeyEvent('keyup', $(this).data('identifier'));
+    });
+    $('#undo').on('click', function() {
+      return $('#file-tabs > li.active > a').data('editor').undo();
+    });
+    $('#eval, #previous-button, #next-button').on('mousedown', function(event) {
+      return event.preventDefault();
+    });
+    $('#eval').on('click', function() {
+      var cm, evalFunction, line;
+      cm = $('#file-tabs > li.active > a').data('editor');
+      switch (cm.getOption('mode')) {
+        case 'coffeescript':
+          evalFunction = evalCS;
+          break;
+        case 'javascript':
+          evalFunction = eval;
+          break;
+        default:
+          return;
+      }
+      if (!cm.somethingSelected()) {
+        line = cm.getCursor().line;
+        cm.setSelection({
+          line: line,
+          ch: 0
+        }, {
+          line: line,
+          ch: cm.getLine(line).length
+        });
+      }
+      return cm.replaceSelection(evalFunction(cm.getSelection()).toString());
+    });
+    $('#previous-button').on('click', function() {
+      var cm, _ref;
+      cm = $('#file-tabs > li.active > a').data('editor');
+      if ((_ref = cm.siphon.autoComplete) != null) {
+        _ref.previous();
+      }
+      return cm.focus();
+    });
+    return $('#next-button').on('click', function() {
+      var cm, _ref;
+      cm = $('#file-tabs > li.active > a').data('editor');
+      if ((_ref = cm.siphon.autoComplete) != null) {
+        _ref.next();
+      }
+      return cm.focus();
+    });
   };
 
   if (!isPortrait()) {

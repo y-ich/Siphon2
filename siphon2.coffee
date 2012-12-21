@@ -57,15 +57,14 @@ newCodeMirror = (id, options, title) ->
     defaultOptions =
         lineNumbers: true
         lineWrapping: true
+        onBlur: newCodeMirror.onBlur
         onChange: newCodeMirror.onChange
         onCursorActivity: newCodeMirror.onCursorActivity
+        onFocus: newCodeMirror.onFocus
         onKeyEvent: newCodeMirror.onKeyEvent
         theme: 'blackboard'
     options ?= {}
     options[key] ?= value for key, value of defaultOptions
-    if touchDevice
-        options.onBlur = newCodeMirror.onBlur
-        options.onFocus = newCodeMirror.onFocus
     options.onGutterClick = foldFunction options.mode
     result = CodeMirror $('#editor-pane')[0], options
     $wrapper = $(result.getWrapperElement())
@@ -77,7 +76,7 @@ newCodeMirror = (id, options, title) ->
 
 newCodeMirror.onBlur = ->
     $('#key-extension').css 'display', ''
-    scrollTo 0, 0
+    scrollTo 0, 0 if touchDevice
 
 newCodeMirror.onChange = (cm, change) ->
     if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
@@ -96,8 +95,9 @@ newCodeMirror.onCursorActivity = ->
 
 newCodeMirror.onFocus = ->
     $('#key-extension').css 'display', 'block'
-    $('#key-extension').css 'bottom', "#{footerHeight config}px"
-    setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # hide header when landscape
+    if touchDevice
+        $('#key-extension').css 'bottom', "#{footerHeight config}px"
+        setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # hide header when landscape
 
 newCodeMirror.onKeyEvent = (cm, event) ->
     switch event.type
@@ -370,16 +370,6 @@ initializeEventHandlers = ->
     ), false
     ###
     
-    $('#previous-button').on 'click', ->
-        cm = $('#file-tabs > li.active > a').data('editor')
-        cm.siphon.autoComplete?.previous()
-        cm.focus()
-        
-    $('#next-button').on 'click', ->
-        cm = $('#file-tabs > li.active > a').data('editor')
-        cm.siphon.autoComplete?.next()
-        cm.focus()
-        
     $('#plus-editor').on 'touchstart', -> scrollTo 0, 0 # work around dropdown menu bug. When scrollTop is not 0, you can not touch correctly.
     $('a.new-tab-type').on 'click', ->
         newTabAndEditor 'untitled', ext2mode $(this).text().toLowerCase()
@@ -495,21 +485,6 @@ initializeEventHandlers = ->
     $('#upload').on 'click', ->
         uploadFile()
 
-    $('.key').on (if touchDevice then 'touchstart' else 'mousedown'), -> fireKeyEvent 'keydown', $(this).data('identifier')
-    
-    $('.key').on (if touchDevice then 'touchend' else 'mouseup'), -> fireKeyEvent 'keyup', $(this).data('identifier')
-
-    $('#undo').on 'click', ->
-        $('#file-tabs > li.active > a').data('editor').undo()
-
-    $('#eval').on 'click', ->
-        cm = $('#file-tabs > li.active > a').data('editor')
-        return unless cm.getOption('mode') is 'coffeescript'
-        if not cm.somethingSelected()
-            line = cm.getCursor().line
-            cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
-        cm.replaceSelection evalCS(cm.getSelection()).toString()
-
     $('#dropbox').on 'click', ->
         $this = $(this)
         if $this.text() is 'sign-in'
@@ -565,6 +540,41 @@ initializeEventHandlers = ->
         $('#search-backward').on 'click', -> find 'findPrevious'
         $('#search-forward').on 'click', -> find 'findNext'
     )()
+
+    $('.key').on (if touchDevice then 'touchstart' else 'mousedown'), -> fireKeyEvent 'keydown', $(this).data('identifier')
+    
+    $('.key').on (if touchDevice then 'touchend' else 'mouseup'), -> fireKeyEvent 'keyup', $(this).data('identifier')
+
+    $('#undo').on 'click', ->
+        $('#file-tabs > li.active > a').data('editor').undo()
+
+    $('#eval, #previous-button, #next-button').on 'mousedown', (event) -> event.preventDefault()
+        
+
+    $('#eval').on 'click', ->
+        cm = $('#file-tabs > li.active > a').data 'editor'
+        switch cm.getOption 'mode'
+            when 'coffeescript'
+                evalFunction = evalCS
+            when 'javascript'
+                evalFunction = eval
+            else
+                return
+        if not cm.somethingSelected()
+            line = cm.getCursor().line
+            cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
+        cm.replaceSelection evalFunction(cm.getSelection()).toString()
+            
+    $('#previous-button').on 'click', ->
+        cm = $('#file-tabs > li.active > a').data('editor')
+        cm.siphon.autoComplete?.previous()
+        cm.focus()
+        
+    $('#next-button').on 'click', ->
+        cm = $('#file-tabs > li.active > a').data('editor')
+        cm.siphon.autoComplete?.next()
+        cm.focus()
+        
 #
 # main
 #
