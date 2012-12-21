@@ -21,6 +21,19 @@
     <link rel="stylesheet" href="lib/codemirror.css">
     <link rel="stylesheet" href="theme/blackboard.css">
     <link rel="stylesheet" href="siphon2.css">
+    <script type="text/javascript">
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-510249-16']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
 </head>
 <body>
     <div id="header" class="navbar">
@@ -105,6 +118,43 @@
         </div>
         <div class="modal-body">
             <form id="setting" class="form-horizontal">
+                <span class="help-block">Dropbox</span>
+                <div class="control-group">
+                    <label class="control-label" for="sandbox">permission:</label>
+                    <div class="controls">
+                        <label class="radio">
+                            <input type="radio" name="sandbox" value="true" checked>
+                            App folder only
+                        </label>
+                        <label class="radio">
+                            <input type="radio" name="sandbox" value="false">
+                            Full Dropbox
+                        </label>
+                    </div>                    
+                </div>
+                <p>
+                    When you change Dropbox permission, <strong>please reload or restart Siphon2.</strong>
+                    Siphon2 keeps using current permission until restart.
+                </p>
+                <span class="help-block">Upload options</span>
+                <div class="control-group">
+                    <label class="control-label" for="compile">compile:</label>
+                    <div class="controls">
+                        <label class="checkbox">
+                            <input type="checkbox" name="compile" value="true">
+                            Upload CoffeeScript or LESS file with compiled file
+                        </label>
+                    </div>                    
+                </div>
+                <!--
+                <span class="help-block">Editor related</span>
+                <div class="control-group">
+                    <label for="font-size" class="control-label">font size:</label>
+                    <div class="controls">
+                        <input type="number" name="font-size" min="0" placeholder="%" />
+                    </div>
+                </div>
+                -->
                 <span class="help-block">Keyboard related</span>
                 <div class="control-group">
                     <label class="control-label" for="keyboard">keyboard:</label>              
@@ -135,34 +185,6 @@
                         <input type="text" name="keyboard-height-landscape" placeholder="px">
                     </div>
                 </div>        
-                <span class="help-block">Dropbox</span>
-                <div class="control-group">
-                    <label class="control-label" for="sandbox">permission:</label>
-                    <div class="controls">
-                        <label class="radio">
-                            <input type="radio" name="sandbox" value="true" checked>
-                            App folder only
-                        </label>
-                        <label class="radio">
-                            <input type="radio" name="sandbox" value="false">
-                            Full Dropbox
-                        </label>
-                    </div>                    
-                </div>
-                <p>
-                    When you change Dropbox permission, <strong>please reload or restart Siphon2.</strong>
-                    Siphon2 keeps using current permission until restart.
-                </p>
-                <span class="help-block">Upload options</span>
-                <div class="control-group">
-                    <label class="control-label" for="compile">compile:</label>
-                    <div class="controls">
-                        <label class="checkbox">
-                            <input type="checkbox" name="compile" value="true">
-                            Upload CoffeeScript or LESS file with compiled file
-                        </label>
-                    </div>                    
-                </div>
             </form>
         </div>
         <div class="modal-footer">
