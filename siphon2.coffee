@@ -563,7 +563,8 @@ initializeEventHandlers = ->
         if not cm.somethingSelected()
             line = cm.getCursor().line
             cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
-        cm.replaceSelection evalFunction(cm.getSelection()).toString()
+        result = evalFunction cm.getSelection()
+        cm.replaceSelection result.toString() if result?
             
     $('#previous-button').on 'click', ->
         cm = $('#file-tabs > li.active > a').data('editor')

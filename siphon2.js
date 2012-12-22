@@ -740,7 +740,7 @@
       return event.preventDefault();
     });
     $('#eval').on('click', function() {
-      var cm, evalFunction, line;
+      var cm, evalFunction, line, result;
       cm = $('#file-tabs > li.active > a').data('editor');
       switch (cm.getOption('mode')) {
         case 'coffeescript':
@@ -762,7 +762,10 @@
           ch: cm.getLine(line).length
         });
       }
-      return cm.replaceSelection(evalFunction(cm.getSelection()).toString());
+      result = evalFunction(cm.getSelection());
+      if (result != null) {
+        return cm.replaceSelection(result.toString());
+      }
     });
     $('#previous-button').on('click', function() {
       var cm, _ref;
