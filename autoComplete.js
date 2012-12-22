@@ -173,7 +173,7 @@
           propertyChain.push(token);
           pos = {
             line: cursor.line,
-            ch: token.start - 1
+            ch: token.start
           };
         }
         propertyChain.push(token);

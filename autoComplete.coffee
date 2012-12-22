@@ -117,10 +117,9 @@ class AutoComplete
             pos = cursor
             while (token = @cm.getTokenAt pos).string.charAt(0) is '.'
                 propertyChain.push token
-                pos = { line: cursor.line, ch: token.start - 1 }
+                pos = { line: cursor.line, ch: token.start }
             propertyChain.push token
             propertyChain.reverse()
-                        
             if propertyChain.length == 1
                 candidates = globalPropertiesPlusKeywords
             else
