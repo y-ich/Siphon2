@@ -150,7 +150,8 @@ uploadFile = ->
         path = stat.path
     else
         folder = $('#download-modal .breadcrumb > li.active > a').data('path')
-        filename = prompt "Input file name. (current folder is #{folder}.)", cm.siphon.title ? 'untitled'
+        oldname = cm.siphon.title ? 'untitled'
+        filename = prompt "Input file name. (current folder is #{folder}.)", oldname
         return unless filename
         cm.siphon.title = filename
         mode = ext2mode filename.replace /^.*\./, ''
@@ -166,6 +167,8 @@ uploadFile = ->
             alert error
         else
             cm.siphon['dropbox-stat'] = stat
+            saveBuffer cm
+            localStorage.removeItem "siphon-buffer-#{oldname}"  if localStorage["siphon-buffer-#{oldname}"]?
         fileDeferred.resolve()
 
     compileDeferred = $.Deferred()        

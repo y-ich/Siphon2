@@ -200,7 +200,7 @@
   };
 
   uploadFile = function() {
-    var $active, cm, compileDeferred, compiled, fileDeferred, filename, folder, mode, path, stat, _ref;
+    var $active, cm, compileDeferred, compiled, fileDeferred, filename, folder, mode, oldname, path, stat, _ref;
     $active = $('#file-tabs > li.active > a');
     cm = $active.data('editor');
     stat = cm.siphon['dropbox-stat'];
@@ -208,7 +208,8 @@
       path = stat.path;
     } else {
       folder = $('#download-modal .breadcrumb > li.active > a').data('path');
-      filename = prompt("Input file name. (current folder is " + folder + ".)", (_ref = cm.siphon.title) != null ? _ref : 'untitled');
+      oldname = (_ref = cm.siphon.title) != null ? _ref : 'untitled';
+      filename = prompt("Input file name. (current folder is " + folder + ".)", oldname);
       if (!filename) {
         return;
       }
@@ -226,6 +227,10 @@
         alert(error);
       } else {
         cm.siphon['dropbox-stat'] = stat;
+        saveBuffer(cm);
+        if (localStorage["siphon-buffer-" + oldname] != null) {
+          localStorage.removeItem("siphon-buffer-" + oldname);
+        }
       }
       return fileDeferred.resolve();
     });
