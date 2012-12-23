@@ -24,39 +24,23 @@ js_operators = OPERATORS.concat(JS_OPERATORS).concat(OPERATORS_WITH_EQUAL.concat
 UTC_PROPERTIES = ['Date', 'Day', 'FullYear', 'Hours', 'Milliseconds', 'Minutes', 'Month', 'Seconds']
 DATE_PROPERTIES = ['Time', 'Year'].concat UTC_PROPERTIES.reduce ((a, b) -> a.concat [b, 'UTC' + b]), []
 
-CORE_CLASSES =
-    # Arguments: ['callee', 'length']
-    Array: ['length', 'concat', 'every', 'filter', 'forEach', 'indexOf', 'join', 'lastIndexOf', 'map', 'pop', 'push', 'reduce', 'reduceRight', 'reverse'
-        'shift', 'slice', 'some', 'sort', 'splice', 'toLocaleString', 'toString', 'unshift']
-    Boolean: ['toString', 'valueOf']
-    Date: ['getTimezoneOffset', 'toDateString', 'toGMTString', 'toISOString', 'toJSON', 'toLocaleDateString', 'toLocaleString', 'toLocaleTimeString', 'toString', 'toTimeString', 'toUTCString', 'valueOf'].concat(DATE_PROPERTIES.reduce(((a, b) -> a.concat ['get' + b, 'set' + b]), [])).sort()
-    Error: [] 
-    EvalError: []
-    Function: []
-    Global: []
-    JSON: []
-    Math: []
-    Number: []
-    Object: []
-    RangeError: []
-    ReferenceError: []
-    RegExp: []
-    String: []
-    SyntaxError: []
-    TypeError: []
-    URIError: []
-
 js_keywords = COMMON_KEYWORDS.concat(JS_KEYWORDS).sort()
 cs_keywords = COMMON_KEYWORDS.concat(COFFEE_KEYWORDS).sort()
 
 CS_KEYWORDS_COMPLETE =
-    if: ['else', 'then else']
-    for: ['in', 'in when', 'of', 'of when']
-    try: ['catch finally', 'catch']
     class: ['extends']
+    for: ['in', 'in when', 'of', 'of when']
+    if: ['else', 'then else']
     switch: ['when else', 'when', 'when then else', 'when then']
+    try: ['catch finally', 'catch']
 
-JS_KEYWORDS_COMPLETE = {}
+JS_KEYWORDS_COMPLETE =
+    do: ['while ( )']
+    for: ['( ; ; ) { }', '( in ) { }']
+    if: ['( ) { }', '( ) { } else { }']
+    switch: ['( ) { case : break; default: }']
+    try: ['catch finally', 'catch']
+    while: ['( )']
 
 globalProperties = (e for e of window)
 globalPropertiesPlusJSKeywords = globalProperties.concat(js_keywords).sort()
@@ -125,7 +109,13 @@ class AutoComplete
             else
                 try
                     object = eval propertyChain.map((e) -> e.string)[0..-2].join()
-                    candidates = (key for key of object)
+                    switch typeof object
+                        when 'boolean', 'number', 'string'
+                            candidates = Object.getOwnPropertyNames object.constructor.prototype 
+                        when 'fucntion', 'object'
+                            candidates = Object.getOwnPropertyNames(object).concat Object.getOwnPropertyNames(Object.getPrototypeOf object)
+                        else # 'undefined'
+                            candidates = []
                 catch err
                     console.log err
                     candidates = []

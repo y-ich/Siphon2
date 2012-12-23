@@ -7,7 +7,7 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CORE_CLASSES, CS_KEYWORDS_COMPLETE, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_COMPLETE, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, cs_keywords, cs_operators, e, functions, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
+  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CS_KEYWORDS_COMPLETE, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_COMPLETE, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, cs_keywords, cs_operators, e, functions, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
 
   COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while'];
 
@@ -37,42 +37,26 @@
     return a.concat([b, 'UTC' + b]);
   }), []));
 
-  CORE_CLASSES = {
-    Array: ['length', 'concat', 'every', 'filter', 'forEach', 'indexOf', 'join', 'lastIndexOf', 'map', 'pop', 'push', 'reduce', 'reduceRight', 'reverse', 'shift', 'slice', 'some', 'sort', 'splice', 'toLocaleString', 'toString', 'unshift'],
-    Boolean: ['toString', 'valueOf'],
-    Date: ['getTimezoneOffset', 'toDateString', 'toGMTString', 'toISOString', 'toJSON', 'toLocaleDateString', 'toLocaleString', 'toLocaleTimeString', 'toString', 'toTimeString', 'toUTCString', 'valueOf'].concat(DATE_PROPERTIES.reduce((function(a, b) {
-      return a.concat(['get' + b, 'set' + b]);
-    }), [])).sort(),
-    Error: [],
-    EvalError: [],
-    Function: [],
-    Global: [],
-    JSON: [],
-    Math: [],
-    Number: [],
-    Object: [],
-    RangeError: [],
-    ReferenceError: [],
-    RegExp: [],
-    String: [],
-    SyntaxError: [],
-    TypeError: [],
-    URIError: []
-  };
-
   js_keywords = COMMON_KEYWORDS.concat(JS_KEYWORDS).sort();
 
   cs_keywords = COMMON_KEYWORDS.concat(COFFEE_KEYWORDS).sort();
 
   CS_KEYWORDS_COMPLETE = {
-    "if": ['else', 'then else'],
-    "for": ['in', 'in when', 'of', 'of when'],
-    "try": ['catch finally', 'catch'],
     "class": ['extends'],
-    "switch": ['when else', 'when', 'when then else', 'when then']
+    "for": ['in', 'in when', 'of', 'of when'],
+    "if": ['else', 'then else'],
+    "switch": ['when else', 'when', 'when then else', 'when then'],
+    "try": ['catch finally', 'catch']
   };
 
-  JS_KEYWORDS_COMPLETE = {};
+  JS_KEYWORDS_COMPLETE = {
+    "do": ['while ( )'],
+    "for": ['( ; ; ) { }', '( in ) { }'],
+    "if": ['( ) { }', '( ) { } else { }'],
+    "switch": ['( ) { case : break; default: }'],
+    "try": ['catch finally', 'catch'],
+    "while": ['( )']
+  };
 
   globalProperties = (function() {
     var _results;
@@ -165,7 +149,7 @@
     };
 
     AutoComplete.prototype.setCandidates_ = function(cursor, globalPropertiesPlusKeywords, keywords_complete) {
-      var candidates, key, object, pos, propertyChain, target, token;
+      var candidates, object, pos, propertyChain, target, token;
       if (/[a-zA-Z_$\.]/.test(this.char)) {
         propertyChain = [];
         pos = cursor;
@@ -185,14 +169,19 @@
             object = eval(propertyChain.map(function(e) {
               return e.string;
             }).slice(0, -1).join());
-            candidates = (function() {
-              var _results;
-              _results = [];
-              for (key in object) {
-                _results.push(key);
-              }
-              return _results;
-            })();
+            switch (typeof object) {
+              case 'boolean':
+              case 'number':
+              case 'string':
+                candidates = Object.getOwnPropertyNames(object.constructor.prototype);
+                break;
+              case 'fucntion':
+              case 'object':
+                candidates = Object.getOwnPropertyNames(object).concat(Object.getOwnPropertyNames(Object.getPrototypeOf(object)));
+                break;
+              default:
+                candidates = [];
+            }
           } catch (err) {
             console.log(err);
             candidates = [];

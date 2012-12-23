@@ -802,7 +802,7 @@
     $('#import').addClass('disabled');
   }
 
-  newTabAndEditor();
+  newTabAndEditor('untitled', 'coffeescript');
 
   restore();
 

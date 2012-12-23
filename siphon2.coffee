@@ -588,7 +588,7 @@ unless isPortrait()
 
 $('#soft-key').css 'display', 'block' if touchDevice
 $('#import').addClass 'disabled' if /iPad|iPhone/.test navigator.userAgent
-newTabAndEditor()
+newTabAndEditor 'untitled', 'coffeescript'
 restore()
 initializeDropbox()
 initializeEventHandlers()
