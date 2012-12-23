@@ -99,23 +99,43 @@ class AutoComplete
         if /[a-zA-Z_$\.]/.test @char
             propertyChain = []
             pos = cursor
-            while (token = @cm.getTokenAt pos).string.charAt(0) is '.'
+            loopFlag = true
+            bracketLevel = [0, 0, 0]
+            while loopFlag
+                token = @cm.getTokenAt pos
                 propertyChain.push token
                 pos = { line: cursor.line, ch: token.start }
-            propertyChain.push token
+                switch token.string.charAt 0
+                    when '.' then null
+                    when ')' then bracketLevel[0] += 1
+                    when '('
+                        bracketLevel[0] -= 1
+                        loopFlag = false if bracketLevel[0] < 0
+                    when '}' then bracketLevel[1] += 1
+                    when '{'
+                        bracketLevel[1] -= 1
+                        loopFlag = false if bracketLevel[1] < 0
+                    when ']' then bracketLevel[2] += 1
+                    when '['
+                        bracketLevel[2] -= 1
+                        loopFlag = false if bracketLevel[2] < 0
+                    else
+                        loopFlag = false if bracketLevel.every (e) -> e == 0
             propertyChain.reverse()
             if propertyChain.length == 1
                 candidates = globalPropertiesPlusKeywords
             else
                 try
-                    object = eval propertyChain.map((e) -> e.string)[0..-2].join()
-                    switch typeof object
-                        when 'boolean', 'number', 'string'
-                            candidates = Object.getOwnPropertyNames object.constructor.prototype 
-                        when 'fucntion', 'object'
-                            candidates = Object.getOwnPropertyNames(object).concat Object.getOwnPropertyNames(Object.getPrototypeOf object)
-                        else # 'undefined'
-                            candidates = []
+                    value = eval propertyChain.map((e) -> e.string)[0..-2].join('')
+                    candidates = switch typeof value
+                        when 'string' then Object.getOwnPropertyNames value.__proto__ # I don't need index propertes.
+                        when 'undefined' then []
+                        else
+                            object = new Object value # wrap value for primitive type.
+                            if object instanceof Array
+                                Object.getOwnPropertyNames(Object.getPrototypeOf object)
+                            else
+                                Object.getOwnPropertyNames(Object.getPrototypeOf object).concat Object.getOwnPropertyNames(object)
                 catch err
                     console.log err
                     candidates = []

@@ -149,39 +149,81 @@
     };
 
     AutoComplete.prototype.setCandidates_ = function(cursor, globalPropertiesPlusKeywords, keywords_complete) {
-      var candidates, object, pos, propertyChain, target, token;
+      var bracketLevel, candidates, loopFlag, object, pos, propertyChain, target, token, value;
       if (/[a-zA-Z_$\.]/.test(this.char)) {
         propertyChain = [];
         pos = cursor;
-        while ((token = this.cm.getTokenAt(pos)).string.charAt(0) === '.') {
+        loopFlag = true;
+        bracketLevel = [0, 0, 0];
+        while (loopFlag) {
+          token = this.cm.getTokenAt(pos);
           propertyChain.push(token);
           pos = {
             line: cursor.line,
             ch: token.start
           };
+          switch (token.string.charAt(0)) {
+            case '.':
+              null;
+              break;
+            case ')':
+              bracketLevel[0] += 1;
+              break;
+            case '(':
+              bracketLevel[0] -= 1;
+              if (bracketLevel[0] < 0) {
+                loopFlag = false;
+              }
+              break;
+            case '}':
+              bracketLevel[1] += 1;
+              break;
+            case '{':
+              bracketLevel[1] -= 1;
+              if (bracketLevel[1] < 0) {
+                loopFlag = false;
+              }
+              break;
+            case ']':
+              bracketLevel[2] += 1;
+              break;
+            case '[':
+              bracketLevel[2] -= 1;
+              if (bracketLevel[2] < 0) {
+                loopFlag = false;
+              }
+              break;
+            default:
+              if (bracketLevel.every(function(e) {
+                return e === 0;
+              })) {
+                loopFlag = false;
+              }
+          }
         }
-        propertyChain.push(token);
         propertyChain.reverse();
         if (propertyChain.length === 1) {
           candidates = globalPropertiesPlusKeywords;
         } else {
           try {
-            object = eval(propertyChain.map(function(e) {
+            value = eval(propertyChain.map(function(e) {
               return e.string;
-            }).slice(0, -1).join());
-            switch (typeof object) {
-              case 'boolean':
-              case 'number':
-              case 'string':
-                candidates = Object.getOwnPropertyNames(object.constructor.prototype);
-                break;
-              case 'fucntion':
-              case 'object':
-                candidates = Object.getOwnPropertyNames(object).concat(Object.getOwnPropertyNames(Object.getPrototypeOf(object)));
-                break;
-              default:
-                candidates = [];
-            }
+            }).slice(0, -1).join(''));
+            candidates = (function() {
+              switch (typeof value) {
+                case 'string':
+                  return Object.getOwnPropertyNames(value.__proto__);
+                case 'undefined':
+                  return [];
+                default:
+                  object = new Object(value);
+                  if (object instanceof Array) {
+                    return Object.getOwnPropertyNames(Object.getPrototypeOf(object));
+                  } else {
+                    return Object.getOwnPropertyNames(Object.getPrototypeOf(object)).concat(Object.getOwnPropertyNames(object));
+                  }
+              }
+            })();
           } catch (err) {
             console.log(err);
             candidates = [];
