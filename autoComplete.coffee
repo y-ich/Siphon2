@@ -120,13 +120,14 @@ class AutoComplete
                         bracketLevel[2] -= 1
                         loopFlag = false if bracketLevel[2] < 0
                     else
-                        loopFlag = false if bracketLevel.every (e) -> e == 0
+                        loopFlag = false if bracketLevel.every (e) -> e <= 0
             propertyChain.reverse()
+            console.log propertyChain
             if propertyChain.length == 1
                 candidates = globalPropertiesPlusKeywords
             else
                 try
-                    value = eval propertyChain.map((e) -> e.string)[0..-2].join('')
+                    value = eval "(#{propertyChain.map((e) -> e.string)[0..-2].join('')})" # you need () for object literal.
                     candidates = switch typeof value
                         when 'string' then Object.getOwnPropertyNames value.__proto__ # I don't need index propertes.
                         when 'undefined' then []
@@ -140,8 +141,7 @@ class AutoComplete
                     console.log err
                     candidates = []
             target = propertyChain[propertyChain.length - 1].string.replace(/^\./, '')
-            @candidates = candidates.filter((e) -> new RegExp('^' + target).test e)
-                                    .map (e) -> e[target.length..]
+            @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
         else if @char is ' '
             token = @cm.getTokenAt { line: cursor.line, ch: cursor.ch - 1 }
             if keywords_complete.hasOwnProperty token.string

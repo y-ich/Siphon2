@@ -195,20 +195,21 @@
               break;
             default:
               if (bracketLevel.every(function(e) {
-                return e === 0;
+                return e <= 0;
               })) {
                 loopFlag = false;
               }
           }
         }
         propertyChain.reverse();
+        console.log(propertyChain);
         if (propertyChain.length === 1) {
           candidates = globalPropertiesPlusKeywords;
         } else {
           try {
-            value = eval(propertyChain.map(function(e) {
+            value = eval("(" + (propertyChain.map(function(e) {
               return e.string;
-            }).slice(0, -1).join(''));
+            }).slice(0, -1).join('')) + ")");
             candidates = (function() {
               switch (typeof value) {
                 case 'string':
