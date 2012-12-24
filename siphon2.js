@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dateString, dropbox, evalCS, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, restore, saveBuffer, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dateString, dropbox, evalCS, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restore, saveBuffer, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -185,26 +185,47 @@
   };
 
   getList = function(path) {
-    var $table;
-    $table = $('#download-modal table');
     spinner.spin(document.body);
     return dropbox.readdir(path, null, function(error, names, stat, stats) {
-      var $tr, e, _i, _len, _results;
       spinner.stop();
-      $table.children().remove();
       if (error) {
         return showError(error);
       } else {
-        _results = [];
-        for (_i = 0, _len = stats.length; _i < _len; _i++) {
-          e = stats[_i];
-          $tr = $("<tr><td>" + e.name + "</td><td>" + (getExtension(e.name)) + "</td><td>" + (dateString(e.modifiedAt)) + "</td></tr>");
-          $tr.data('dropbox-stat', e);
-          _results.push($table.append($tr));
-        }
-        return _results;
+        return makeFileList(stats, config.fileList.order, config.fileList.direction);
       }
     });
+  };
+
+  makeFileList = function(stats, order, direction) {
+    var $table, $tr, e, _i, _len, _results;
+    $table = $('#download-modal table');
+    $table.children().remove();
+    $tr = '<tr>' + ((function() {
+      var _i, _len, _ref, _results;
+      _ref = ['image', 'name', 'kind', 'date'];
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        e = _ref[_i];
+        _results.push("<th" + (order === e ? " class=\"" + direction + "\"" : '') + "><span>" + e + "</span></th>");
+      }
+      return _results;
+    })()).join('') + '</tr>';
+    $table.append($tr);
+    stats = stats.sort(function(a, b) {
+      if (direction === 'ascending') {
+        return a[config.fileList.order] > b[config.fileList.order];
+      } else {
+        return a[config.fileList.order] < b[config.fileList.order];
+      }
+    });
+    _results = [];
+    for (_i = 0, _len = stats.length; _i < _len; _i++) {
+      e = stats[_i];
+      $tr = $("<tr><td><img src=\"img/dropbox-api-icons/16x16/" + e.typeIcon + ".gif\"></td><td>" + e.name + "</td><td>" + (getExtension(e.name)) + "</td><td>" + (dateString(e.modifiedAt)) + "</td></tr>");
+      $tr.data('dropbox-stat', e);
+      _results.push($table.append($tr));
+    }
+    return _results;
   };
 
   uploadFile = function() {
@@ -424,7 +445,11 @@
         sandbox: true,
         currentFolder: '/'
       },
-      autoSaveTime: 10000
+      autoSaveTime: 10000,
+      fileList: {
+        order: 'name',
+        direction: 'ascending'
+      }
     };
     config = JSON.parse((_ref = localStorage['siphon-config']) != null ? _ref : '{}');
     for (key in defaultConfig) {
@@ -788,13 +813,27 @@
       }
       return cm.focus();
     });
-    return $('#next-button').on('click', function() {
+    $('#next-button').on('click', function() {
       var cm, _ref;
       cm = $('#file-tabs > li.active > a').data('editor');
       if ((_ref = cm.siphon.autoComplete) != null) {
         _ref.next();
       }
       return cm.focus();
+    });
+    return $('#download-modal table').on('click', 'tr > th:not(:first)', function() {
+      var $this;
+      $this = $(this);
+      if ($this.hasClass('ascending')) {
+        $this.removeClass('ascending');
+        return $this.addClass('descending');
+      } else if ($this.hasClass('descending')) {
+        $this.removeClass('descending');
+        return $this.addClass('ascending');
+      } else {
+        $this.parent().children().removeClass('descending');
+        return $this.addClass('ascending');
+      }
     });
   };
 

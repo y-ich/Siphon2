@@ -133,19 +133,30 @@ saveBuffer = (cm) ->
         dropbox: cm.siphon['dropbox-stat'] ? null
 
 getList = (path) ->
-    $table = $('#download-modal table')
     spinner.spin document.body
     dropbox.readdir path, null, (error, names, stat, stats) ->
         spinner.stop()
-        $table.children().remove()
         if error
             showError error
         else
-            for e in stats
-                $tr = $("<tr><td>#{e.name}</td><td>#{getExtension e.name}</td><td>#{dateString e.modifiedAt}</td></tr>")
-                $tr.data 'dropbox-stat', e
-                $table.append $tr
+            makeFileList stats, config.fileList.order, config.fileList.direction
 
+makeFileList = (stats, order, direction) ->
+    $table = $('#download-modal table')
+    $table.children().remove()
+    $tr = '<tr>' + ("<th#{if order is e then " class=\"#{direction}\"" else ''}><span>#{e}</span></th>" for e in ['image', 'name', 'kind', 'date']).join('') + '</tr>'
+    $table.append $tr
+            
+    stats = stats.sort (a, b) -> if direction is 'ascending'
+            a[config.fileList.order] > b[config.fileList.order]
+        else
+            a[config.fileList.order] < b[config.fileList.order]
+                    
+    for e in stats
+        $tr = $("<tr><td><img src=\"img/dropbox-api-icons/16x16/#{e.typeIcon}.gif\"></td><td>#{e.name}</td><td>#{getExtension e.name}</td><td>#{dateString e.modifiedAt}</td></tr>")
+        $tr.data 'dropbox-stat', e
+        $table.append $tr
+    
 uploadFile = ->
     $active = $('#file-tabs > li.active > a')
     cm = $active.data('editor')
@@ -310,6 +321,9 @@ restore = ->
             sandbox: true
             currentFolder: '/'
         autoSaveTime: 10000
+        fileList:
+            order: 'name'
+            direction: 'ascending'
     config = JSON.parse localStorage['siphon-config'] ? '{}'
     for key, value of defaultConfig
         config[key] ?= value
@@ -582,6 +596,20 @@ initializeEventHandlers = ->
         cm = $('#file-tabs > li.active > a').data('editor')
         cm.siphon.autoComplete?.next()
         cm.focus()
+        
+    $('#download-modal table'). on 'click', 'tr > th:not(:first)', ->
+        $this = $(this)
+        if $this.hasClass 'ascending'
+            $this.removeClass 'ascending'
+            $this.addClass 'descending'
+        else if $this.hasClass 'descending'
+            $this.removeClass 'descending'
+            $this.addClass 'ascending'
+        else
+            $this.parent().children().removeClass 'descending'
+            $this.addClass 'ascending'
+            
+
         
 #
 # main

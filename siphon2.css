@@ -18,6 +18,18 @@ a.btn:focus {
 .navbar-search {
   padding-right: 20px;
 }
+.table tbody tr th.ascending {
+  background-color: #dff0d8;
+}
+.table tbody tr th.ascending > span:after {
+  content: '^';
+  float: right;
+}
+.table tbody tr th.descending > span:after {
+  content: '^';
+  float: right;
+  -webkit-transform: rotate(-180deg);
+}
 .CodeMirror {
   height: 100%;
 }
