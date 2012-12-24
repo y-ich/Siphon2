@@ -23,6 +23,10 @@ dropbox = null
 # function definitions
 #
 
+dateString = (date) -> date.toDateString().replace(/^.*? /, '') + ' ' + date.toTimeString().replace(/GMT.*$/, '')
+
+getExtension = (path) -> path.replace /^.*\./, ''
+
 ext2mode = (str) ->
     exts =
         c: 'clike'
@@ -135,10 +139,10 @@ getList = (path) ->
         spinner.stop()
         $table.children().remove()
         if error
-            alert error
+            showError error
         else
             for e in stats
-                $tr = $("<tr><td>#{e.name}</td></tr>")
+                $tr = $("<tr><td>#{e.name}</td><td>#{getExtension e.name}</td><td>#{dateString e.modifiedAt}</td></tr>")
                 $tr.data 'dropbox-stat', e
                 $table.append $tr
 
@@ -154,7 +158,7 @@ uploadFile = ->
         filename = prompt "Input file name. (current folder is #{folder}.)", oldname
         return unless filename
         cm.siphon.title = filename
-        mode = ext2mode filename.replace /^.*\./, ''
+        mode = ext2mode getExtension filename
         cm.setOption 'mode', mode
         cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
         cm.setOption 'onGutterClick', foldFunction options.mode         
@@ -173,7 +177,7 @@ uploadFile = ->
 
     compileDeferred = $.Deferred()        
     if config.compile
-        switch path.replace /^.*\./, ''
+        switch getExtension path
             when 'coffee'
                 try
                     compiled = CoffeeScript.compile $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
@@ -312,7 +316,7 @@ restore = ->
 
     for key, value of localStorage when /^siphon-buffer/.test key
         buffer = JSON.parse value
-        cm = newTabAndEditor buffer.title, ext2mode buffer.title.replace /^.*\./, ''
+        cm = newTabAndEditor buffer.title, ext2mode getExtension buffer.title
         cm.setValue buffer.text
         cm.siphon['dropbox-stat'] = buffer.dropbox if buffer.dropbox?
     
@@ -390,7 +394,7 @@ initializeEventHandlers = ->
             cm = $active.data 'editor'
             if cm.getValue() is '' and $active.children('span').text() is 'untitled'
                 $active.children('span').text filename
-                mode = ext2mode filename.replace /^.*\./, ''
+                mode = ext2mode getExtension filename
                 cm.setOption 'mode', mode
                 cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
                 cm.setOption 'onGutterClick', foldFunction mode     
@@ -468,7 +472,7 @@ initializeEventHandlers = ->
                 else
                     $active = $('#file-tabs > li.active > a')
                     cm = $active.data 'editor'
-                    extension = stat.name.replace /^.*\./, ''
+                    extension = getExtenstion stat.name
                     if cm.getValue() is '' and $active.children('span').text() is 'untitled'
                         $active.children('span').text stat.name
                         cm.setOption 'mode', ext2mode extension

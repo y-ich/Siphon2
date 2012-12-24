@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dropbox, evalCS, ext2mode, fireKeyEvent, foldFunction, footerHeight, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, restore, saveBuffer, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dateString, dropbox, evalCS, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, newCodeMirror, newTabAndEditor, restore, saveBuffer, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -30,6 +30,14 @@
   lessParser = new less.Parser();
 
   dropbox = null;
+
+  dateString = function(date) {
+    return date.toDateString().replace(/^.*? /, '') + ' ' + date.toTimeString().replace(/GMT.*$/, '');
+  };
+
+  getExtension = function(path) {
+    return path.replace(/^.*\./, '');
+  };
 
   ext2mode = function(str) {
     var exts, _ref;
@@ -185,12 +193,12 @@
       spinner.stop();
       $table.children().remove();
       if (error) {
-        return alert(error);
+        return showError(error);
       } else {
         _results = [];
         for (_i = 0, _len = stats.length; _i < _len; _i++) {
           e = stats[_i];
-          $tr = $("<tr><td>" + e.name + "</td></tr>");
+          $tr = $("<tr><td>" + e.name + "</td><td>" + (getExtension(e.name)) + "</td><td>" + (dateString(e.modifiedAt)) + "</td></tr>");
           $tr.data('dropbox-stat', e);
           _results.push($table.append($tr));
         }
@@ -214,7 +222,7 @@
         return;
       }
       cm.siphon.title = filename;
-      mode = ext2mode(filename.replace(/^.*\./, ''));
+      mode = ext2mode(getExtension(filename));
       cm.setOption('mode', mode);
       cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
       cm.setOption('onGutterClick', foldFunction(options.mode));
@@ -236,7 +244,7 @@
     });
     compileDeferred = $.Deferred();
     if (config.compile) {
-      switch (path.replace(/^.*\./, '')) {
+      switch (getExtension(path)) {
         case 'coffee':
           try {
             compiled = CoffeeScript.compile($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')));
@@ -431,7 +439,7 @@
         continue;
       }
       buffer = JSON.parse(value);
-      cm = newTabAndEditor(buffer.title, ext2mode(buffer.title.replace(/^.*\./, '')));
+      cm = newTabAndEditor(buffer.title, ext2mode(getExtension(buffer.title)));
       cm.setValue(buffer.text);
       if (buffer.dropbox != null) {
         cm.siphon['dropbox-stat'] = buffer.dropbox;
@@ -539,7 +547,7 @@
         cm = $active.data('editor');
         if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
           $active.children('span').text(filename);
-          mode = ext2mode(filename.replace(/^.*\./, ''));
+          mode = ext2mode(getExtension(filename));
           cm.setOption('mode', mode);
           cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
           cm.setOption('onGutterClick', foldFunction(mode));
@@ -631,7 +639,7 @@
           } else {
             $active = $('#file-tabs > li.active > a');
             cm = $active.data('editor');
-            extension = stat.name.replace(/^.*\./, '');
+            extension = getExtenstion(stat.name);
             if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
               $active.children('span').text(stat.name);
               cm.setOption('mode', ext2mode(extension));
