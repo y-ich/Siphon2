@@ -69,7 +69,6 @@ csGetTokenAt = (editor, pos) ->
         token.string = '.'
         token.end = pos.ch
     else if /^\.[\w$_]+$/.test token.string
-        console.log token.className
         token.className = "property"
         token.start += 1
         token.string = token.string.slice 1
@@ -129,37 +128,43 @@ class AutoComplete
     setCandidates_: (cursor) ->
         propertyChain = []
         pos = cursor
-        loopFlag = true
-        bracketLevel = [0, 0, 0]
-        for i in [0..10] # infinite loop. 10 is for safety.
+        bracketStack = []
+        breakFlag = false
+        loop
             token = @getTokenAt pos
-            propertyChain.push token
-            pos = { line: cursor.line, ch: token.start } # prepare next loop before continue
-            if token.className is 'variable'
-                break
-            else if token.className is 'property'
-                continue
-            else if token.string is ')'
-                bracketLevel[0] += 1
-            else if token.string is '('
-                bracketLevel[0] -= 1
-                break if bracketLevel[0] < 0
-            else if token.string is '}'
-                bracketLevel[1] += 1
-            else if token.string is '{'
-                bracketLevel[1] -= 1
-                break if bracketLevel[1] < 0
-            else if token.string is ']'
-                bracketLevel[2] += 1
-            else if token.string is '['
-                bracketLevel[2] -= 1
-                break if bracketLevel[2] < 0
-            else if token.start == 0
-                break
-        if i == 10 then console.log 'failed to get property chain.' 
+            if token.className is 'property'
+                propertyChain.push token
+            else if token.className is 'variable' and bracketStack.length == 0
+                propertyChain.push token
+                breakFlag = true
+            else
+                switch token.string
+                    when ')', '}', ']'
+                        propertyChain.push token
+                        bracketStack.push token.string
+                    when '('
+                        if bracketStack.pop() is ')'
+                            propertyChain.push token
+                        else
+                            breakFlag = true
+                    when '{'
+                        if bracketStack.pop() is '}'
+                            propertyChain.push token
+                        else
+                            breakFlag = true
+                    when '['
+                        if bracketStack.pop() is ']'
+                            propertyChain.push token
+                        else
+                            breakFlag = true
+                    else
+                        propertyChain.push token                        
+            pos =
+                line: cursor.line
+                ch: token.start
+            break if breakFlag or pos.ch == 0
         propertyChain.reverse()
 
-        console.log propertyChain
         if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string # keyword assist
             if @keywordsAssist.hasOwnProperty propertyChain[0].string
                 @candidates = @keywordsAssist[propertyChain[0].string]
@@ -183,7 +188,8 @@ class AutoComplete
                 candidates.sort()
             catch err
                 console.log err
-        target = if /^\s*$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
+                return
+        target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
         @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
-
+        console.log @candidates
 window.AutoComplete = AutoComplete

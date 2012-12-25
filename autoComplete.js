@@ -102,7 +102,6 @@
       token.string = '.';
       token.end = pos.ch;
     } else if (/^\.[\w$_]+$/.test(token.string)) {
-      console.log(token.className);
       token.className = "property";
       token.start += 1;
       token.string = token.string.slice(1);
@@ -186,52 +185,60 @@
     };
 
     AutoComplete.prototype.setCandidates_ = function(cursor) {
-      var bracketLevel, candidates, i, loopFlag, object, pos, propertyChain, target, token, value, _j;
+      var bracketStack, breakFlag, candidates, object, pos, propertyChain, target, token, value;
       propertyChain = [];
       pos = cursor;
-      loopFlag = true;
-      bracketLevel = [0, 0, 0];
-      for (i = _j = 0; _j <= 10; i = ++_j) {
+      bracketStack = [];
+      breakFlag = false;
+      while (true) {
         token = this.getTokenAt(pos);
-        propertyChain.push(token);
+        if (token.className === 'property') {
+          propertyChain.push(token);
+        } else if (token.className === 'variable' && bracketStack.length === 0) {
+          propertyChain.push(token);
+          breakFlag = true;
+        } else {
+          switch (token.string) {
+            case ')':
+            case '}':
+            case ']':
+              propertyChain.push(token);
+              bracketStack.push(token.string);
+              break;
+            case '(':
+              if (bracketStack.pop() === ')') {
+                propertyChain.push(token);
+              } else {
+                breakFlag = true;
+              }
+              break;
+            case '{':
+              if (bracketStack.pop() === '}') {
+                propertyChain.push(token);
+              } else {
+                breakFlag = true;
+              }
+              break;
+            case '[':
+              if (bracketStack.pop() === ']') {
+                propertyChain.push(token);
+              } else {
+                breakFlag = true;
+              }
+              break;
+            default:
+              propertyChain.push(token);
+          }
+        }
         pos = {
           line: cursor.line,
           ch: token.start
         };
-        if (token.className === 'variable') {
-          break;
-        } else if (token.className === 'property') {
-          continue;
-        } else if (token.string === ')') {
-          bracketLevel[0] += 1;
-        } else if (token.string === '(') {
-          bracketLevel[0] -= 1;
-          if (bracketLevel[0] < 0) {
-            break;
-          }
-        } else if (token.string === '}') {
-          bracketLevel[1] += 1;
-        } else if (token.string === '{') {
-          bracketLevel[1] -= 1;
-          if (bracketLevel[1] < 0) {
-            break;
-          }
-        } else if (token.string === ']') {
-          bracketLevel[2] += 1;
-        } else if (token.string === '[') {
-          bracketLevel[2] -= 1;
-          if (bracketLevel[2] < 0) {
-            break;
-          }
-        } else if (token.start === 0) {
+        if (breakFlag || pos.ch === 0) {
           break;
         }
       }
-      if (i === 10) {
-        console.log('failed to get property chain.');
-      }
       propertyChain.reverse();
-      console.log(propertyChain);
       if (propertyChain.length === 2 && /^\s+$/.test(propertyChain[1].string)) {
         if (this.keywordsAssist.hasOwnProperty(propertyChain[0].string)) {
           this.candidates = this.keywordsAssist[propertyChain[0].string];
@@ -264,14 +271,16 @@
           candidates.sort();
         } catch (err) {
           console.log(err);
+          return;
         }
       }
-      target = /^\s*$/.test(propertyChain[propertyChain.length - 1].string) ? '' : propertyChain[propertyChain.length - 1].string;
-      return this.candidates = candidates.filter(function(e) {
+      target = /^(\s*|\.)$/.test(propertyChain[propertyChain.length - 1].string) ? '' : propertyChain[propertyChain.length - 1].string;
+      this.candidates = candidates.filter(function(e) {
         return new RegExp('^' + target).test(e);
       }).map(function(e) {
         return e.slice(target.length);
       });
+      return console.log(this.candidates);
     };
 
     return AutoComplete;
