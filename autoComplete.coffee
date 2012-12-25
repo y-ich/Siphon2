@@ -191,5 +191,5 @@ class AutoComplete
                 return
         target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
         @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
-        console.log @candidates
+
 window.AutoComplete = AutoComplete

@@ -275,12 +275,11 @@
         }
       }
       target = /^(\s*|\.)$/.test(propertyChain[propertyChain.length - 1].string) ? '' : propertyChain[propertyChain.length - 1].string;
-      this.candidates = candidates.filter(function(e) {
+      return this.candidates = candidates.filter(function(e) {
         return new RegExp('^' + target).test(e);
       }).map(function(e) {
         return e.slice(target.length);
       });
-      return console.log(this.candidates);
     };
 
     return AutoComplete;
