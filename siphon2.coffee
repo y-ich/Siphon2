@@ -25,7 +25,15 @@ dropbox = null
 
 dateString = (date) -> date.toDateString().replace(/^.*? /, '') + ' ' + date.toTimeString().replace(/GMT.*$/, '')
 
-getExtension = (path) -> path.replace /^.*\./, ''
+getExtension = (path) -> if /\./.test path then path.replace /^.*\./, '' else ''
+
+compareString = (str1, str2) ->
+    if str1 > str2
+        1
+    else if str1 < str2
+        -1
+    else
+        0
 
 ext2mode = (str) ->
     exts =
@@ -143,15 +151,25 @@ getList = (path) ->
 
 makeFileList = (stats, order, direction) ->
     $table = $('#download-modal table')
+    if stats?
+        $table.data 'dropbox', stats
+    else
+        stats = $table.data 'dropbox'
     $table.children().remove()
     $tr = '<tr>' + ("<th#{if order is e then " class=\"#{direction}\"" else ''}><span>#{e}</span></th>" for e in ['image', 'name', 'kind', 'date']).join('') + '</tr>'
     $table.append $tr
             
-    stats = stats.sort (a, b) -> if direction is 'ascending'
-            a[config.fileList.order] > b[config.fileList.order]
-        else
-            a[config.fileList.order] < b[config.fileList.order]
-                    
+    stats = stats.sort (a, b) ->
+        result = switch order
+            when 'name'
+                compareString a.name, b.name
+            when 'kind'
+                compareString getExtension(a.name), getExtension(b.name)            
+            when 'date'
+                a.modifiedAt.getTime() - b.modifiedAt.getTime()
+
+        result * if direction is 'ascending' then 1 else -1
+
     for e in stats
         $tr = $("<tr><td><img src=\"img/dropbox-api-icons/16x16/#{e.typeIcon}.gif\"></td><td>#{e.name}</td><td>#{getExtension e.name}</td><td>#{dateString e.modifiedAt}</td></tr>")
         $tr.data 'dropbox-stat', e
@@ -456,6 +474,8 @@ initializeEventHandlers = ->
     $('#download-modal table').on 'click', 'tr', ->
         $this =$(this)
         stat = $this.data('dropbox-stat')
+        if not stat?
+            return
         if stat.isFile
             $('#download-modal table tr').removeClass 'info'
             $this.addClass 'info'
@@ -600,15 +620,13 @@ initializeEventHandlers = ->
     $('#download-modal table'). on 'click', 'tr > th:not(:first)', ->
         $this = $(this)
         if $this.hasClass 'ascending'
-            $this.removeClass 'ascending'
-            $this.addClass 'descending'
+            config.fileList.direction = 'descending'
         else if $this.hasClass 'descending'
-            $this.removeClass 'descending'
-            $this.addClass 'ascending'
+            config.fileList.direction = 'ascending'
         else
-            $this.parent().children().removeClass 'descending'
-            $this.addClass 'ascending'
-            
+            config.fileList.order = $this.children('span').text()
+            config.fileList.direction = 'ascending'
+        makeFileList null, config.fileList.order, config.fileList.direction
 
         
 #

@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, config, dateString, dropbox, evalCS, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restore, saveBuffer, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, compareString, config, dateString, dropbox, evalCS, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restore, saveBuffer, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -36,7 +36,21 @@
   };
 
   getExtension = function(path) {
-    return path.replace(/^.*\./, '');
+    if (/\./.test(path)) {
+      return path.replace(/^.*\./, '');
+    } else {
+      return '';
+    }
+  };
+
+  compareString = function(str1, str2) {
+    if (str1 > str2) {
+      return 1;
+    } else if (str1 < str2) {
+      return -1;
+    } else {
+      return 0;
+    }
   };
 
   ext2mode = function(str) {
@@ -199,6 +213,11 @@
   makeFileList = function(stats, order, direction) {
     var $table, $tr, e, _i, _len, _results;
     $table = $('#download-modal table');
+    if (stats != null) {
+      $table.data('dropbox', stats);
+    } else {
+      stats = $table.data('dropbox');
+    }
     $table.children().remove();
     $tr = '<tr>' + ((function() {
       var _i, _len, _ref, _results;
@@ -212,11 +231,18 @@
     })()).join('') + '</tr>';
     $table.append($tr);
     stats = stats.sort(function(a, b) {
-      if (direction === 'ascending') {
-        return a[config.fileList.order] > b[config.fileList.order];
-      } else {
-        return a[config.fileList.order] < b[config.fileList.order];
-      }
+      var result;
+      result = (function() {
+        switch (order) {
+          case 'name':
+            return compareString(a.name, b.name);
+          case 'kind':
+            return compareString(getExtension(a.name), getExtension(b.name));
+          case 'date':
+            return a.modifiedAt.getTime() - b.modifiedAt.getTime();
+        }
+      })();
+      return result * (direction === 'ascending' ? 1 : -1);
     });
     _results = [];
     for (_i = 0, _len = stats.length; _i < _len; _i++) {
@@ -630,6 +656,9 @@
       var $this, stat;
       $this = $(this);
       stat = $this.data('dropbox-stat');
+      if (!(stat != null)) {
+        return;
+      }
       if (stat.isFile) {
         $('#download-modal table tr').removeClass('info');
         return $this.addClass('info');
@@ -825,15 +854,14 @@
       var $this;
       $this = $(this);
       if ($this.hasClass('ascending')) {
-        $this.removeClass('ascending');
-        return $this.addClass('descending');
+        config.fileList.direction = 'descending';
       } else if ($this.hasClass('descending')) {
-        $this.removeClass('descending');
-        return $this.addClass('ascending');
+        config.fileList.direction = 'ascending';
       } else {
-        $this.parent().children().removeClass('descending');
-        return $this.addClass('ascending');
+        config.fileList.order = $this.children('span').text();
+        config.fileList.direction = 'ascending';
       }
+      return makeFileList(null, config.fileList.order, config.fileList.direction);
     });
   };
 
