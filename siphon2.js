@@ -127,8 +127,7 @@
 
   newCodeMirror.onChange = function(cm, change) {
     if (!(cm.siphon.autoComplete != null) && change.text.length === 1 && change.text[0].length === 1) {
-      cm.siphon.autoComplete = new AutoComplete(cm, change.text[change.text.length - 1]);
-      cm.siphon.autoComplete.complete(cm);
+      cm.siphon.autoComplete = new AutoComplete(cm);
     }
     if (cm.siphon.timer != null) {
       clearTimeout(cm.siphon.timer);

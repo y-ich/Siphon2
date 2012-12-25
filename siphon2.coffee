@@ -92,8 +92,9 @@ newCodeMirror.onBlur = ->
 
 newCodeMirror.onChange = (cm, change) ->
     if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
-        cm.siphon.autoComplete = new AutoComplete cm, change.text[change.text.length - 1]
-        cm.siphon.autoComplete.complete cm
+        # I regard change.text[0].length == 1 as key type, change.text[0].length == 0 as delete, change.text[0].length > 1 as paste.
+        # I don't know the case change.text.length > 1
+        cm.siphon.autoComplete = new AutoComplete cm
 
     # auto save
     clearTimeout cm.siphon.timer if cm.siphon.timer?

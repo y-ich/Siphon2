@@ -7,7 +7,7 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CS_KEYWORDS_COMPLETE, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_COMPLETE, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, cs_keywords, cs_operators, e, functions, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
+  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CS_KEYWORDS_COMPLETE, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_COMPLETE, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, csGetTokenAt, cs_keywords, cs_operators, e, functions, getCharAt, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
 
   COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while'];
 
@@ -94,35 +94,72 @@
     }
   }
 
+  csGetTokenAt = function(editor, pos) {
+    var nextToken, token;
+    token = editor.getTokenAt(pos);
+    if (token.string.charAt(0) === '.' && token.start === pos.ch - 1) {
+      token.className = null;
+      token.string = '.';
+      token.end = pos.ch;
+    } else if (/^\.[\w$_]+$/.test(token.string)) {
+      console.log(token.className);
+      token.className = "property";
+      token.start += 1;
+      token.string = token.string.slice(1);
+    } else if (/^\.\s+$/.test(token.string)) {
+      token.className = null;
+      token.start += 1;
+      token.string = token.string.slice(1);
+    } else if (token.className === 'variable') {
+      nextToken = editor.getTokenAt({
+        line: pos.line,
+        ch: token.start
+      });
+      if (nextToken.string.charAt(0) === '.') {
+        token.className = 'property';
+      }
+    }
+    return token;
+  };
+
+  getCharAt = function(cm, pos) {
+    return cm.getLine(pos.line).charAt(pos.ch);
+  };
+
   AutoComplete = (function() {
 
-    function AutoComplete(cm, text) {
-      this.cm = cm;
-      this.char = text.charAt(text.length - 1);
-    }
-
-    AutoComplete.prototype.complete = function() {
+    function AutoComplete(cm) {
       var cursor;
+      this.cm = cm;
+      switch (this.cm.getOption('mode')) {
+        case 'coffeescript':
+          this.globalPropertiesPlusKeywords = globalPropertiesPlusCSKeywords;
+          this.keywordsComplete = CS_KEYWORDS_COMPLETE;
+          this.getTokenAt = function(pos) {
+            return csGetTokenAt(this.cm, pos);
+          };
+          break;
+        case 'javascript':
+          this.globalPropertiesPlusKeywords = globalPropertiesPlusJSKeywords;
+          this.keywordsComplete = JS_KEYWORDS_COMPLETE;
+          this.getTokenAt = function(pos) {
+            return this.cm.getTokenAt(pos);
+          };
+      }
       if (this.candidates != null) {
         return;
       }
       this.candidates = [];
       cursor = this.cm.getCursor();
-      switch (this.cm.getOption('mode')) {
-        case 'coffeescript':
-          this.setCandidates_(cursor, globalPropertiesPlusCSKeywords, CS_KEYWORDS_COMPLETE);
-          break;
-        case 'javascript':
-          this.setCandidates_(cursor, globalPropertiesPlusJSKeywords, JS_KEYWORDS_COMPLETE);
-      }
+      this.setCandidates_(cursor);
       if (this.candidates.length > 0) {
         this.index = 0;
         this.cm.replaceRange(this.candidates[this.index], cursor);
         this.start = cursor;
         this.end = this.cm.getCursor();
-        return this.cm.setSelection(this.start, this.end);
+        this.cm.setSelection(this.start, this.end);
       }
-    };
+    }
 
     AutoComplete.prototype.previous = function() {
       return this.next_(-1);
@@ -148,104 +185,90 @@
       }
     };
 
-    AutoComplete.prototype.setCandidates_ = function(cursor, globalPropertiesPlusKeywords, keywords_complete) {
-      var bracketLevel, candidates, loopFlag, object, pos, propertyChain, target, token, value;
-      if (/[a-zA-Z_$\.]/.test(this.char)) {
-        propertyChain = [];
-        pos = cursor;
-        loopFlag = true;
-        bracketLevel = [0, 0, 0];
-        while (loopFlag) {
-          token = this.cm.getTokenAt(pos);
-          propertyChain.push(token);
-          pos = {
-            line: cursor.line,
-            ch: token.start
-          };
-          switch (token.string.charAt(0)) {
-            case '.':
-            case ' ':
-              null;
-              break;
-            case ')':
-              bracketLevel[0] += 1;
-              break;
-            case '(':
-              bracketLevel[0] -= 1;
-              if (bracketLevel[0] < 0) {
-                loopFlag = false;
-              }
-              break;
-            case '}':
-              bracketLevel[1] += 1;
-              break;
-            case '{':
-              bracketLevel[1] -= 1;
-              if (bracketLevel[1] < 0) {
-                loopFlag = false;
-              }
-              break;
-            case ']':
-              bracketLevel[2] += 1;
-              break;
-            case '[':
-              bracketLevel[2] -= 1;
-              if (bracketLevel[2] < 0) {
-                loopFlag = false;
-              }
-              break;
-            default:
-              if (bracketLevel.every(function(e) {
-                return e <= 0;
-              }) && !/\.\s*/.test(this.cm.getTokenAt(pos).string)) {
-                loopFlag = false;
-              }
-          }
-        }
-        propertyChain.reverse();
-        console.log(propertyChain);
-        if (propertyChain.length === 1) {
-          candidates = globalPropertiesPlusKeywords;
-        } else {
-          try {
-            value = eval("(" + (propertyChain.map(function(e) {
-              return e.string;
-            }).slice(0, -1).join('')) + ")");
-            candidates = (function() {
-              switch (typeof value) {
-                case 'string':
-                  return Object.getOwnPropertyNames(value.__proto__);
-                case 'undefined':
-                  return [];
-                default:
-                  object = new Object(value);
-                  if (object instanceof Array) {
-                    return Object.getOwnPropertyNames(Object.getPrototypeOf(object));
-                  } else {
-                    return Object.getOwnPropertyNames(Object.getPrototypeOf(object)).concat(Object.getOwnPropertyNames(object));
-                  }
-              }
-            })();
-          } catch (err) {
-            console.log(err);
-            candidates = [];
-          }
-        }
-        target = propertyChain[propertyChain.length - 1].string.replace(/^\./, '');
-        return this.candidates = candidates.filter(function(e) {
-          return new RegExp('^' + target).test(e);
-        }).map(function(e) {
-          return e.slice(target.length);
-        });
-      } else if (this.char === ' ') {
-        token = this.cm.getTokenAt({
+    AutoComplete.prototype.setCandidates_ = function(cursor) {
+      var bracketLevel, candidates, i, loopFlag, object, pos, propertyChain, target, token, value, _j;
+      propertyChain = [];
+      pos = cursor;
+      loopFlag = true;
+      bracketLevel = [0, 0, 0];
+      for (i = _j = 0; _j <= 10; i = ++_j) {
+        token = this.getTokenAt(pos);
+        propertyChain.push(token);
+        pos = {
           line: cursor.line,
-          ch: cursor.ch - 1
-        });
-        if (keywords_complete.hasOwnProperty(token.string)) {
-          return this.candidates = keywords_complete[token.string];
+          ch: token.start
+        };
+        if (token.className === 'variable') {
+          break;
+        } else if (token.className === 'property') {
+          continue;
+        } else if (token.string === ')') {
+          bracketLevel[0] += 1;
+        } else if (token.string === '(') {
+          bracketLevel[0] -= 1;
+          if (bracketLevel[0] < 0) {
+            break;
+          }
+        } else if (token.string === '}') {
+          bracketLevel[1] += 1;
+        } else if (token.string === '{') {
+          bracketLevel[1] -= 1;
+          if (bracketLevel[1] < 0) {
+            break;
+          }
+        } else if (token.string === ']') {
+          bracketLevel[2] += 1;
+        } else if (token.string === '[') {
+          bracketLevel[2] -= 1;
+          if (bracketLevel[2] < 0) {
+            break;
+          }
         }
       }
+      if (i === 10) {
+        console.log('failed to get property chain.');
+      }
+      propertyChain.reverse();
+      if (propertyChain.length === 2 && /^\s+$/.test(propertyChain[1].string)) {
+        if (this.keywordsComplete.hasOwnProperty(propertyChain[0].string)) {
+          this.candidates = this.keywordsComplete[propertyChain[0].string];
+        }
+        return;
+      } else if (propertyChain.length > 1 && /^\s+$/.test(propertyChain[propertyChain.length - 1].string) && propertyChain[propertyChain.length - 2].className === 'property') {
+        return;
+      } else if (propertyChain.length === 1) {
+        candidates = /^\s*$/.test(propertyChain[0].string) ? [] : this.globalPropertiesPlusKeywords;
+      } else {
+        try {
+          value = eval("(" + (propertyChain.map(function(e) {
+            return e.string;
+          }).join('').replace(/\..*?$/, '')) + ")");
+          candidates = (function() {
+            switch (typeof value) {
+              case 'string':
+                return Object.getOwnPropertyNames(value.__proto__);
+              case 'undefined':
+                return [];
+              default:
+                object = new Object(value);
+                if (object instanceof Array) {
+                  return Object.getOwnPropertyNames(Object.getPrototypeOf(object));
+                } else {
+                  return Object.getOwnPropertyNames(Object.getPrototypeOf(object)).concat(Object.getOwnPropertyNames(object));
+                }
+            }
+          })();
+          candidates.sort();
+        } catch (err) {
+          console.log(err);
+        }
+      }
+      target = /^\s*$/.test(propertyChain[propertyChain.length - 1].string) ? '' : propertyChain[propertyChain.length - 1].string;
+      return this.candidates = candidates.filter(function(e) {
+        return new RegExp('^' + target).test(e);
+      }).map(function(e) {
+        return e.slice(target.length);
+      });
     };
 
     return AutoComplete;

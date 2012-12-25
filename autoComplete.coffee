@@ -58,19 +58,50 @@ for e in globalProperties.sort()
     else if not /^[A-Z]/.test e
         variables.push e
 
-class AutoComplete
-    constructor: (@cm, text) -> @char = text.charAt text.length - 1
+# This getToken, it is for coffeescript, imitates the behavior of
+# getTokenAt method in javascript.js, that is, returning "property"
+# type and treat "." as indepenent token.
+csGetTokenAt = (editor, pos) ->
+    token = editor.getTokenAt pos
+    
+    if token.string.charAt(0) is '.' and token.start == pos.ch - 1
+        token.className = null
+        token.string = '.'
+        token.end = pos.ch
+    else if /^\.[\w$_]+$/.test token.string
+        console.log token.className
+        token.className = "property"
+        token.start += 1
+        token.string = token.string.slice 1
+    else if /^\.\s+$/.test token.string
+        token.className = null
+        token.start += 1
+        token.string = token.string.slice 1
+    else if token.className is 'variable'
+        nextToken = editor.getTokenAt { line: pos.line, ch: token.start }
+        if nextToken.string.charAt(0) is '.'
+            token.className = 'property'
+    token
 
-    complete: ->
+getCharAt = (cm, pos) -> cm.getLine(pos.line).charAt pos.ch
+
+class AutoComplete
+    constructor: (@cm) ->
+        switch @cm.getOption 'mode' 
+            when 'coffeescript'
+                @globalPropertiesPlusKeywords = globalPropertiesPlusCSKeywords
+                @keywordsComplete = CS_KEYWORDS_COMPLETE
+                @getTokenAt = (pos) -> csGetTokenAt @cm, pos
+            when 'javascript'
+                @globalPropertiesPlusKeywords = globalPropertiesPlusJSKeywords
+                @keywordsComplete = JS_KEYWORDS_COMPLETE
+                @getTokenAt = (pos) -> @cm.getTokenAt pos
+        
         return if @candidates?
         @candidates = []
         cursor = @cm.getCursor()
 
-        switch @cm.getOption 'mode'
-            when 'coffeescript'
-                @setCandidates_ cursor, globalPropertiesPlusCSKeywords, CS_KEYWORDS_COMPLETE
-            when 'javascript'
-                @setCandidates_ cursor, globalPropertiesPlusJSKeywords, JS_KEYWORDS_COMPLETE
+        @setCandidates_ cursor
 
         if @candidates.length > 0
             @index = 0
@@ -95,57 +126,61 @@ class AutoComplete
             @end = @cm.getCursor()
             @cm.setSelection @start, @end
 
-    setCandidates_: (cursor, globalPropertiesPlusKeywords, keywords_complete) ->
-        if /[a-zA-Z_$\.]/.test @char
-            propertyChain = []
-            pos = cursor
-            loopFlag = true
-            bracketLevel = [0, 0, 0]
-            while loopFlag
-                token = @cm.getTokenAt pos
-                propertyChain.push token
-                pos = { line: cursor.line, ch: token.start }
-                switch token.string.charAt 0
-                    when '.', ' ' then null
-                    when ')' then bracketLevel[0] += 1
-                    when '('
-                        bracketLevel[0] -= 1
-                        loopFlag = false if bracketLevel[0] < 0
-                    when '}' then bracketLevel[1] += 1
-                    when '{'
-                        bracketLevel[1] -= 1
-                        loopFlag = false if bracketLevel[1] < 0
-                    when ']' then bracketLevel[2] += 1
-                    when '['
-                        bracketLevel[2] -= 1
-                        loopFlag = false if bracketLevel[2] < 0
-                    else
-                        loopFlag = false if bracketLevel.every((e) -> e <= 0) and not /\.\s*/.test @cm.getTokenAt(pos).string # if next token is not . operator.
+    setCandidates_: (cursor) ->
+        propertyChain = []
+        pos = cursor
+        loopFlag = true
+        bracketLevel = [0, 0, 0]
+        for i in [0..10] # infinite loop. 10 is for safety.
+            token = @getTokenAt pos
+            propertyChain.push token
+            pos = { line: cursor.line, ch: token.start } # prepare next loop before continue
+            if token.className is 'variable'
+                break
+            else if token.className is 'property'
+                continue
+            else if token.string is ')'
+                bracketLevel[0] += 1
+            else if token.string is '('
+                bracketLevel[0] -= 1
+                break if bracketLevel[0] < 0
+            else if token.string is '}'
+                bracketLevel[1] += 1
+            else if token.string is '{'
+                bracketLevel[1] -= 1
+                break if bracketLevel[1] < 0
+            else if token.string is ']'
+                bracketLevel[2] += 1
+            else if token.string is '['
+                bracketLevel[2] -= 1
+                break if bracketLevel[2] < 0
+        if i == 10 then console.log 'failed to get property chain.' 
+        propertyChain.reverse()
 
-            propertyChain.reverse()
-            console.log propertyChain
-            if propertyChain.length == 1
-                candidates = globalPropertiesPlusKeywords
-            else
-                try
-                    value = eval "(#{propertyChain.map((e) -> e.string)[0..-2].join('')})" # you need () for object literal.
-                    candidates = switch typeof value
-                        when 'string' then Object.getOwnPropertyNames value.__proto__ # I don't need index propertes.
-                        when 'undefined' then []
+        if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string # keyword assist
+            if @keywordsComplete.hasOwnProperty propertyChain[0].string
+                @candidates = @keywordsComplete[propertyChain[0].string]
+            return
+        else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and propertyChain[propertyChain.length - 2].className is 'property'
+            return
+        else if propertyChain.length == 1
+            candidates = if /^\s*$/.test propertyChain[0].string then [] else @globalPropertiesPlusKeywords 
+        else
+            try
+                value = eval "(#{propertyChain.map((e) -> e.string).join('').replace /\..*?$/, ''})" # you need () for object literal.
+                candidates = switch typeof value
+                    when 'string' then Object.getOwnPropertyNames value.__proto__ # I don't need index propertes.
+                    when 'undefined' then []
+                    else
+                        object = new Object value # wrap value for primitive type.
+                        if object instanceof Array
+                            Object.getOwnPropertyNames(Object.getPrototypeOf object)
                         else
-                            object = new Object value # wrap value for primitive type.
-                            if object instanceof Array
-                                Object.getOwnPropertyNames(Object.getPrototypeOf object)
-                            else
-                                Object.getOwnPropertyNames(Object.getPrototypeOf object).concat Object.getOwnPropertyNames(object)
-                catch err
-                    console.log err
-                    candidates = []
-            target = propertyChain[propertyChain.length - 1].string.replace(/^\./, '')
-            @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
-        else if @char is ' '
-            token = @cm.getTokenAt { line: cursor.line, ch: cursor.ch - 1 }
-            if keywords_complete.hasOwnProperty token.string
-                @candidates = keywords_complete[token.string]
-        
+                            Object.getOwnPropertyNames(Object.getPrototypeOf object).concat Object.getOwnPropertyNames(object)
+                candidates.sort()
+            catch err
+                console.log err
+        target = if /^\s*$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
+        @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
+
 window.AutoComplete = AutoComplete
