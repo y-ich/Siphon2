@@ -7,7 +7,7 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CS_KEYWORDS_COMPLETE, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_COMPLETE, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, csGetTokenAt, cs_keywords, cs_operators, e, functions, getCharAt, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
+  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, csGetTokenAt, cs_keywords, cs_operators, e, functions, getCharAt, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
 
   COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while'];
 
@@ -41,7 +41,7 @@
 
   cs_keywords = COMMON_KEYWORDS.concat(COFFEE_KEYWORDS).sort();
 
-  CS_KEYWORDS_COMPLETE = {
+  CS_KEYWORDS_ASSIST = {
     "class": ['extends'],
     "for": ['in', 'in when', 'of', 'of when'],
     "if": ['else', 'then else'],
@@ -49,7 +49,7 @@
     "try": ['catch finally', 'catch']
   };
 
-  JS_KEYWORDS_COMPLETE = {
+  JS_KEYWORDS_ASSIST = {
     "do": ['while ( )'],
     "for": ['( ; ; ) { }', '( in ) { }'],
     "if": ['( ) { }', '( ) { } else { }'],
@@ -134,14 +134,14 @@
       switch (this.cm.getOption('mode')) {
         case 'coffeescript':
           this.globalPropertiesPlusKeywords = globalPropertiesPlusCSKeywords;
-          this.keywordsComplete = CS_KEYWORDS_COMPLETE;
+          this.keywordsAssist = CS_KEYWORDS_ASSIST;
           this.getTokenAt = function(pos) {
             return csGetTokenAt(this.cm, pos);
           };
           break;
         case 'javascript':
           this.globalPropertiesPlusKeywords = globalPropertiesPlusJSKeywords;
-          this.keywordsComplete = JS_KEYWORDS_COMPLETE;
+          this.keywordsAssist = JS_KEYWORDS_ASSIST;
           this.getTokenAt = function(pos) {
             return this.cm.getTokenAt(pos);
           };
@@ -223,15 +223,18 @@
           if (bracketLevel[2] < 0) {
             break;
           }
+        } else if (token.start === 0) {
+          break;
         }
       }
       if (i === 10) {
         console.log('failed to get property chain.');
       }
       propertyChain.reverse();
+      console.log(propertyChain);
       if (propertyChain.length === 2 && /^\s+$/.test(propertyChain[1].string)) {
-        if (this.keywordsComplete.hasOwnProperty(propertyChain[0].string)) {
-          this.candidates = this.keywordsComplete[propertyChain[0].string];
+        if (this.keywordsAssist.hasOwnProperty(propertyChain[0].string)) {
+          this.candidates = this.keywordsAssist[propertyChain[0].string];
         }
         return;
       } else if (propertyChain.length > 1 && /^\s+$/.test(propertyChain[propertyChain.length - 1].string) && propertyChain[propertyChain.length - 2].className === 'property') {

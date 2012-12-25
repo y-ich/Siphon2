@@ -27,14 +27,14 @@ DATE_PROPERTIES = ['Time', 'Year'].concat UTC_PROPERTIES.reduce ((a, b) -> a.con
 js_keywords = COMMON_KEYWORDS.concat(JS_KEYWORDS).sort()
 cs_keywords = COMMON_KEYWORDS.concat(COFFEE_KEYWORDS).sort()
 
-CS_KEYWORDS_COMPLETE =
+CS_KEYWORDS_ASSIST =
     class: ['extends']
     for: ['in', 'in when', 'of', 'of when']
     if: ['else', 'then else']
     switch: ['when else', 'when', 'when then else', 'when then']
     try: ['catch finally', 'catch']
 
-JS_KEYWORDS_COMPLETE =
+JS_KEYWORDS_ASSIST =
     do: ['while ( )']
     for: ['( ; ; ) { }', '( in ) { }']
     if: ['( ) { }', '( ) { } else { }']
@@ -90,11 +90,11 @@ class AutoComplete
         switch @cm.getOption 'mode' 
             when 'coffeescript'
                 @globalPropertiesPlusKeywords = globalPropertiesPlusCSKeywords
-                @keywordsComplete = CS_KEYWORDS_COMPLETE
+                @keywordsAssist = CS_KEYWORDS_ASSIST
                 @getTokenAt = (pos) -> csGetTokenAt @cm, pos
             when 'javascript'
                 @globalPropertiesPlusKeywords = globalPropertiesPlusJSKeywords
-                @keywordsComplete = JS_KEYWORDS_COMPLETE
+                @keywordsAssist = JS_KEYWORDS_ASSIST
                 @getTokenAt = (pos) -> @cm.getTokenAt pos
         
         return if @candidates?
@@ -154,12 +154,15 @@ class AutoComplete
             else if token.string is '['
                 bracketLevel[2] -= 1
                 break if bracketLevel[2] < 0
+            else if token.start == 0
+                break
         if i == 10 then console.log 'failed to get property chain.' 
         propertyChain.reverse()
 
+        console.log propertyChain
         if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string # keyword assist
-            if @keywordsComplete.hasOwnProperty propertyChain[0].string
-                @candidates = @keywordsComplete[propertyChain[0].string]
+            if @keywordsAssist.hasOwnProperty propertyChain[0].string
+                @candidates = @keywordsAssist[propertyChain[0].string]
             return
         else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and propertyChain[propertyChain.length - 2].className is 'property'
             return
