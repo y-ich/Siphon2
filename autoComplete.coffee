@@ -106,7 +106,7 @@ class AutoComplete
                 propertyChain.push token
                 pos = { line: cursor.line, ch: token.start }
                 switch token.string.charAt 0
-                    when '.' then null
+                    when '.', ' ' then null
                     when ')' then bracketLevel[0] += 1
                     when '('
                         bracketLevel[0] -= 1
@@ -120,7 +120,8 @@ class AutoComplete
                         bracketLevel[2] -= 1
                         loopFlag = false if bracketLevel[2] < 0
                     else
-                        loopFlag = false if bracketLevel.every (e) -> e <= 0
+                        loopFlag = false if bracketLevel.every((e) -> e <= 0) and not /\.\s*/.test @cm.getTokenAt(pos).string # if next token is not . operator.
+
             propertyChain.reverse()
             console.log propertyChain
             if propertyChain.length == 1

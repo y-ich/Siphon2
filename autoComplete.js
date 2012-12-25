@@ -164,6 +164,7 @@
           };
           switch (token.string.charAt(0)) {
             case '.':
+            case ' ':
               null;
               break;
             case ')':
@@ -196,7 +197,7 @@
             default:
               if (bracketLevel.every(function(e) {
                 return e <= 0;
-              })) {
+              }) && !/\.\s*/.test(this.cm.getTokenAt(pos).string)) {
                 loopFlag = false;
               }
           }
