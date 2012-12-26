@@ -312,7 +312,9 @@ newTabAndEditor = (title = 'untitled', mode = null) ->
         </li>
         """)
     $('#file-tabs > li.dropdown').before $tab
-    options = mode: mode
+    options =
+        mode: mode
+        tabSize: config.tabSize
     options.extraKeys = null if mode isnt 'htmlmixed'
     cm = newCodeMirror id, options, title, true
     $tab.children('a').data 'editor', cm
@@ -332,7 +334,7 @@ isPortrait = -> (orientation ? 0) % 180 == 0
 # initialize functions
 #
        
-restore = ->
+restoreConfig = ->
     defaultConfig =
         keyboard: 'normal'
         compile: false
@@ -343,16 +345,12 @@ restore = ->
         fileList:
             order: 'name'
             direction: 'ascending'
+        tabSize: 4
     config = JSON.parse localStorage['siphon-config'] ? '{}'
     for key, value of defaultConfig
         config[key] ?= value
 
-    for key, value of localStorage when /^siphon-buffer/.test key
-        buffer = JSON.parse value
-        cm = newTabAndEditor buffer.title, ext2mode getExtension buffer.title
-        cm.setValue buffer.text
-        cm.siphon['dropbox-stat'] = buffer.dropbox if buffer.dropbox?
-    
+    $("#setting input[name=\"tab-size\"]").val config.tabSize.toString()
     $("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
     if config['user-defined-keyboard']?
         $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
@@ -372,6 +370,13 @@ restore = ->
                 """
     $('#download-modal .breadcrumb > li:last-child').addClass 'active'
 
+restoreBuffer = ->
+    for key, value of localStorage when /^siphon-buffer/.test key
+        buffer = JSON.parse value
+        cm = newTabAndEditor buffer.title, ext2mode getExtension buffer.title
+        cm.setValue buffer.text
+        cm.siphon['dropbox-stat'] = buffer.dropbox if buffer.dropbox?
+    
 initializeDropbox = ->
     dropbox = new Dropbox.Client
         key: if config.dropbox.sandbox then API_KEY_SANDBOX else API_KEY_FULL
@@ -559,6 +564,9 @@ initializeEventHandlers = ->
             config.dropbox.sandbox = not config.dropbox.sandbox
         if (typeof $('#setting input[name="compile"]').attr('checked') isnt 'undefined') isnt config.compile
             config.compile = not config.compile
+        config.tabSize = parseInt $('#setting input[name="tab-size"]').val()
+        for e in $('#file-tabs > li:not(.dropdown) > a')
+            $(e).data('editor').setOption 'tabSize', config.tabSize
         localStorage['siphon-config'] = JSON.stringify config
     
     (->
@@ -639,8 +647,9 @@ unless isPortrait()
 
 $('#soft-key').css 'display', 'block' if touchDevice
 $('#import').addClass 'disabled' if /iPad|iPhone/.test navigator.userAgent
+restoreConfig()
 newTabAndEditor 'untitled', 'coffeescript'
-restore()
+restoreBuffer()
 initializeDropbox()
 initializeEventHandlers()
 scrollTo 0, 0 # reset previous scroll position

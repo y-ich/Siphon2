@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, compareString, config, dateString, dropbox, evalCS, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restore, saveBuffer, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, compareString, config, dateString, dropbox, evalCS, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -432,7 +432,8 @@
     $tab = $("<li class=\"active\">\n    <a href=\"#" + id + "\" class=\"editor-anchor\" data-toggle=\"tab\">\n        <button class=\"close\" type=\"button\">&times;</button>\n        <span>" + title + "</span>\n    </a>\n</li>");
     $('#file-tabs > li.dropdown').before($tab);
     options = {
-      mode: mode
+      mode: mode,
+      tabSize: config.tabSize
     };
     if (mode !== 'htmlmixed') {
       options.extraKeys = null;
@@ -461,8 +462,8 @@
     return (typeof orientation !== "undefined" && orientation !== null ? orientation : 0) % 180 === 0;
   };
 
-  restore = function() {
-    var buffer, cm, defaultConfig, e, i, key, name, value, _i, _len, _ref, _ref1, _ref2;
+  restoreConfig = function() {
+    var defaultConfig, e, i, key, name, value, _i, _len, _ref, _ref1, _ref2;
     defaultConfig = {
       keyboard: 'normal',
       compile: false,
@@ -474,7 +475,8 @@
       fileList: {
         order: 'name',
         direction: 'ascending'
-      }
+      },
+      tabSize: 4
     };
     config = JSON.parse((_ref = localStorage['siphon-config']) != null ? _ref : '{}');
     for (key in defaultConfig) {
@@ -483,18 +485,7 @@
         config[key] = value;
       }
     }
-    for (key in localStorage) {
-      value = localStorage[key];
-      if (!(/^siphon-buffer/.test(key))) {
-        continue;
-      }
-      buffer = JSON.parse(value);
-      cm = newTabAndEditor(buffer.title, ext2mode(getExtension(buffer.title)));
-      cm.setValue(buffer.text);
-      if (buffer.dropbox != null) {
-        cm.siphon['dropbox-stat'] = buffer.dropbox;
-      }
-    }
+    $("#setting input[name=\"tab-size\"]").val(config.tabSize.toString());
     $("#setting input[name=\"keyboard\"][value=\"" + config.keyboard + "\"]").attr('checked', '');
     if (config['user-defined-keyboard'] != null) {
       $('#setting input[name="keyboard-height-portrait"]').value(config['user-defined-keyboard'].portrait);
@@ -515,6 +506,26 @@
       }
     }
     return $('#download-modal .breadcrumb > li:last-child').addClass('active');
+  };
+
+  restoreBuffer = function() {
+    var buffer, cm, key, value, _results;
+    _results = [];
+    for (key in localStorage) {
+      value = localStorage[key];
+      if (!(/^siphon-buffer/.test(key))) {
+        continue;
+      }
+      buffer = JSON.parse(value);
+      cm = newTabAndEditor(buffer.title, ext2mode(getExtension(buffer.title)));
+      cm.setValue(buffer.text);
+      if (buffer.dropbox != null) {
+        _results.push(cm.siphon['dropbox-stat'] = buffer.dropbox);
+      } else {
+        _results.push(void 0);
+      }
+    }
+    return _results;
   };
 
   initializeDropbox = function() {
@@ -745,6 +756,7 @@
       return spinner.spin(document.body);
     });
     $('#save-setting').on('click', function() {
+      var e, _i, _len, _ref;
       config.keyboard = $('#setting input[name="keyboard"]:checked').val();
       if (config.keyboard === 'user-defined') {
         config['user-defined-keyboard'] = {
@@ -757,6 +769,12 @@
       }
       if ((typeof $('#setting input[name="compile"]').attr('checked') !== 'undefined') !== config.compile) {
         config.compile = !config.compile;
+      }
+      config.tabSize = parseInt($('#setting input[name="tab-size"]').val());
+      _ref = $('#file-tabs > li:not(.dropdown) > a');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        e = _ref[_i];
+        $(e).data('editor').setOption('tabSize', config.tabSize);
       }
       return localStorage['siphon-config'] = JSON.stringify(config);
     });
@@ -876,9 +894,11 @@
     $('#import').addClass('disabled');
   }
 
+  restoreConfig();
+
   newTabAndEditor('untitled', 'coffeescript');
 
-  restore();
+  restoreBuffer();
 
   initializeDropbox();
 
