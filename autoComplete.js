@@ -7,7 +7,7 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, csGetTokenAt, cs_keywords, cs_operators, e, functions, getCharAt, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
+  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, cs_keywords, cs_operators, e, functions, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
 
   COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while'];
 
@@ -94,37 +94,6 @@
     }
   }
 
-  csGetTokenAt = function(editor, pos) {
-    var nextToken, token;
-    token = editor.getTokenAt(pos);
-    if (token.string.charAt(0) === '.' && token.start === pos.ch - 1) {
-      token.className = null;
-      token.string = '.';
-      token.end = pos.ch;
-    } else if (/^\.[\w$_]+$/.test(token.string)) {
-      token.className = 'property';
-      token.start += 1;
-      token.string = token.string.slice(1);
-    } else if (/^\.\s+$/.test(token.string)) {
-      token.className = null;
-      token.start += 1;
-      token.string = token.string.slice(1);
-    } else if (token.className === 'variable') {
-      nextToken = editor.getTokenAt({
-        line: pos.line,
-        ch: token.start
-      });
-      if (nextToken.string.charAt(0) === '.') {
-        token.className = 'property';
-      }
-    }
-    return token;
-  };
-
-  getCharAt = function(cm, pos) {
-    return cm.getLine(pos.line).charAt(pos.ch);
-  };
-
   AutoComplete = (function() {
 
     function AutoComplete(cm) {
@@ -134,16 +103,10 @@
         case 'coffeescript':
           this.globalPropertiesPlusKeywords = globalPropertiesPlusCSKeywords;
           this.keywordsAssist = CS_KEYWORDS_ASSIST;
-          this.getTokenAt = function(pos) {
-            return csGetTokenAt(this.cm, pos);
-          };
           break;
         case 'javascript':
           this.globalPropertiesPlusKeywords = globalPropertiesPlusJSKeywords;
           this.keywordsAssist = JS_KEYWORDS_ASSIST;
-          this.getTokenAt = function(pos) {
-            return this.cm.getTokenAt(pos);
-          };
       }
       if (this.candidates != null) {
         return;
@@ -191,7 +154,7 @@
       bracketStack = [];
       breakFlag = false;
       while (true) {
-        token = this.getTokenAt(pos);
+        token = this.cm.getTokenAt(pos);
         if (token.className === 'property') {
           propertyChain.push(token);
         } else if (token.className === 'variable' && bracketStack.length === 0) {

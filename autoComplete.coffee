@@ -58,31 +58,6 @@ for e in globalProperties.sort()
     else if not /^[A-Z]/.test e
         variables.push e
 
-# This getToken, it is for coffeescript, imitates the behavior of
-# getTokenAt method in javascript.js, that is, returning "property"
-# type and treat "." as indepenent token.
-csGetTokenAt = (editor, pos) ->
-    token = editor.getTokenAt pos
-    
-    if token.string.charAt(0) is '.' and token.start == pos.ch - 1
-        token.className = null
-        token.string = '.'
-        token.end = pos.ch
-    else if /^\.[\w$_]+$/.test token.string
-        token.className = 'property'
-        token.start += 1
-        token.string = token.string.slice 1
-    else if /^\.\s+$/.test token.string
-        token.className = null
-        token.start += 1
-        token.string = token.string.slice 1
-    else if token.className is 'variable'
-        nextToken = editor.getTokenAt { line: pos.line, ch: token.start }
-        if nextToken.string.charAt(0) is '.'
-            token.className = 'property'
-    token
-
-getCharAt = (cm, pos) -> cm.getLine(pos.line).charAt pos.ch
 
 class AutoComplete
     constructor: (@cm) ->
@@ -90,11 +65,9 @@ class AutoComplete
             when 'coffeescript'
                 @globalPropertiesPlusKeywords = globalPropertiesPlusCSKeywords
                 @keywordsAssist = CS_KEYWORDS_ASSIST
-                @getTokenAt = (pos) -> csGetTokenAt @cm, pos
             when 'javascript'
                 @globalPropertiesPlusKeywords = globalPropertiesPlusJSKeywords
                 @keywordsAssist = JS_KEYWORDS_ASSIST
-                @getTokenAt = (pos) -> @cm.getTokenAt pos
         
         return if @candidates?
         @candidates = []
@@ -131,7 +104,7 @@ class AutoComplete
         bracketStack = []
         breakFlag = false
         loop
-            token = @getTokenAt pos
+            token = @cm.getTokenAt pos
             if token.className is 'property'
                 propertyChain.push token
             else if token.className is 'variable' and bracketStack.length == 0
