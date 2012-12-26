@@ -9,13 +9,13 @@ CodeMirror.defineMode('coffeescript', function(conf) {
         return new RegExp("^((" + words.join(")|(") + "))\\b");
     }
 
-    var singleOperators = new RegExp("^[\\+\\-\\*/%&|\\^~<>!\?]");
-    var singleDelimiters = new RegExp('^[\\(\\)\\[\\]\\{\\},:`=;\\.]');
-    var doubleOperators = new RegExp("^((\->)|(\=>)|(\\+\\+)|(\\+\\=)|(\\-\\-)|(\\-\\=)|(\\*\\*)|(\\*\\=)|(\\/\\/)|(\\/\\=)|(==)|(!=)|(<=)|(>=)|(<>)|(<<)|(>>)|(//))");
+    var singleOperators = new RegExp("^[\\+\\-\\*/%&|\\^~<>!\\?\\.=]");
+    var singleDelimiters = new RegExp('^[\\(\\)\\[\\]\\{\\},:`;]');
+    var doubleOperators = new RegExp("^((\\->)|(\\=>)|(\\+\\+)|(\\+\\=)|(\\-\\-)|(\\-\\=)|(\\*\\*)|(\\*\\=)|(\\/\\/)|(\\/\\=)|(==)|(!=)|(<=)|(>=)|(<>)|(<<)|(>>)|(//))");
     var doubleDelimiters = new RegExp("^((\\.\\.)|(\\+=)|(\\-=)|(\\*=)|(%=)|(/=)|(&=)|(\\|=)|(\\^=))");
     var tripleDelimiters = new RegExp("^((\\.\\.\\.)|(//=)|(>>=)|(<<=)|(\\*\\*=))");
     var identifiers = new RegExp("^[_A-Za-z$][_A-Za-z$0-9]*");
-    var properties = new RegExp("^(@|this\.)[_A-Za-z$][_A-Za-z$0-9]*");
+    var properties = new RegExp("^@[_A-Za-z$][_A-Za-z$0-9]*");
 
     var wordOperators = wordRegexp(['and', 'or', 'not',
                                     'is', 'isnt', 'in',
@@ -255,16 +255,8 @@ CodeMirror.defineMode('coffeescript', function(conf) {
         var style = state.tokenize(stream, state);
         var current = stream.current();
 
-        // Handle '.' connected identifiers
-        if (current === '.') {
-            style = state.tokenize(stream, state);
-            current = stream.current();
-            if (style === 'variable') {
-                return 'variable';
-            } else {
-                return ERRORCLASS;
-            }
-        }
+        if (style === 'variable' && state.property === true)
+            return 'property'
 
         // Handle scope changes.
         if (current === 'return') {
@@ -315,7 +307,8 @@ CodeMirror.defineMode('coffeescript', function(conf) {
               scopes: [{offset:basecolumn || 0, type:'coffee'}],
               lastToken: null,
               lambda: false,
-              dedent: 0
+              dedent: 0,
+              property: false
           };
         },
 
@@ -323,6 +316,11 @@ CodeMirror.defineMode('coffeescript', function(conf) {
             var style = tokenLexer(stream, state);
 
             state.lastToken = {style:style, content: stream.current()};
+            
+            if (state.lastToken.content === '.')
+                state.property = true
+            else if (state.lastToken.style)
+                state.property = false
 
             if (stream.eol() && stream.lambda) {
                 state.lambda = false;
