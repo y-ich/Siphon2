@@ -608,12 +608,15 @@
         cm = $active.data('editor');
         if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
           $active.children('span').text(filename);
+          cm.siphon.title = filename;
           mode = ext2mode(getExtension(filename));
           cm.setOption('mode', mode);
           cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
           cm.setOption('onGutterClick', foldFunction(mode));
-          return cm.setValue(reader.result);
+        } else {
+          cm = newTabAndEditor(filename, ext2mode(getExtension(filename)));
         }
+        return cm.setValue(reader.result);
       };
       return reader.readAsText(event.target.files[0]);
     });

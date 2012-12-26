@@ -432,11 +432,15 @@ initializeEventHandlers = ->
             cm = $active.data 'editor'
             if cm.getValue() is '' and $active.children('span').text() is 'untitled'
                 $active.children('span').text filename
+                cm.siphon.title = filename
                 mode = ext2mode getExtension filename
                 cm.setOption 'mode', mode
                 cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
                 cm.setOption 'onGutterClick', foldFunction mode     
-                cm.setValue reader.result
+            else
+                cm = newTabAndEditor filename, ext2mode getExtension filename
+            cm.setValue reader.result
+                
         reader.readAsText event.target.files[0]
 
     $('#file-tabs').on 'click', 'button.close', ->
