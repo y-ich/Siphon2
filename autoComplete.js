@@ -102,7 +102,7 @@
       token.string = '.';
       token.end = pos.ch;
     } else if (/^\.[\w$_]+$/.test(token.string)) {
-      token.className = "property";
+      token.className = 'property';
       token.start += 1;
       token.string = token.string.slice(1);
     } else if (/^\.\s+$/.test(token.string)) {
