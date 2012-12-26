@@ -91,6 +91,9 @@ newCodeMirror.onBlur = ->
     scrollTo 0, 0 if touchDevice
 
 newCodeMirror.onChange = (cm, change) ->
+    cm.setLineClass cm.siphon.error, null, null if cm.siphon.error?
+    cm.siphon.error = null
+    
     if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
         # I regard change.text[0].length == 1 as key type, change.text[0].length == 0 as delete, change.text[0].length > 1 as paste.
         # I don't know the case change.text.length > 1
@@ -213,11 +216,16 @@ uploadFile = ->
                     compiled = CoffeeScript.compile $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
                     dropbox.writeFile path.replace(/coffee$/, 'js'), compiled, null, (error, stat) ->
                         if error
+                            console.log error
                             alert error
                         compileDeferred.resolve()
                 catch error
-                    compileDeferred.resolve()
+                    parse = error.message.match /Parse error on line (\d+): (.*)$/
+                    line = parseInt(parse[1]) - 1
+                    cm.setLineClass line, 'cm-error', null
+                    cm.siphon.error = line
                     alert error
+                    compileDeferred.resolve()
             when 'less'
                 lessParser.parse $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' '), (error, tree) ->
                     if error?

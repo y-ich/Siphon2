@@ -126,6 +126,10 @@
   };
 
   newCodeMirror.onChange = function(cm, change) {
+    if (cm.siphon.error != null) {
+      cm.setLineClass(cm.siphon.error, null, null);
+    }
+    cm.siphon.error = null;
     if (!(cm.siphon.autoComplete != null) && change.text.length === 1 && change.text[0].length === 1) {
       cm.siphon.autoComplete = new AutoComplete(cm);
     }
@@ -254,7 +258,7 @@
   };
 
   uploadFile = function() {
-    var $active, cm, compileDeferred, compiled, fileDeferred, filename, folder, mode, oldname, path, stat, _ref;
+    var $active, cm, compileDeferred, compiled, fileDeferred, filename, folder, line, mode, oldname, parse, path, stat, _ref;
     $active = $('#file-tabs > li.active > a');
     cm = $active.data('editor');
     stat = cm.siphon['dropbox-stat'];
@@ -296,13 +300,18 @@
             compiled = CoffeeScript.compile($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')));
             dropbox.writeFile(path.replace(/coffee$/, 'js'), compiled, null, function(error, stat) {
               if (error) {
+                console.log(error);
                 alert(error);
               }
               return compileDeferred.resolve();
             });
           } catch (error) {
-            compileDeferred.resolve();
+            parse = error.message.match(/Parse error on line (\d+): (.*)$/);
+            line = parseInt(parse[1]) - 1;
+            cm.setLineClass(line, 'cm-error', null);
+            cm.siphon.error = line;
             alert(error);
+            compileDeferred.resolve();
           }
           break;
         case 'less':
