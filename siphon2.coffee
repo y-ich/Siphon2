@@ -191,7 +191,7 @@ uploadFile = ->
         mode = ext2mode getExtension filename
         cm.setOption 'mode', mode
         cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
-        cm.setOption 'onGutterClick', foldFunction options.mode         
+        cm.setOption 'onGutterClick', foldFunction mode         
         $active.children('span').text filename
         path = folder + '/' + filename
     

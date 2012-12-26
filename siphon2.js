@@ -271,7 +271,7 @@
       mode = ext2mode(getExtension(filename));
       cm.setOption('mode', mode);
       cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
-      cm.setOption('onGutterClick', foldFunction(options.mode));
+      cm.setOption('onGutterClick', foldFunction(mode));
       $active.children('span').text(filename);
       path = folder + '/' + filename;
     }
