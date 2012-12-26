@@ -692,7 +692,7 @@
           } else {
             $active = $('#file-tabs > li.active > a');
             cm = $active.data('editor');
-            extension = getExtenstion(stat.name);
+            extension = getExtension(stat.name);
             if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
               $active.children('span').text(stat.name);
               cm.setOption('mode', ext2mode(extension));
