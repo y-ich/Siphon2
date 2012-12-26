@@ -100,7 +100,8 @@ class AutoComplete
 
     setCandidates_: (cursor) ->
         propertyChain = []
-        pos = cursor
+        pos = {}
+        pos[key] = value for key, value of cursor
         bracketStack = []
         breakFlag = false
         loop
@@ -131,11 +132,16 @@ class AutoComplete
                         else
                             breakFlag = true
                     else
-                        propertyChain.push token                        
-            pos =
-                line: cursor.line
-                ch: token.start
-            break if breakFlag or pos.ch == 0
+                        propertyChain.push token
+            if token.start > 0
+                pos.ch = token.start
+            else
+                if pos.line > 0
+                    pos.line -= 1
+                    pos.ch = @cm.getLine(pos.line).length
+                else
+                    breakFlag = true
+            break if breakFlag
         propertyChain.reverse()
 
         if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string # keyword assist

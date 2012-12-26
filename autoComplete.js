@@ -148,9 +148,13 @@
     };
 
     AutoComplete.prototype.setCandidates_ = function(cursor) {
-      var bracketStack, breakFlag, candidates, object, pos, propertyChain, target, token, value;
+      var bracketStack, breakFlag, candidates, key, object, pos, propertyChain, target, token, value;
       propertyChain = [];
-      pos = cursor;
+      pos = {};
+      for (key in cursor) {
+        value = cursor[key];
+        pos[key] = value;
+      }
       bracketStack = [];
       breakFlag = false;
       while (true) {
@@ -193,11 +197,17 @@
               propertyChain.push(token);
           }
         }
-        pos = {
-          line: cursor.line,
-          ch: token.start
-        };
-        if (breakFlag || pos.ch === 0) {
+        if (token.start > 0) {
+          pos.ch = token.start;
+        } else {
+          if (pos.line > 0) {
+            pos.line -= 1;
+            pos.ch = this.cm.getLine(pos.line).length;
+          } else {
+            breakFlag = true;
+          }
+        }
+        if (breakFlag) {
           break;
         }
       }
