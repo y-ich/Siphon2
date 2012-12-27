@@ -3,45 +3,18 @@
 # (C) 2012 ICHIKAWA, Yuji (New 3 Rs)
 ###
 
-#
-# functions
-#
-getDeclaredVariables = (js) ->
-    IDENTIFIER = '[_A-Za-z$][_A-Za-z$0-9]*'
-    IDENTIFIER_MAY_WITH_ASSIGN = IDENTIFIER + '\\s*(?:=\\s*\\S+)?'
-    result = []
-    regexp = new RegExp "(?:^|;)\\s*(?:for\\s*\\(\\s*)?var\\s+((?:#{IDENTIFIER_MAY_WITH_ASSIGN}\\s*,\\s*)*#{IDENTIFIER_MAY_WITH_ASSIGN})\\s*(?:;|$)", 'gm'
-    while match = regexp.exec js
-        result = result.concat match[1].split(/\s*,\s*/).map (e) -> e.replace /\s*=.*$/, ''
-    result
-
-csErrorLine = (error) ->
-    parse = error.message.match /Parse error on line (\d+): (.*)$/
-    parseInt parse[1]
-
-# JavaScript/CoffeeScript constants
-COMMON_KEYWORDS = [
-    'break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for',
-    'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true',
-    'try', 'typeof', 'while'
-]
-JS_KEYWORDS = ['case', 'default', 'function', 'var', 'void', 'with']
-
+# JavaScript/CoffeeScript common keywords
+COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null',
+ 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while']
+# JavaScript-only keywords
+JS_ONLY_KEYWORDS = ['case', 'default', 'function', 'var', 'void', 'with']
 # CoffeeScript-only keywords.
-COFFEE_KEYWORDS = ['by', 'class', 'extends', 'loop', 'no', 'of', 'off', 'on', 'super', 'then', 'undefined', 'unless', 'until', 'when', 'yes']
+CS_ONLY_KEYWORDS = ['by', 'class', 'extends', 'loop', 'no', 'of', 'off', 'on', 'super', 'then', 'undefined', 'unless', 'until', 'when', 'yes']
 
-OPERATORS_WITH_EQUAL = ['-', '+', '*', '/', '%', '<<', '>>', '>>>', '<','>','&','|','^','!', '=']
-OPERATORS = ['&&', '||',  '~',]
-JS_OPERATORS = ['++', '--', '===', '!==']
-CS_OPERATORS = ['->', '=>', 'and', 'or', 'is', 'isnt', 'not', '?', '?=']
-cs_operators = OPERATORS.concat(CS_OPERATORS).concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map((e) -> e + '='))).sort()
-js_operators = OPERATORS.concat(JS_OPERATORS).concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map((e) -> e + '='))).sort()
+GLOBAL_PROPERTIES = (e for e of window)
 
-UTC_PROPERTIES = ['Date', 'Day', 'FullYear', 'Hours', 'Milliseconds', 'Minutes', 'Month', 'Seconds']
-DATE_PROPERTIES = ['Time', 'Year'].concat UTC_PROPERTIES.reduce ((a, b) -> a.concat [b, 'UTC' + b]), []
-
-js_keywords = COMMON_KEYWORDS.concat(JS_KEYWORDS).sort()
-cs_keywords = COMMON_KEYWORDS.concat(COFFEE_KEYWORDS).sort()
+GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS = GLOBAL_PROPERTIES.concat(COMMON_KEYWORDS).concat(JS_ONLY_KEYWORDS).sort()
+GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS = GLOBAL_PROPERTIES.concat(COMMON_KEYWORDS).concat(CS_ONLY_KEYWORDS).sort()
 
 CS_KEYWORDS_ASSIST =
     class: ['extends']
@@ -58,35 +31,36 @@ JS_KEYWORDS_ASSIST =
     try: ['catch finally', 'catch']
     while: ['( )']
 
-globalProperties = (e for e of window)
-globalPropertiesPlusJSKeywords = globalProperties.concat(js_keywords).sort()
-globalPropertiesPlusCSKeywords = globalProperties.concat(cs_keywords).sort()
-variables = []
-functions = []
-classes = []
-for e in globalProperties.sort()
-    continue if window[e] is null or (typeof window[e] isnt 'function' and /^[A-Z]/.test e)
-    if typeof window[e] is 'function'
-        if /^[A-Z]/.test e
-            classes.push e
-        else
-            functions.push e
-    else if not /^[A-Z]/.test e
-        variables.push e
+#
+# functions
+#
+getDeclaredVariables = (js) ->
+    IDENTIFIER = '[_A-Za-z$][_A-Za-z$0-9]*'
+    IDENTIFIER_MAY_WITH_ASSIGN = IDENTIFIER + '\\s*(?:=\\s*\\S+)?'
+    result = []
+    regexp = new RegExp "(?:^|;)\\s*(?:for\\s*\\(\\s*)?var\\s+((?:#{IDENTIFIER_MAY_WITH_ASSIGN}\\s*,\\s*)*#{IDENTIFIER_MAY_WITH_ASSIGN})\\s*(?:;|$)", 'gm'
+    while match = regexp.exec js
+        result = result.concat match[1].split(/\s*,\s*/).map (e) -> e.replace /\s*=.*$/, ''
+    result
 
+csErrorLine = (error) ->
+    if parse = error.message.match /Parse error on line (\d+): (.*)$/
+        parseInt parse[1]
+    else
+        null
 
 class AutoComplete
-    @current: null
+    @current: null # if process to get candidates is not current (singleton), discard the result.
+
     constructor: (@cm) ->
         switch @cm.getOption 'mode' 
-            when 'coffeescript'
-                @globalPropertiesPlusKeywords = globalPropertiesPlusCSKeywords
-                @keywordsAssist = CS_KEYWORDS_ASSIST
             when 'javascript'
-                @globalPropertiesPlusKeywords = globalPropertiesPlusJSKeywords
+                @globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS
                 @keywordsAssist = JS_KEYWORDS_ASSIST
+            when 'coffeescript'
+                @globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS
+                @keywordsAssist = CS_KEYWORDS_ASSIST
         
-        return if @candidates?
         @candidates = []
         cursor = @cm.getCursor()
 

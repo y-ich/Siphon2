@@ -7,59 +7,26 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, csErrorLine, cs_keywords, cs_operators, e, functions, getDeclaredVariables, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
-
-  getDeclaredVariables = function(js) {
-    var IDENTIFIER, IDENTIFIER_MAY_WITH_ASSIGN, match, regexp, result;
-    IDENTIFIER = '[_A-Za-z$][_A-Za-z$0-9]*';
-    IDENTIFIER_MAY_WITH_ASSIGN = IDENTIFIER + '\\s*(?:=\\s*\\S+)?';
-    result = [];
-    regexp = new RegExp("(?:^|;)\\s*(?:for\\s*\\(\\s*)?var\\s+((?:" + IDENTIFIER_MAY_WITH_ASSIGN + "\\s*,\\s*)*" + IDENTIFIER_MAY_WITH_ASSIGN + ")\\s*(?:;|$)", 'gm');
-    while (match = regexp.exec(js)) {
-      result = result.concat(match[1].split(/\s*,\s*/).map(function(e) {
-        return e.replace(/\s*=.*$/, '');
-      }));
-    }
-    return result;
-  };
-
-  csErrorLine = function(error) {
-    var parse;
-    parse = error.message.match(/Parse error on line (\d+): (.*)$/);
-    return parseInt(parse[1]);
-  };
+  var AutoComplete, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_ONLY_KEYWORDS, GLOBAL_PROPERTIES, GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS, GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_ONLY_KEYWORDS, csErrorLine, e, getDeclaredVariables;
 
   COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while'];
 
-  JS_KEYWORDS = ['case', 'default', 'function', 'var', 'void', 'with'];
+  JS_ONLY_KEYWORDS = ['case', 'default', 'function', 'var', 'void', 'with'];
 
-  COFFEE_KEYWORDS = ['by', 'class', 'extends', 'loop', 'no', 'of', 'off', 'on', 'super', 'then', 'undefined', 'unless', 'until', 'when', 'yes'];
+  CS_ONLY_KEYWORDS = ['by', 'class', 'extends', 'loop', 'no', 'of', 'off', 'on', 'super', 'then', 'undefined', 'unless', 'until', 'when', 'yes'];
 
-  OPERATORS_WITH_EQUAL = ['-', '+', '*', '/', '%', '<<', '>>', '>>>', '<', '>', '&', '|', '^', '!', '='];
+  GLOBAL_PROPERTIES = (function() {
+    var _results;
+    _results = [];
+    for (e in window) {
+      _results.push(e);
+    }
+    return _results;
+  })();
 
-  OPERATORS = ['&&', '||', '~'];
+  GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS = GLOBAL_PROPERTIES.concat(COMMON_KEYWORDS).concat(JS_ONLY_KEYWORDS).sort();
 
-  JS_OPERATORS = ['++', '--', '===', '!=='];
-
-  CS_OPERATORS = ['->', '=>', 'and', 'or', 'is', 'isnt', 'not', '?', '?='];
-
-  cs_operators = OPERATORS.concat(CS_OPERATORS).concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map(function(e) {
-    return e + '=';
-  }))).sort();
-
-  js_operators = OPERATORS.concat(JS_OPERATORS).concat(OPERATORS_WITH_EQUAL.concat(OPERATORS_WITH_EQUAL.map(function(e) {
-    return e + '=';
-  }))).sort();
-
-  UTC_PROPERTIES = ['Date', 'Day', 'FullYear', 'Hours', 'Milliseconds', 'Minutes', 'Month', 'Seconds'];
-
-  DATE_PROPERTIES = ['Time', 'Year'].concat(UTC_PROPERTIES.reduce((function(a, b) {
-    return a.concat([b, 'UTC' + b]);
-  }), []));
-
-  js_keywords = COMMON_KEYWORDS.concat(JS_KEYWORDS).sort();
-
-  cs_keywords = COMMON_KEYWORDS.concat(COFFEE_KEYWORDS).sort();
+  GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS = GLOBAL_PROPERTIES.concat(COMMON_KEYWORDS).concat(CS_ONLY_KEYWORDS).sort();
 
   CS_KEYWORDS_ASSIST = {
     "class": ['extends'],
@@ -78,41 +45,28 @@
     "while": ['( )']
   };
 
-  globalProperties = (function() {
-    var _results;
-    _results = [];
-    for (e in window) {
-      _results.push(e);
+  getDeclaredVariables = function(js) {
+    var IDENTIFIER, IDENTIFIER_MAY_WITH_ASSIGN, match, regexp, result;
+    IDENTIFIER = '[_A-Za-z$][_A-Za-z$0-9]*';
+    IDENTIFIER_MAY_WITH_ASSIGN = IDENTIFIER + '\\s*(?:=\\s*\\S+)?';
+    result = [];
+    regexp = new RegExp("(?:^|;)\\s*(?:for\\s*\\(\\s*)?var\\s+((?:" + IDENTIFIER_MAY_WITH_ASSIGN + "\\s*,\\s*)*" + IDENTIFIER_MAY_WITH_ASSIGN + ")\\s*(?:;|$)", 'gm');
+    while (match = regexp.exec(js)) {
+      result = result.concat(match[1].split(/\s*,\s*/).map(function(e) {
+        return e.replace(/\s*=.*$/, '');
+      }));
     }
-    return _results;
-  })();
+    return result;
+  };
 
-  globalPropertiesPlusJSKeywords = globalProperties.concat(js_keywords).sort();
-
-  globalPropertiesPlusCSKeywords = globalProperties.concat(cs_keywords).sort();
-
-  variables = [];
-
-  functions = [];
-
-  classes = [];
-
-  _ref = globalProperties.sort();
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    e = _ref[_i];
-    if (window[e] === null || (typeof window[e] !== 'function' && /^[A-Z]/.test(e))) {
-      continue;
+  csErrorLine = function(error) {
+    var parse;
+    if (parse = error.message.match(/Parse error on line (\d+): (.*)$/)) {
+      return parseInt(parse[1]);
+    } else {
+      return null;
     }
-    if (typeof window[e] === 'function') {
-      if (/^[A-Z]/.test(e)) {
-        classes.push(e);
-      } else {
-        functions.push(e);
-      }
-    } else if (!/^[A-Z]/.test(e)) {
-      variables.push(e);
-    }
-  }
+  };
 
   AutoComplete = (function() {
 
@@ -123,16 +77,13 @@
         _this = this;
       this.cm = cm;
       switch (this.cm.getOption('mode')) {
-        case 'coffeescript':
-          this.globalPropertiesPlusKeywords = globalPropertiesPlusCSKeywords;
-          this.keywordsAssist = CS_KEYWORDS_ASSIST;
-          break;
         case 'javascript':
-          this.globalPropertiesPlusKeywords = globalPropertiesPlusJSKeywords;
+          this.globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS;
           this.keywordsAssist = JS_KEYWORDS_ASSIST;
-      }
-      if (this.candidates != null) {
-        return;
+          break;
+        case 'coffeescript':
+          this.globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS;
+          this.keywordsAssist = CS_KEYWORDS_ASSIST;
       }
       this.candidates = [];
       cursor = this.cm.getCursor();
