@@ -267,14 +267,6 @@ fireKeyEvent = (type, keyIdentifier, keyCode, charCode = 0) ->
         charCode : charCode
     document.activeElement.dispatchEvent(e)
 
-evalCS = (str) ->
-    try
-        jssnippet = CoffeeScript.compile str, bare : on
-        result = eval jssnippet
-    catch error
-        result = error.message
-    result
-
 showError = (error) ->
     console.error error if (window.console)
     switch error.status
@@ -621,18 +613,37 @@ initializeEventHandlers = ->
 
     $('#eval').on 'click', ->
         cm = $('#file-tabs > li.active > a').data 'editor'
-        switch cm.getOption 'mode'
-            when 'coffeescript'
-                evalFunction = evalCS
-            when 'javascript'
-                evalFunction = eval
-            else
-                return
+        mode = cm.getOption 'mode'
+        return unless mode is 'coffeescript' or mode is 'javascript'
+
         if not cm.somethingSelected()
             line = cm.getCursor().line
             cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
-        result = evalFunction cm.getSelection()
-        cm.replaceSelection result.toString() if result?
+        source = cm.getSelection()
+
+        continuation = (data) ->
+            if data.js?
+                try
+                    result = eval data.js
+                catch error
+                    result = error.message
+            else if data.error?
+                result = data.error.message
+            cm.replaceSelection result.toString()
+
+        switch cm.getOption 'mode'
+            when 'coffeescript'
+                worker = new Worker 'coffee-script-worker.js'
+                worker.onmessage = (event) ->
+                    continuation event.data
+                worker.postMessage
+                    source: source
+                    options:
+                        bare: on
+            when 'javascript'
+                continuation
+                    js: source
+                    error: null
             
     $('#previous-button').on 'click', ->
         cm = $('#file-tabs > li.active > a').data('editor')

@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, compareString, config, dateString, dropbox, evalCS, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, compareString, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -371,19 +371,6 @@
       charCode: charCode
     };
     return document.activeElement.dispatchEvent(e);
-  };
-
-  evalCS = function(str) {
-    var jssnippet, result;
-    try {
-      jssnippet = CoffeeScript.compile(str, {
-        bare: true
-      });
-      result = eval(jssnippet);
-    } catch (error) {
-      result = error.message;
-    }
-    return result;
   };
 
   showError = function(error) {
@@ -846,17 +833,11 @@
       return event.preventDefault();
     });
     $('#eval').on('click', function() {
-      var cm, evalFunction, line, result;
+      var cm, continuation, line, mode, source, worker;
       cm = $('#file-tabs > li.active > a').data('editor');
-      switch (cm.getOption('mode')) {
-        case 'coffeescript':
-          evalFunction = evalCS;
-          break;
-        case 'javascript':
-          evalFunction = eval;
-          break;
-        default:
-          return;
+      mode = cm.getOption('mode');
+      if (!(mode === 'coffeescript' || mode === 'javascript')) {
+        return;
       }
       if (!cm.somethingSelected()) {
         line = cm.getCursor().line;
@@ -868,9 +849,37 @@
           ch: cm.getLine(line).length
         });
       }
-      result = evalFunction(cm.getSelection());
-      if (result != null) {
+      source = cm.getSelection();
+      continuation = function(data) {
+        var result;
+        if (data.js != null) {
+          try {
+            result = eval(data.js);
+          } catch (error) {
+            result = error.message;
+          }
+        } else if (data.error != null) {
+          result = data.error.message;
+        }
         return cm.replaceSelection(result.toString());
+      };
+      switch (cm.getOption('mode')) {
+        case 'coffeescript':
+          worker = new Worker('coffee-script-worker.js');
+          worker.onmessage = function(event) {
+            return continuation(event.data);
+          };
+          return worker.postMessage({
+            source: source,
+            options: {
+              bare: true
+            }
+          });
+        case 'javascript':
+          return continuation({
+            js: source,
+            error: null
+          });
       }
     });
     $('#previous-button').on('click', function() {

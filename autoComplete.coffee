@@ -187,7 +187,6 @@ class AutoComplete
                     @candidates = candidates.sort().filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
                 catch error
                     console.log error
-                    (console.log key) for key in Object.getOwnPropertyNames error
         continuation()
 
     extractVariables_: (callback) ->
@@ -195,7 +194,6 @@ class AutoComplete
             cs = @cm.getValue()
             worker = new Worker 'coffee-script-worker.js'
             worker.onmessage = (event) ->
-                console.log event
                 if event.data.js?
                     callback getDeclaredVariables event.data.js
                 else

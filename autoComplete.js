@@ -173,7 +173,7 @@
     };
 
     AutoComplete.prototype.setCandidates_ = function(cursor, continuation) {
-      var bracketStack, breakFlag, candidates, key, object, pos, propertyChain, target, token, value, _j, _len1, _ref1,
+      var bracketStack, breakFlag, candidates, key, object, pos, propertyChain, target, token, value,
         _this = this;
       propertyChain = [];
       pos = {};
@@ -285,11 +285,6 @@
             });
           } catch (error) {
             console.log(error);
-            _ref1 = Object.getOwnPropertyNames(error);
-            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-              key = _ref1[_j];
-              console.log(key);
-            }
           }
         }
       }
@@ -303,7 +298,6 @@
         worker = new Worker('coffee-script-worker.js');
         worker.onmessage = function(event) {
           var tmp;
-          console.log(event);
           if (event.data.js != null) {
             return callback(getDeclaredVariables(event.data.js));
           } else {
