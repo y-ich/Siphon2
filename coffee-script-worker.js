@@ -9,7 +9,12 @@ this.onmessage = function(event) {
   try {
     return result.js = CoffeeScript.compile(event.data.source, event.data.options);
   } catch (error) {
-    return result.error = error;
+    return result.error = {
+      line: error.line,
+      message: error.message,
+      sourceURL: error.sourceURL,
+      stack: error.stack
+    };
   } finally {
     postMessage(result);
   }

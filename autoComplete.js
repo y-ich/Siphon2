@@ -173,7 +173,7 @@
     };
 
     AutoComplete.prototype.setCandidates_ = function(cursor, continuation) {
-      var bracketStack, breakFlag, candidates, key, object, pos, propertyChain, target, token, value,
+      var bracketStack, breakFlag, candidates, key, object, pos, propertyChain, target, token, value, _j, _len1, _ref1,
         _this = this;
       propertyChain = [];
       pos = {};
@@ -283,8 +283,13 @@
             }).map(function(e) {
               return e.slice(target.length);
             });
-          } catch (err) {
-            console.log(err);
+          } catch (error) {
+            console.log(error);
+            _ref1 = Object.getOwnPropertyNames(error);
+            for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+              key = _ref1[_j];
+              console.log(key);
+            }
           }
         }
       }
@@ -298,10 +303,11 @@
         worker = new Worker('coffee-script-worker.js');
         worker.onmessage = function(event) {
           var tmp;
+          console.log(event);
           if (event.data.js != null) {
             return callback(getDeclaredVariables(event.data.js));
           } else {
-            tmp = cs.split(/\r?\n/).slice(0, csErrorLine(error) - 1);
+            tmp = cs.split(/\r?\n/).slice(0, csErrorLine(event.data.error) - 1);
             cs = tmp.join('\n');
             worker.onmessage = function(event) {
               return callback(event.data.js != null ? getDeclaredVariables(event.data.js) : []);

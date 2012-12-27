@@ -185,8 +185,9 @@ class AutoComplete
                             else
                                 Object.getOwnPropertyNames(Object.getPrototypeOf object).concat Object.getOwnPropertyNames(object)
                     @candidates = candidates.sort().filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
-                catch err
-                    console.log err
+                catch error
+                    console.log error
+                    (console.log key) for key in Object.getOwnPropertyNames error
         continuation()
 
     extractVariables_: (callback) ->
@@ -194,10 +195,11 @@ class AutoComplete
             cs = @cm.getValue()
             worker = new Worker 'coffee-script-worker.js'
             worker.onmessage = (event) ->
+                console.log event
                 if event.data.js?
                     callback getDeclaredVariables event.data.js
                 else
-                    tmp = cs.split(/\r?\n/)[0...csErrorLine(error) - 1]
+                    tmp = cs.split(/\r?\n/)[0...csErrorLine(event.data.error) - 1]
                     cs = tmp.join '\n'
                     worker.onmessage = (event) ->
                         callback if event.data.js? then getDeclaredVariables event.data.js else []
