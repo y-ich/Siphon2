@@ -584,12 +584,9 @@
       }
       return scrollTo(0, !isPortrait() && $('CodeMirror :focus').length > 0 ? $('#header').outerHeight(true) : 0);
     }), false);
-    /*
-        window.addEventListener 'scroll', (->
-            if (document.body.scrollLeft != 0 or document.body.scrollTop != 0) and $('.open').length == 0 then scrollTo 0, 0
-        ), false
-    */
-
+    window.addEventListener('resize', (function() {
+      return $('#file-tabs > li.active > a').data('editor').refresh();
+    }), false);
     $('#plus-editor').on('touchstart', function() {
       return scrollTo(0, 0);
     });
@@ -625,6 +622,10 @@
         return cm.setValue(reader.result);
       };
       return reader.readAsText(event.target.files[0]);
+    });
+    $('#file-tabs').on('shown', 'a[data-toggle="tab"]', function() {
+      console.log('shown');
+      return $(this).data('editor').refresh();
     });
     $('#file-tabs').on('click', 'button.close', function() {
       var $first, $tabAnchor, $this, cm;
@@ -705,9 +706,9 @@
           if (($tabs != null) && $tabs.length > 0) {
             for (_i = 0, _len = $tabs.length; _i < _len; _i++) {
               e = $tabs[_i];
-              $(e).trigger('click');
-              $(e).data('editor').setValue(string);
-              $(e).data('editor').siphon['dropbox-stat'] = stat;
+              cm = $(e).data('editor');
+              cm.setValue(string);
+              cm.siphon['dropbox-stat'] = stat;
             }
           } else {
             $active = $('#file-tabs > li.active > a');

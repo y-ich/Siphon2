@@ -415,11 +415,7 @@ initializeEventHandlers = ->
             scrollTo 0, if not isPortrait() and $('CodeMirror :focus').length > 0 then $('#header').outerHeight(true) else 0
         ), false
 
-    ###
-    window.addEventListener 'scroll', (->
-        if (document.body.scrollLeft != 0 or document.body.scrollTop != 0) and $('.open').length == 0 then scrollTo 0, 0
-    ), false
-    ###
+    window.addEventListener 'resize', (-> $('#file-tabs > li.active > a').data('editor').refresh()), false
     
     $('#plus-editor').on 'touchstart', -> scrollTo 0, 0 # work around dropdown menu bug. When scrollTop is not 0, you can not touch correctly.
     $('a.new-tab-type').on 'click', ->
@@ -448,6 +444,10 @@ initializeEventHandlers = ->
             cm.setValue reader.result
                 
         reader.readAsText event.target.files[0]
+
+    $('#file-tabs').on 'shown', 'a[data-toggle="tab"]', ->
+        console.log 'shown'
+        $(this).data('editor').refresh()
 
     $('#file-tabs').on 'click', 'button.close', ->
         $this = $(this)
@@ -516,9 +516,9 @@ initializeEventHandlers = ->
             dropbox.readFile stat.path, null, (error, string, stat) ->
                 if $tabs? and $tabs.length > 0
                     for e in $tabs
-                        $(e).trigger 'click' # You need an editor to be active in order to render successfully when setValue.
-                        $(e).data('editor').setValue string
-                        $(e).data('editor').siphon['dropbox-stat'] = stat
+                        cm = $(e).data 'editor'
+                        cm.setValue string
+                        cm.siphon['dropbox-stat'] = stat
                 else
                     $active = $('#file-tabs > li.active > a')
                     cm = $active.data 'editor'
