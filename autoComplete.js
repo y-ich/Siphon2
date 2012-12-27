@@ -20,7 +20,6 @@
         return e.replace(/\s*=.*$/, '');
       }));
     }
-    console.log(result);
     return result;
   };
 
@@ -117,8 +116,11 @@
 
   AutoComplete = (function() {
 
+    AutoComplete.current = null;
+
     function AutoComplete(cm) {
-      var cursor;
+      var cursor,
+        _this = this;
       this.cm = cm;
       switch (this.cm.getOption('mode')) {
         case 'coffeescript':
@@ -134,14 +136,16 @@
       }
       this.candidates = [];
       cursor = this.cm.getCursor();
-      this.setCandidates_(cursor);
-      if (this.candidates.length > 0) {
-        this.index = 0;
-        this.cm.replaceRange(this.candidates[this.index], cursor);
-        this.start = cursor;
-        this.end = this.cm.getCursor();
-        this.cm.setSelection(this.start, this.end);
-      }
+      this.setCandidates_(cursor, function() {
+        if (AutoComplete.current === _this && _this.candidates.length > 0) {
+          _this.index = 0;
+          _this.cm.replaceRange(_this.candidates[_this.index], cursor);
+          _this.start = cursor;
+          _this.end = _this.cm.getCursor();
+          return _this.cm.setSelection(_this.start, _this.end);
+        }
+      });
+      AutoComplete.current = this;
     }
 
     AutoComplete.prototype.previous = function() {
@@ -168,8 +172,9 @@
       }
     };
 
-    AutoComplete.prototype.setCandidates_ = function(cursor) {
-      var bracketStack, breakFlag, candidates, key, object, pos, propertyChain, target, token, value;
+    AutoComplete.prototype.setCandidates_ = function(cursor, continuation) {
+      var bracketStack, breakFlag, candidates, key, object, pos, propertyChain, target, token, value,
+        _this = this;
       propertyChain = [];
       pos = {};
       for (key in cursor) {
@@ -237,67 +242,87 @@
         if (this.keywordsAssist.hasOwnProperty(propertyChain[0].string)) {
           this.candidates = this.keywordsAssist[propertyChain[0].string];
         }
-        return;
       } else if (propertyChain.length > 1 && /^\s+$/.test(propertyChain[propertyChain.length - 1].string) && propertyChain[propertyChain.length - 2].className === 'property') {
-        return;
-      } else if (propertyChain.length === 1) {
-        candidates = /^\s*$/.test(propertyChain[0].string) ? [] : this.globalPropertiesPlusKeywords.concat(this.extractVariables_()).sort();
-      } else {
-        try {
-          value = eval("(" + (propertyChain.map(function(e) {
-            return e.string;
-          }).join('').replace(/\..*?$/, '')) + ")");
-          candidates = (function() {
-            switch (typeof value) {
-              case 'string':
-                return Object.getOwnPropertyNames(value.__proto__);
-              case 'undefined':
-                return [];
-              default:
-                object = new Object(value);
-                if (object instanceof Array) {
-                  return Object.getOwnPropertyNames(Object.getPrototypeOf(object));
-                } else {
-                  return Object.getOwnPropertyNames(Object.getPrototypeOf(object)).concat(Object.getOwnPropertyNames(object));
-                }
-            }
-          })();
-          candidates.sort();
-        } catch (err) {
-          console.log(err);
-          return;
-        }
-      }
-      target = /^(\s*|\.)$/.test(propertyChain[propertyChain.length - 1].string) ? '' : propertyChain[propertyChain.length - 1].string;
-      return this.candidates = candidates.filter(function(e) {
-        return new RegExp('^' + target).test(e);
-      }).map(function(e) {
-        return e.slice(target.length);
-      });
-    };
 
-    AutoComplete.prototype.extractVariables_ = function() {
-      var cs, js, tmp;
-      if (this.cm.getOption('mode') === 'coffeescript') {
-        cs = this.cm.getValue();
-        try {
-          js = CoffeeScript.compile(cs, {
-            bare: true
+      } else if (propertyChain.length !== 0) {
+        target = /^(\s*|\.)$/.test(propertyChain[propertyChain.length - 1].string) ? '' : propertyChain[propertyChain.length - 1].string;
+        if (propertyChain.length === 1) {
+          this.extractVariables_(function(variables) {
+            var candidates;
+            candidates = /^\s*$/.test(propertyChain[0].string) ? [] : _this.globalPropertiesPlusKeywords.concat(variables).sort();
+            _this.candidates = candidates.filter(function(e) {
+              return new RegExp('^' + target).test(e);
+            }).map(function(e) {
+              return e.slice(target.length);
+            });
+            return continuation();
           });
-        } catch (error) {
-          tmp = cs.split(/\r?\n/).slice(0, csErrorLine(error) - 1);
-          cs = tmp.join('\n');
+          return;
+        } else {
           try {
-            js = CoffeeScript.compile(cs);
-          } catch (error) {
-            console.log(error);
-            return [];
+            value = eval("(" + (propertyChain.map(function(e) {
+              return e.string;
+            }).join('').replace(/\..*?$/, '')) + ")");
+            candidates = (function() {
+              switch (typeof value) {
+                case 'string':
+                  return Object.getOwnPropertyNames(value.__proto__);
+                case 'undefined':
+                  return [];
+                default:
+                  object = new Object(value);
+                  if (object instanceof Array) {
+                    return Object.getOwnPropertyNames(Object.getPrototypeOf(object));
+                  } else {
+                    return Object.getOwnPropertyNames(Object.getPrototypeOf(object)).concat(Object.getOwnPropertyNames(object));
+                  }
+              }
+            })();
+            this.candidates = candidates.sort().filter(function(e) {
+              return new RegExp('^' + target).test(e);
+            }).map(function(e) {
+              return e.slice(target.length);
+            });
+          } catch (err) {
+            console.log(err);
           }
         }
-      } else {
-        js = this.cm.getValue();
       }
-      return getDeclaredVariables(js);
+      return continuation();
+    };
+
+    AutoComplete.prototype.extractVariables_ = function(callback) {
+      var cs, worker;
+      if (this.cm.getOption('mode') === 'coffeescript') {
+        cs = this.cm.getValue();
+        worker = new Worker('coffee-script-worker.js');
+        worker.onmessage = function(event) {
+          var tmp;
+          if (event.data.js != null) {
+            return callback(getDeclaredVariables(event.data.js));
+          } else {
+            tmp = cs.split(/\r?\n/).slice(0, csErrorLine(error) - 1);
+            cs = tmp.join('\n');
+            worker.onmessage = function(event) {
+              return callback(event.data.js != null ? getDeclaredVariables(event.data.js) : []);
+            };
+            return worker.postMessage({
+              source: cs,
+              options: {
+                bare: true
+              }
+            });
+          }
+        };
+        return worker.postMessage({
+          source: cs,
+          options: {
+            bare: true
+          }
+        });
+      } else {
+        return callback(getDeclaredVariables(this.cm.getValue()));
+      }
     };
 
     return AutoComplete;
