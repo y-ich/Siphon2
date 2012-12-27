@@ -7,7 +7,28 @@
 
 
 (function() {
-  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, cs_keywords, cs_operators, e, functions, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
+  var AutoComplete, COFFEE_KEYWORDS, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_OPERATORS, DATE_PROPERTIES, JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_OPERATORS, OPERATORS, OPERATORS_WITH_EQUAL, UTC_PROPERTIES, classes, csErrorLine, cs_keywords, cs_operators, e, functions, getDeclaredVariables, globalProperties, globalPropertiesPlusCSKeywords, globalPropertiesPlusJSKeywords, js_keywords, js_operators, variables, _i, _len, _ref;
+
+  getDeclaredVariables = function(js) {
+    var IDENTIFIER, IDENTIFIER_MAY_WITH_ASSIGN, match, regexp, result;
+    IDENTIFIER = '[_A-Za-z$][_A-Za-z$0-9]*';
+    IDENTIFIER_MAY_WITH_ASSIGN = IDENTIFIER + '\\s*(?:=\\s*\\S+)?';
+    result = [];
+    regexp = new RegExp("(?:^|;)\\s*(?:for\\s*\\(\\s*)?var\\s+((?:" + IDENTIFIER_MAY_WITH_ASSIGN + "\\s*,\\s*)*" + IDENTIFIER_MAY_WITH_ASSIGN + ")\\s*(?:;|$)", 'gm');
+    while (match = regexp.exec(js)) {
+      result = result.concat(match[1].split(/\s*,\s*/).map(function(e) {
+        return e.replace(/\s*=.*$/, '');
+      }));
+    }
+    console.log(result);
+    return result;
+  };
+
+  csErrorLine = function(error) {
+    var parse;
+    parse = error.message.match(/Parse error on line (\d+): (.*)$/);
+    return parseInt(parse[1]);
+  };
 
   COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while'];
 
@@ -220,7 +241,7 @@
       } else if (propertyChain.length > 1 && /^\s+$/.test(propertyChain[propertyChain.length - 1].string) && propertyChain[propertyChain.length - 2].className === 'property') {
         return;
       } else if (propertyChain.length === 1) {
-        candidates = /^\s*$/.test(propertyChain[0].string) ? [] : this.globalPropertiesPlusKeywords;
+        candidates = /^\s*$/.test(propertyChain[0].string) ? [] : this.globalPropertiesPlusKeywords.concat(this.extractVariables_()).sort();
       } else {
         try {
           value = eval("(" + (propertyChain.map(function(e) {
@@ -253,6 +274,30 @@
       }).map(function(e) {
         return e.slice(target.length);
       });
+    };
+
+    AutoComplete.prototype.extractVariables_ = function() {
+      var cs, js, tmp;
+      if (this.cm.getOption('mode') === 'coffeescript') {
+        cs = this.cm.getValue();
+        try {
+          js = CoffeeScript.compile(cs, {
+            bare: true
+          });
+        } catch (error) {
+          tmp = cs.split(/\r?\n/).slice(0, csErrorLine(error) - 1);
+          cs = tmp.join('\n');
+          try {
+            js = CoffeeScript.compile(cs);
+          } catch (error) {
+            console.log(error);
+            return [];
+          }
+        }
+      } else {
+        js = this.cm.getValue();
+      }
+      return getDeclaredVariables(js);
     };
 
     return AutoComplete;

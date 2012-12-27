@@ -3,6 +3,23 @@
 # (C) 2012 ICHIKAWA, Yuji (New 3 Rs)
 ###
 
+#
+# functions
+#
+getDeclaredVariables = (js) ->
+    IDENTIFIER = '[_A-Za-z$][_A-Za-z$0-9]*'
+    IDENTIFIER_MAY_WITH_ASSIGN = IDENTIFIER + '\\s*(?:=\\s*\\S+)?'
+    result = []
+    regexp = new RegExp "(?:^|;)\\s*(?:for\\s*\\(\\s*)?var\\s+((?:#{IDENTIFIER_MAY_WITH_ASSIGN}\\s*,\\s*)*#{IDENTIFIER_MAY_WITH_ASSIGN})\\s*(?:;|$)", 'gm'
+    while match = regexp.exec js
+        result = result.concat match[1].split(/\s*,\s*/).map (e) -> e.replace /\s*=.*$/, ''
+    console.log result
+    result
+
+csErrorLine = (error) ->
+    parse = error.message.match /Parse error on line (\d+): (.*)$/
+    parseInt parse[1]
+
 # JavaScript/CoffeeScript constants
 COMMON_KEYWORDS = [
     'break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for',
@@ -151,7 +168,7 @@ class AutoComplete
         else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and propertyChain[propertyChain.length - 2].className is 'property'
             return
         else if propertyChain.length == 1
-            candidates = if /^\s*$/.test propertyChain[0].string then [] else @globalPropertiesPlusKeywords 
+            candidates = if /^\s*$/.test propertyChain[0].string then [] else @globalPropertiesPlusKeywords.concat(@extractVariables_()).sort()
         else
             try
                 value = eval "(#{propertyChain.map((e) -> e.string).join('').replace /\..*?$/, ''})" # you need () for object literal.
@@ -171,4 +188,21 @@ class AutoComplete
         target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
         @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
 
+    extractVariables_: ->
+        if @cm.getOption('mode') is 'coffeescript'
+            cs = @cm.getValue()
+            try 
+                js = CoffeeScript.compile cs, {bare: on }
+            catch error
+                tmp = cs.split(/\r?\n/)[0...csErrorLine(error) - 1]
+                cs = tmp.join '\n'
+                try
+                    js = CoffeeScript.compile cs
+                catch error
+                    console.log error
+                    return []
+        else
+            js = @cm.getValue()
+        getDeclaredVariables js
+            
 window.AutoComplete = AutoComplete
