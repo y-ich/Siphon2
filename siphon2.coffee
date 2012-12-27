@@ -212,20 +212,26 @@ uploadFile = ->
     if config.compile
         switch getExtension path
             when 'coffee'
-                try
-                    compiled = CoffeeScript.compile $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
-                    dropbox.writeFile path.replace(/coffee$/, 'js'), compiled, null, (error, stat) ->
-                        if error
-                            console.log error
-                            alert error
-                        compileDeferred.resolve()
-                catch error
-                    parse = error.message.match /Parse error on line (\d+): (.*)$/
-                    line = parseInt(parse[1]) - 1
-                    cm.setLineClass line, 'cm-error', null
-                    cm.siphon.error = line
-                    alert error
-                    compileDeferred.resolve()
+                worker = new Worker 'coffee-script-worker.js'
+                worker.onmessage = (event) ->
+                    console.log event
+                    if event.data.js?
+                        dropbox.writeFile path.replace(/coffee$/, 'js'), event.data.js, null, (error, stat) ->
+                            if error
+                                console.log error
+                                alert error
+                            compileDeferred.resolve()
+                    else if event.data.error?
+                        parse = event.data.error.message.match /Parse error on line (\d+): (.*)$/
+                        if parse?
+                            line = parseInt(parse[1]) - 1
+                            cm.setLineClass line, 'cm-error', null
+                            cm.siphon.error = line
+                        alert event.data.error.message
+                        compileDeferred.resolve()                    
+                worker.postMessage
+                    source: $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
+                    options: null
             when 'less'
                 lessParser.parse $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' '), (error, tree) ->
                     if error?

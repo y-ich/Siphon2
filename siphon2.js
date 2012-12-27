@@ -258,7 +258,7 @@
   };
 
   uploadFile = function() {
-    var $active, cm, compileDeferred, compiled, fileDeferred, filename, folder, line, mode, oldname, parse, path, stat, _ref;
+    var $active, cm, compileDeferred, fileDeferred, filename, folder, mode, oldname, path, stat, worker, _ref;
     $active = $('#file-tabs > li.active > a');
     cm = $active.data('editor');
     stat = cm.siphon['dropbox-stat'];
@@ -296,23 +296,33 @@
     if (config.compile) {
       switch (getExtension(path)) {
         case 'coffee':
-          try {
-            compiled = CoffeeScript.compile($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')));
-            dropbox.writeFile(path.replace(/coffee$/, 'js'), compiled, null, function(error, stat) {
-              if (error) {
-                console.log(error);
-                alert(error);
+          worker = new Worker('coffee-script-worker.js');
+          worker.onmessage = function(event) {
+            var line, parse;
+            console.log(event);
+            if (event.data.js != null) {
+              return dropbox.writeFile(path.replace(/coffee$/, 'js'), event.data.js, null, function(error, stat) {
+                if (error) {
+                  console.log(error);
+                  alert(error);
+                }
+                return compileDeferred.resolve();
+              });
+            } else if (event.data.error != null) {
+              parse = event.data.error.message.match(/Parse error on line (\d+): (.*)$/);
+              if (parse != null) {
+                line = parseInt(parse[1]) - 1;
+                cm.setLineClass(line, 'cm-error', null);
+                cm.siphon.error = line;
               }
+              alert(event.data.error.message);
               return compileDeferred.resolve();
-            });
-          } catch (error) {
-            parse = error.message.match(/Parse error on line (\d+): (.*)$/);
-            line = parseInt(parse[1]) - 1;
-            cm.setLineClass(line, 'cm-error', null);
-            cm.siphon.error = line;
-            alert(error);
-            compileDeferred.resolve();
-          }
+            }
+          };
+          worker.postMessage({
+            source: $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
+            options: null
+          });
           break;
         case 'less':
           lessParser.parse($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')), function(error, tree) {
