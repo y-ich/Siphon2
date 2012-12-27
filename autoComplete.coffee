@@ -1,7 +1,10 @@
 ###
 # AutoComplete for CodeMirror in CoffeeScript
+# requirement: coffee-script-worker.js
 # (C) 2012 ICHIKAWA, Yuji (New 3 Rs)
 ###
+
+
 
 # JavaScript/CoffeeScript common keywords
 COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null',
@@ -50,7 +53,7 @@ csErrorLine = (error) ->
         null
 
 class AutoComplete
-    @current: null # if process to get candidates is not current (singleton), discard the result.
+    @latest: null # if process to get candidates is not latest, AutoComplete discards the result.
 
     constructor: (@cm) ->
         switch @cm.getOption 'mode' 
@@ -62,16 +65,9 @@ class AutoComplete
                 @keywordsAssist = CS_KEYWORDS_ASSIST
         
         @candidates = []
-        cursor = @cm.getCursor()
+        @setCandidatesAndShowFirst_()
+        AutoComplete.latest = this
 
-        @setCandidates_ cursor, =>
-            if AutoComplete.current is this and @candidates.length > 0
-                @index = 0
-                @cm.replaceRange @candidates[@index], cursor
-                @start = cursor
-                @end = @cm.getCursor()
-                @cm.setSelection @start, @end
-        AutoComplete.current = this
     previous: -> @next_ -1
 
     next: -> @next_ 1
@@ -88,7 +84,37 @@ class AutoComplete
             @end = @cm.getCursor()
             @cm.setSelection @start, @end
 
-    setCandidates_: (cursor, continuation) ->
+    setCandidatesAndShowFirst_: ->
+        propertyChain = @getPropertyChain_()
+
+        if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string # keyword assist
+            if @keywordsAssist.hasOwnProperty propertyChain[0].string
+                @candidates = @keywordsAssist[propertyChain[0].string]
+        else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and propertyChain[propertyChain.length - 2].className is 'property'
+        else if propertyChain.length != 0
+            target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
+            if propertyChain.length == 1
+                @extractVariablesAndShowFirst_()
+                return # no need to execute continuation.
+            else
+                try
+                    value = eval "(#{propertyChain.map((e) -> e.string).join('').replace /\..*?$/, ''})" # you need () for object literal.
+                    candidates = switch typeof value
+                        when 'string' then Object.getOwnPropertyNames value.__proto__ # I don't need index propertes.
+                        when 'undefined' then []
+                        else
+                            object = new Object value # wrap value for primitive type.
+                            if object instanceof Array
+                                Object.getOwnPropertyNames(Object.getPrototypeOf object)
+                            else
+                                Object.getOwnPropertyNames(Object.getPrototypeOf object).concat Object.getOwnPropertyNames(object)
+                    @candidates = candidates.sort().filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
+                catch error
+                    console.log error
+        @showFirstCandidate_()
+
+    getPropertyChain_: ->
+        cursor = @cm.getCursor()
         propertyChain = []
         pos = {}
         pos[key] = value for key, value of cursor
@@ -134,51 +160,51 @@ class AutoComplete
             break if breakFlag
         propertyChain.reverse()
 
-        if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string # keyword assist
-            if @keywordsAssist.hasOwnProperty propertyChain[0].string
-                @candidates = @keywordsAssist[propertyChain[0].string]
-        else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and propertyChain[propertyChain.length - 2].className is 'property'
-        else if propertyChain.length != 0
-            target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
-            if propertyChain.length == 1
-                @extractVariables_ (variables) =>
-                    candidates = if /^\s*$/.test propertyChain[0].string then [] else @globalPropertiesPlusKeywords.concat(variables).sort()
-                    @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
-                    continuation()
-                return # no need to execute continuation.
-            else
-                try
-                    value = eval "(#{propertyChain.map((e) -> e.string).join('').replace /\..*?$/, ''})" # you need () for object literal.
-                    candidates = switch typeof value
-                        when 'string' then Object.getOwnPropertyNames value.__proto__ # I don't need index propertes.
-                        when 'undefined' then []
-                        else
-                            object = new Object value # wrap value for primitive type.
-                            if object instanceof Array
-                                Object.getOwnPropertyNames(Object.getPrototypeOf object)
-                            else
-                                Object.getOwnPropertyNames(Object.getPrototypeOf object).concat Object.getOwnPropertyNames(object)
-                    @candidates = candidates.sort().filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
-                catch error
-                    console.log error
-        continuation()
+    showFirstCandidate_: ->
+        if AutoComplete.latest is this and @candidates.length > 0
+            @index = 0
+            @cm.replaceRange @candidates[@index], cursor
+            @start = cursor
+            @end = @cm.getCursor()
+            @cm.setSelection @start, @end
 
-    extractVariables_: (callback) ->
+    extractVariablesAndShowFirst_: ->
         if @cm.getOption('mode') is 'coffeescript'
             cs = @cm.getValue()
-            worker = new Worker 'coffee-script-worker.js'
-            worker.onmessage = (event) ->
-                if event.data.js?
-                    callback getDeclaredVariables event.data.js
-                else
-                    tmp = cs.split(/\r?\n/)[0...csErrorLine(event.data.error) - 1]
-                    cs = tmp.join '\n'
-                    worker.onmessage = (event) ->
-                        callback if event.data.js? then getDeclaredVariables event.data.js else []
-                    worker.postMessage source: cs, options: {bare: on}
-            worker.postMessage source: cs, options: {bare: on}
+            csWorker.postMessage
+                sender: 'autoComplete'
+                callback: extractVariablesAndShowFirst__
+                source: cs
+                options:
+                    bare: on
         else
-            callback getDeclaredVariables @cm.getValue()
-        
+            postProcess getDeclaredVariables @cm.getValue()
+
+    addVariablesAndShowFirst_: (variables) =>
+        candidates = if /^\s*$/.test propertyChain[0].string then [] else @globalPropertiesPlusKeywords.concat(variables).sort()
+        @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
+        @showFirstCandidate_()
+
+extractVariablesAndShowFirst__ = (data) ->
+    if data.js?
+        addVariablesAndShowFirst_ getDeclaredVariables data.js
+    else if data.sender is 'autoComplete'
+        tmp = cs.split(/\r?\n/)[0...csErrorLine(event.data.error) - 1]
+        cs = tmp.join '\n'
+        worker.postMessage
+            sender: 'autoComplete-retry'
+            callback: extractVariablesAndShowFirst__
+            source: cs
+            options:
+                bare: on    
+    else
+        addVariablesAndShowFirst_ []
+
 
 window.AutoComplete = AutoComplete
+
+window.csWorker ?= new Worker 'coffee-script-worker.js'
+window.csWorker.addEventListener 'message', ((event) ->
+        return unless /autoComplete/.test event.data.sender
+        event.data.callback data
+    ), false

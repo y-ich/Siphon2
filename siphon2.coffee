@@ -212,24 +212,23 @@ uploadFile = ->
     if config.compile
         switch getExtension path
             when 'coffee'
-                worker = new Worker 'coffee-script-worker.js'
-                worker.onmessage = (event) ->
-                    console.log event
-                    if event.data.js?
-                        dropbox.writeFile path.replace(/coffee$/, 'js'), event.data.js, null, (error, stat) ->
-                            if error
-                                console.log error
-                                alert error
+                csWorker.postMessage
+                    sender: 'upload'
+                    callback: (data) ->
+                        if data.js?
+                            dropbox.writeFile path.replace(/coffee$/, 'js'), data.js, null, (error, stat) ->
+                                if error
+                                    console.log error
+                                    alert error
+                                compileDeferred.resolve()
+                        else if data.error?
+                            parse = data.error.message.match /Parse error on line (\d+): (.*)$/
+                            if parse?
+                                line = parseInt(parse[1]) - 1
+                                cm.setLineClass line, 'cm-error', null
+                                cm.siphon.error = line
+                            alert data.error.message
                             compileDeferred.resolve()
-                    else if event.data.error?
-                        parse = event.data.error.message.match /Parse error on line (\d+): (.*)$/
-                        if parse?
-                            line = parseInt(parse[1]) - 1
-                            cm.setLineClass line, 'cm-error', null
-                            cm.siphon.error = line
-                        alert event.data.error.message
-                        compileDeferred.resolve()                    
-                worker.postMessage
                     source: $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
                     options: null
             when 'less'
@@ -670,6 +669,12 @@ initializeEventHandlers = ->
 #
 # main
 #
+
+window.csWorker ?= new Worker 'coffee-script-worker.js'
+window.csWorker.addEventListener 'message', ((event) ->
+        return unless event.sender is 'upload'
+        event.data.callback event.data
+    ), false
 
 unless isPortrait()
     $('.tabbable').addClass 'tabs-left' 

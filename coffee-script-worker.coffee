@@ -1,5 +1,7 @@
 @onmessage = (event) ->
     result =
+        sender: event.data.sender ? null
+        callback: event.data.callback ? null
         js: null
         error: null
     try

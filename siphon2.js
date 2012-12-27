@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, compareString, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, compareString, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, showError, spinner, touchDevice, uploadFile, _ref;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -258,7 +258,7 @@
   };
 
   uploadFile = function() {
-    var $active, cm, compileDeferred, fileDeferred, filename, folder, mode, oldname, path, stat, worker, _ref;
+    var $active, cm, compileDeferred, fileDeferred, filename, folder, mode, oldname, path, stat, _ref;
     $active = $('#file-tabs > li.active > a');
     cm = $active.data('editor');
     stat = cm.siphon['dropbox-stat'];
@@ -296,30 +296,29 @@
     if (config.compile) {
       switch (getExtension(path)) {
         case 'coffee':
-          worker = new Worker('coffee-script-worker.js');
-          worker.onmessage = function(event) {
-            var line, parse;
-            console.log(event);
-            if (event.data.js != null) {
-              return dropbox.writeFile(path.replace(/coffee$/, 'js'), event.data.js, null, function(error, stat) {
-                if (error) {
-                  console.log(error);
-                  alert(error);
+          csWorker.postMessage({
+            sender: 'upload',
+            callback: function(data) {
+              var line, parse;
+              if (data.js != null) {
+                return dropbox.writeFile(path.replace(/coffee$/, 'js'), data.js, null, function(error, stat) {
+                  if (error) {
+                    console.log(error);
+                    alert(error);
+                  }
+                  return compileDeferred.resolve();
+                });
+              } else if (data.error != null) {
+                parse = data.error.message.match(/Parse error on line (\d+): (.*)$/);
+                if (parse != null) {
+                  line = parseInt(parse[1]) - 1;
+                  cm.setLineClass(line, 'cm-error', null);
+                  cm.siphon.error = line;
                 }
+                alert(data.error.message);
                 return compileDeferred.resolve();
-              });
-            } else if (event.data.error != null) {
-              parse = event.data.error.message.match(/Parse error on line (\d+): (.*)$/);
-              if (parse != null) {
-                line = parseInt(parse[1]) - 1;
-                cm.setLineClass(line, 'cm-error', null);
-                cm.siphon.error = line;
               }
-              alert(event.data.error.message);
-              return compileDeferred.resolve();
-            }
-          };
-          worker.postMessage({
+            },
             source: $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
             options: null
           });
@@ -913,6 +912,17 @@
       return makeFileList(null, config.fileList.order, config.fileList.direction);
     });
   };
+
+  if ((_ref = window.csWorker) == null) {
+    window.csWorker = new Worker('coffee-script-worker.js');
+  }
+
+  window.csWorker.addEventListener('message', (function(event) {
+    if (event.sender !== 'upload') {
+      return;
+    }
+    return event.data.callback(event.data);
+  }), false);
 
   if (!isPortrait()) {
     $('.tabbable').addClass('tabs-left');
