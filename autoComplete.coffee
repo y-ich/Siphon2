@@ -65,6 +65,7 @@ class AutoComplete
                 @keywordsAssist = CS_KEYWORDS_ASSIST
         
         @candidates = []
+        @start = @cm.getCursor()
         @setCandidatesAndShowFirst_()
         AutoComplete.latest = this
 
@@ -92,9 +93,9 @@ class AutoComplete
                 @candidates = @keywordsAssist[propertyChain[0].string]
         else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and propertyChain[propertyChain.length - 2].className is 'property'
         else if propertyChain.length != 0
-            target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
+            @target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
             if propertyChain.length == 1
-                @extractVariablesAndShowFirst_()
+                @extractVariablesAndShowFirst_() unless /^\s*$/.test propertyChain[0].string 
                 return # no need to execute continuation.
             else
                 try
@@ -114,10 +115,9 @@ class AutoComplete
         @showFirstCandidate_()
 
     getPropertyChain_: ->
-        cursor = @cm.getCursor()
         propertyChain = []
         pos = {}
-        pos[key] = value for key, value of cursor
+        pos[key] = value for key, value of @start
         bracketStack = []
         breakFlag = false
         loop
@@ -161,26 +161,25 @@ class AutoComplete
         propertyChain.reverse()
 
     showFirstCandidate_: ->
-        if AutoComplete.latest is this and @candidates.length > 0
+        if @candidates.length > 0
             @index = 0
-            @cm.replaceRange @candidates[@index], cursor
-            @start = cursor
+            @cm.replaceRange @candidates[@index], @start
             @end = @cm.getCursor()
             @cm.setSelection @start, @end
 
     extractVariablesAndShowFirst_: ->
         if @cm.getOption('mode') is 'coffeescript'
             cs = @cm.getValue()
-            csWorker.onmessage = ((id) ->
-                    (event) ->
+            csWorker.onmessage = ((id) =>
+                    (event) =>
                         return unless event.data.sender is 'autoComplete' and event.data.id is id
                         if event.data.js?
                             @addVariablesAndShowFirst_ getDeclaredVariables event.data.js
                         else
                             tmp = cs.split(/\r?\n/)[0...csErrorLine(event.data.error) - 1]
                             cs = tmp.join '\n'
-                            csWorker.onmessage = ((id) ->
-                                    (event) ->
+                            csWorker.onmessage = ((id) =>
+                                    (event) =>
                                         return unless event.data.sender is 'autoComplete' and event.data.id is id
                                         @addVariablesAndShowFirst_ getDeclaredVariables event.data.js ? []                                        
                                 )(AutoComplete.id)
@@ -202,13 +201,10 @@ class AutoComplete
             addVariablesAndShowFirst_ getDeclaredVariables @cm.getValue()
 
     addVariablesAndShowFirst_: (variables) ->
-        console.log 'pass'
-    
-        candidates = if /^\s*$/.test propertyChain[0].string then [] else @globalPropertiesPlusKeywords.concat(variables).sort()
+        candidates = @globalPropertiesPlusKeywords.concat(variables).sort()
+        target = @target
         @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
         @showFirstCandidate_()
-
-    extractVariablesAndShowFirst__ = (data) =>
 
 
 window.AutoComplete = AutoComplete

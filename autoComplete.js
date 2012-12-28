@@ -70,8 +70,6 @@
   };
 
   AutoComplete = (function() {
-    var extractVariablesAndShowFirst__,
-      _this = this;
 
     AutoComplete.id = 0;
 
@@ -87,6 +85,7 @@
           this.keywordsAssist = CS_KEYWORDS_ASSIST;
       }
       this.candidates = [];
+      this.start = this.cm.getCursor();
       this.setCandidatesAndShowFirst_();
       AutoComplete.latest = this;
     }
@@ -116,7 +115,7 @@
     };
 
     AutoComplete.prototype.setCandidatesAndShowFirst_ = function() {
-      var candidates, object, propertyChain, target, value;
+      var candidates, object, propertyChain, value;
       propertyChain = this.getPropertyChain_();
       if (propertyChain.length === 2 && /^\s+$/.test(propertyChain[1].string)) {
         if (this.keywordsAssist.hasOwnProperty(propertyChain[0].string)) {
@@ -125,9 +124,11 @@
       } else if (propertyChain.length > 1 && /^\s+$/.test(propertyChain[propertyChain.length - 1].string) && propertyChain[propertyChain.length - 2].className === 'property') {
 
       } else if (propertyChain.length !== 0) {
-        target = /^(\s*|\.)$/.test(propertyChain[propertyChain.length - 1].string) ? '' : propertyChain[propertyChain.length - 1].string;
+        this.target = /^(\s*|\.)$/.test(propertyChain[propertyChain.length - 1].string) ? '' : propertyChain[propertyChain.length - 1].string;
         if (propertyChain.length === 1) {
-          this.extractVariablesAndShowFirst_();
+          if (!/^\s*$/.test(propertyChain[0].string)) {
+            this.extractVariablesAndShowFirst_();
+          }
           return;
         } else {
           try {
@@ -163,12 +164,12 @@
     };
 
     AutoComplete.prototype.getPropertyChain_ = function() {
-      var bracketStack, breakFlag, cursor, key, pos, propertyChain, token, value;
-      cursor = this.cm.getCursor();
+      var bracketStack, breakFlag, key, pos, propertyChain, token, value, _ref;
       propertyChain = [];
       pos = {};
-      for (key in cursor) {
-        value = cursor[key];
+      _ref = this.start;
+      for (key in _ref) {
+        value = _ref[key];
         pos[key] = value;
       }
       bracketStack = [];
@@ -231,17 +232,17 @@
     };
 
     AutoComplete.prototype.showFirstCandidate_ = function() {
-      if (AutoComplete.latest === this && this.candidates.length > 0) {
+      if (this.candidates.length > 0) {
         this.index = 0;
-        this.cm.replaceRange(this.candidates[this.index], cursor);
-        this.start = cursor;
+        this.cm.replaceRange(this.candidates[this.index], this.start);
         this.end = this.cm.getCursor();
         return this.cm.setSelection(this.start, this.end);
       }
     };
 
     AutoComplete.prototype.extractVariablesAndShowFirst_ = function() {
-      var cs;
+      var cs,
+        _this = this;
       if (this.cm.getOption('mode') === 'coffeescript') {
         cs = this.cm.getValue();
         csWorker.onmessage = (function(id) {
@@ -251,7 +252,7 @@
               return;
             }
             if (event.data.js != null) {
-              return this.addVariablesAndShowFirst_(getDeclaredVariables(event.data.js));
+              return _this.addVariablesAndShowFirst_(getDeclaredVariables(event.data.js));
             } else {
               tmp = cs.split(/\r?\n/).slice(0, csErrorLine(event.data.error) - 1);
               cs = tmp.join('\n');
@@ -261,7 +262,7 @@
                   if (!(event.data.sender === 'autoComplete' && event.data.id === id)) {
                     return;
                   }
-                  return this.addVariablesAndShowFirst_(getDeclaredVariables((_ref = event.data.js) != null ? _ref : []));
+                  return _this.addVariablesAndShowFirst_(getDeclaredVariables((_ref = event.data.js) != null ? _ref : []));
                 };
               })(AutoComplete.id);
               csWorker.postMessage({
@@ -290,9 +291,9 @@
     };
 
     AutoComplete.prototype.addVariablesAndShowFirst_ = function(variables) {
-      var candidates;
-      console.log('pass');
-      candidates = /^\s*$/.test(propertyChain[0].string) ? [] : this.globalPropertiesPlusKeywords.concat(variables).sort();
+      var candidates, target;
+      candidates = this.globalPropertiesPlusKeywords.concat(variables).sort();
+      target = this.target;
       this.candidates = candidates.filter(function(e) {
         return new RegExp('^' + target).test(e);
       }).map(function(e) {
@@ -301,11 +302,9 @@
       return this.showFirstCandidate_();
     };
 
-    extractVariablesAndShowFirst__ = function(data) {};
-
     return AutoComplete;
 
-  }).call(this);
+  })();
 
   window.AutoComplete = AutoComplete;
 
