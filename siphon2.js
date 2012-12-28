@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, byteString, compareString, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, byteString, compareString, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, setValue, showError, spinner, touchDevice, updateEditor, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -30,6 +30,25 @@
   lessParser = new less.Parser();
 
   dropbox = null;
+
+  setValue = function(cm, string) {
+    cm.setValue(string);
+    switch (cm.getOption('mode')) {
+      case 'javascript':
+        return cm.siphon.variables = getDeclaredVariables(string);
+      case 'coffeescript':
+        return compileCS(string, {
+          bare: true
+        }, function(data) {
+          if (data.js != null) {
+            return cm.siphon.variables = getDeclaredVariables(data.js);
+          } else if (data.error != null) {
+            cm.siphon.variables = null;
+            return console.log(data.error.message);
+          }
+        });
+    }
+  };
 
   dateString = function(date) {
     return date.toDateString().replace(/^.*? /, '') + ' ' + date.toTimeString().replace(/GMT.*$/, '');
@@ -153,6 +172,8 @@
       return cm.siphon.timer = null;
     }), config.autoSaveTime);
   };
+
+  newCodeMirror.timerId = null;
 
   newCodeMirror.onCursorActivity = function() {
     return setTimeout((function() {
@@ -494,6 +515,19 @@
     return (typeof orientation !== "undefined" && orientation !== null ? orientation : 0) % 180 === 0;
   };
 
+  updateEditor = function($tabAnchor, name, content) {
+    var cm, mode;
+    $tabAnchor.children('span').text(name);
+    cm = $tabAnchor.data('editor');
+    cm.siphon.title = name;
+    mode = ext2mode(getExtension(name));
+    cm.setOption('mode', mode);
+    cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
+    cm.setOption('onGutterClick', foldFunction(mode));
+    setValue(cm, content);
+    return cm;
+  };
+
   restoreConfig = function() {
     var defaultConfig, e, i, key, name, value, _i, _len, _ref, _ref1, _ref2;
     defaultConfig = {
@@ -550,7 +584,7 @@
       }
       buffer = JSON.parse(value);
       cm = newTabAndEditor(buffer.title, ext2mode(getExtension(buffer.title)));
-      cm.setValue(buffer.text);
+      setValue(cm, buffer.text);
       if (buffer.dropbox != null) {
         _results.push(cm.siphon['dropbox-stat'] = buffer.dropbox);
       } else {
@@ -632,20 +666,15 @@
       filename = this.value.replace(/^.*\\/, '');
       reader = new FileReader();
       reader.onload = function() {
-        var $active, cm, mode;
+        var $active, cm;
         $active = $('#file-tabs > li.active > a');
         cm = $active.data('editor');
         if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
-          $active.children('span').text(filename);
-          cm.siphon.title = filename;
-          mode = ext2mode(getExtension(filename));
-          cm.setOption('mode', mode);
-          cm.setOption('extraKeys', mode === 'htmlmixed' ? CodeMirror.defaults.extraKeys : null);
-          cm.setOption('onGutterClick', foldFunction(mode));
+          return updateEditor($active, filename, reader.result);
         } else {
           cm = newTabAndEditor(filename, ext2mode(getExtension(filename)));
+          return setValue(cm, reader.result);
         }
-        return cm.setValue(reader.result);
       };
       return reader.readAsText(event.target.files[0]);
     });
@@ -728,30 +757,23 @@
           $tabs = null;
         }
         dropbox.readFile(stat.path, null, function(error, string, stat) {
-          var $active, cm, e, extension, _i, _len;
+          var $active, cm, e, _i, _len;
           if (($tabs != null) && $tabs.length > 0) {
             for (_i = 0, _len = $tabs.length; _i < _len; _i++) {
               e = $tabs[_i];
               cm = $(e).data('editor');
-              cm.setValue(string);
+              setValue(cm, string);
               cm.siphon['dropbox-stat'] = stat;
             }
           } else {
             $active = $('#file-tabs > li.active > a');
-            cm = $active.data('editor');
-            extension = getExtension(stat.name);
-            if (cm.getValue() === '' && $active.children('span').text() === 'untitled') {
-              $active.children('span').text(stat.name);
-              cm.setOption('mode', ext2mode(extension));
-              if (extension !== 'htmlmixed') {
-                cm.setOption('extraKeys', null);
-              }
-              cm.setOption('onGutterClick', foldFunction(cm.getOption('mode')));
+            if ($active.data('editor').getValue() === '' && $active.children('span').text() === 'untitled') {
+              cm = updateEditor($active, stat.name, string);
             } else {
-              cm = newTabAndEditor(stat.name, ext2mode(extension));
+              cm = newTabAndEditor(stat.name, ext2mode(getExtension(stat.name)));
               $active = $('#file-tabs > li.active > a');
+              setValue(cm, string);
             }
-            cm.setValue(string);
             cm.siphon['dropbox-stat'] = stat;
             saveBuffer(cm);
             console.log('saved');

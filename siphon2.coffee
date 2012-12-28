@@ -23,6 +23,19 @@ dropbox = null
 # function definitions
 #
 
+setValue = (cm, string) ->
+    cm.setValue string
+    switch cm.getOption 'mode'
+        when 'javascript'
+            cm.siphon.variables = getDeclaredVariables string
+        when 'coffeescript'
+            compileCS string, {bare: on}, (data) ->
+                if data.js?
+                    cm.siphon.variables = getDeclaredVariables data.js
+                else if data.error?
+                    cm.siphon.variables = null
+                    console.log data.error.message
+
 dateString = (date) -> date.toDateString().replace(/^.*? /, '') + ' ' + date.toTimeString().replace(/GMT.*$/, '')
 
 byteString = (n) ->
@@ -103,7 +116,7 @@ newCodeMirror.onBlur = ->
 newCodeMirror.onChange = (cm, change) ->
     cm.setLineClass cm.siphon.error, null, null if cm.siphon.error?
     cm.siphon.error = null
-    
+
     if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
         # I regard change.text[0].length == 1 as key type, change.text[0].length == 0 as delete, change.text[0].length > 1 as paste.
         # I don't know the case change.text.length > 1
@@ -115,6 +128,7 @@ newCodeMirror.onChange = (cm, change) ->
             saveBuffer cm
             cm.siphon.timer = null
         ), config.autoSaveTime
+newCodeMirror.timerId = null
 
 newCodeMirror.onCursorActivity = ->
     setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # restore position against auto scroll of mobile safari
@@ -349,7 +363,18 @@ ancestorFolders = (path) ->
     split[0..i].join '/' for e, i in split
 
 isPortrait = -> (orientation ? 0) % 180 == 0
-    
+
+
+updateEditor = ($tabAnchor, name, content) ->    
+    $tabAnchor.children('span').text name
+    cm = $tabAnchor.data 'editor'
+    cm.siphon.title = name
+    mode = ext2mode getExtension name
+    cm.setOption 'mode', mode
+    cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
+    cm.setOption 'onGutterClick', foldFunction mode
+    setValue cm, content
+    cm
 #
 # initialize functions
 #
@@ -394,7 +419,7 @@ restoreBuffer = ->
     for key, value of localStorage when /^siphon-buffer/.test key
         buffer = JSON.parse value
         cm = newTabAndEditor buffer.title, ext2mode getExtension buffer.title
-        cm.setValue buffer.text
+        setValue cm, buffer.text
         cm.siphon['dropbox-stat'] = buffer.dropbox if buffer.dropbox?
     
 initializeDropbox = ->
@@ -447,15 +472,10 @@ initializeEventHandlers = ->
             $active = $('#file-tabs > li.active > a')
             cm = $active.data 'editor'
             if cm.getValue() is '' and $active.children('span').text() is 'untitled'
-                $active.children('span').text filename
-                cm.siphon.title = filename
-                mode = ext2mode getExtension filename
-                cm.setOption 'mode', mode
-                cm.setOption 'extraKeys', if mode is 'htmlmixed' then CodeMirror.defaults.extraKeys else null
-                cm.setOption 'onGutterClick', foldFunction mode     
+                updateEditor $active, filename, reader.result
             else
                 cm = newTabAndEditor filename, ext2mode getExtension filename
-            cm.setValue reader.result
+                setValue cm, reader.result
                 
         reader.readAsText event.target.files[0]
 
@@ -531,21 +551,16 @@ initializeEventHandlers = ->
                 if $tabs? and $tabs.length > 0
                     for e in $tabs
                         cm = $(e).data 'editor'
-                        cm.setValue string
+                        setValue cm, string
                         cm.siphon['dropbox-stat'] = stat
                 else
                     $active = $('#file-tabs > li.active > a')
-                    cm = $active.data 'editor'
-                    extension = getExtension stat.name
-                    if cm.getValue() is '' and $active.children('span').text() is 'untitled'
-                        $active.children('span').text stat.name
-                        cm.setOption 'mode', ext2mode extension
-                        cm.setOption 'extraKeys', null unless extension is 'htmlmixed'
-                        cm.setOption 'onGutterClick', foldFunction cm.getOption 'mode'     
+                    if $active.data('editor').getValue() is '' and $active.children('span').text() is 'untitled'
+                        cm = updateEditor $active, stat.name, string
                     else
-                        cm = newTabAndEditor stat.name, ext2mode extension
+                        cm = newTabAndEditor stat.name, ext2mode getExtension stat.name
                         $active = $('#file-tabs > li.active > a')
-                    cm.setValue string
+                        setValue cm, string
                     cm.siphon['dropbox-stat'] = stat
                     saveBuffer cm
                     console.log 'saved'

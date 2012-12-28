@@ -66,8 +66,6 @@ csErrorLine = (error) ->
         null
 
 class AutoComplete
-    @id: 0 # id that currently processed.
-
     constructor: (@cm) ->
         switch @cm.getOption 'mode' 
             when 'javascript'
@@ -77,10 +75,9 @@ class AutoComplete
                 @globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS
                 @keywordsAssist = CS_KEYWORDS_ASSIST
         
-        @candidates = []
+        @variables = if @cm.siphon? and @cm.siphon.variables? then @cm.siphon.variables else null # variables list that editor prepared
         @start = @cm.getCursor()
         @setCandidatesAndShowFirst_()
-        AutoComplete.latest = this
 
     previous: -> @next_ -1
 
@@ -108,7 +105,7 @@ class AutoComplete
         else if propertyChain.length != 0
             @target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
             if propertyChain.length == 1
-                @extractVariablesAndShowFirst_() unless /^\s*$/.test propertyChain[0].string 
+                @addVariablesAndShowFirst_() unless /^\s*$/.test propertyChain[0].string 
                 return # no need to execute continuation.
             else
                 try
@@ -180,22 +177,8 @@ class AutoComplete
             @end = @cm.getCursor()
             @cm.setSelection @start, @end
 
-    extractVariablesAndShowFirst_: ->
-        if @cm.getOption('mode') is 'coffeescript'
-            cs = @cm.getValue()
-            compileCS cs, {bare: on}, (data) =>
-                if data.js?
-                    @addVariablesAndShowFirst_ getDeclaredVariables data.js
-                else
-                    tmp = cs.split(/\r?\n/)[0...csErrorLine(data.error) - 1]
-                    cs = tmp.join '\n'
-                    compileCS cs, {bare: on}, (data) =>
-                        @addVariablesAndShowFirst_ getDeclaredVariables event.data.js ? []
-        else
-            @addVariablesAndShowFirst_ getDeclaredVariables @cm.getValue()
-
-    addVariablesAndShowFirst_: (variables) ->
-        candidates = @globalPropertiesPlusKeywords.concat(variables).sort()
+    addVariablesAndShowFirst_: ->
+        candidates = if @variables? then @globalPropertiesPlusKeywords.concat(@variables).sort() else @globalPropertiesPlusKeywords.sort()
         target = @target
         @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
         @showFirstCandidate_()
@@ -203,4 +186,4 @@ class AutoComplete
 # exports
 window.AutoComplete = AutoComplete
 window.compileCS = compileCS
-
+window.getDeclaredVariables = getDeclaredVariables
