@@ -212,25 +212,21 @@ uploadFile = ->
     if config.compile
         switch getExtension path
             when 'coffee'
-                csWorker.postMessage
-                    sender: 'upload'
-                    callback: (data) ->
-                        if data.js?
-                            dropbox.writeFile path.replace(/coffee$/, 'js'), data.js, null, (error, stat) ->
-                                if error
-                                    console.log error
-                                    alert error
-                                compileDeferred.resolve()
-                        else if data.error?
-                            parse = data.error.message.match /Parse error on line (\d+): (.*)$/
-                            if parse?
-                                line = parseInt(parse[1]) - 1
-                                cm.setLineClass line, 'cm-error', null
-                                cm.siphon.error = line
-                            alert data.error.message
+                compileCS $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' '), null, (data) ->
+                    if data.js?
+                        dropbox.writeFile path.replace(/coffee$/, 'js'), data.js, null, (error, stat) ->
+                            if error
+                                console.log error
+                                alert error
                             compileDeferred.resolve()
-                    source: $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' ')
-                    options: null
+                    else if data.error?
+                        parse = data.error.message.match /Parse error on line (\d+): (.*)$/
+                        if parse?
+                            line = parseInt(parse[1]) - 1
+                            cm.setLineClass line, 'cm-error', null
+                            cm.siphon.error = line
+                        alert data.error.message
+                        compileDeferred.resolve()
             when 'less'
                 lessParser.parse $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join ' '), (error, tree) ->
                     if error?
@@ -620,29 +616,23 @@ initializeEventHandlers = ->
             cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
         source = cm.getSelection()
 
-        continuation = (data) ->
-            if data.js?
-                try
-                    result = eval data.js
-                catch error
-                    result = error.message
-            else if data.error?
-                result = data.error.message
-            cm.replaceSelection result.toString()
-
         switch cm.getOption 'mode'
             when 'coffeescript'
-                worker = new Worker 'coffee-script-worker.js'
-                worker.onmessage = (event) ->
-                    continuation event.data
-                worker.postMessage
-                    source: source
-                    options:
-                        bare: on
+                compileCS source, {bare: on}, (data) ->
+                    if data.js?
+                        try
+                            result = eval data.js
+                        catch error
+                            result = error.message
+                    else if data.error?
+                        result = data.error.message
+                    cm.replaceSelection result.toString()
             when 'javascript'
-                continuation
-                    js: source
-                    error: null
+                try
+                    result = eval source
+                catch error
+                    result = error.message
+                cm.replaceSelection result.toString()
             
     $('#previous-button').on 'click', ->
         cm = $('#file-tabs > li.active > a').data('editor')
@@ -669,12 +659,6 @@ initializeEventHandlers = ->
 #
 # main
 #
-
-window.csWorker ?= new Worker 'coffee-script-worker.js'
-window.csWorker.addEventListener 'message', ((event) ->
-        return unless event.sender is 'upload'
-        event.data.callback event.data
-    ), false
 
 unless isPortrait()
     $('.tabbable').addClass 'tabs-left' 

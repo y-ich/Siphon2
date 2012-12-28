@@ -8,7 +8,7 @@
 
 
 (function() {
-  var AutoComplete, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_ONLY_KEYWORDS, GLOBAL_PROPERTIES, GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS, GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_ONLY_KEYWORDS, csErrorLine, e, getDeclaredVariables, _ref;
+  var AutoComplete, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_ONLY_KEYWORDS, GLOBAL_PROPERTIES, GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS, GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_ONLY_KEYWORDS, compileCS, csErrorLine, e, getDeclaredVariables;
 
   COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while'];
 
@@ -45,6 +45,26 @@
     "try": ['catch finally', 'catch'],
     "while": ['( )']
   };
+
+  compileCS = function(source, options, callback) {
+    compileCS.worker.onmessage = (function(id) {
+      return function(event) {
+        if (event.data.id === id) {
+          return callback(event.data);
+        }
+      };
+    })(compileCS.id);
+    compileCS.worker.postMessage({
+      id: compileCS.id,
+      source: source,
+      options: options
+    });
+    return compileCS.id += 1;
+  };
+
+  compileCS.worker = new Worker('coffee-script-worker.js');
+
+  compileCS.id = 0;
 
   getDeclaredVariables = function(js) {
     var IDENTIFIER, IDENTIFIER_MAY_WITH_ASSIGN, match, regexp, result;
@@ -245,48 +265,25 @@
         _this = this;
       if (this.cm.getOption('mode') === 'coffeescript') {
         cs = this.cm.getValue();
-        csWorker.onmessage = (function(id) {
-          return function(event) {
-            var tmp;
-            if (!(event.data.sender === 'autoComplete' && event.data.id === id)) {
-              return;
-            }
-            if (event.data.js != null) {
-              return _this.addVariablesAndShowFirst_(getDeclaredVariables(event.data.js));
-            } else {
-              tmp = cs.split(/\r?\n/).slice(0, csErrorLine(event.data.error) - 1);
-              cs = tmp.join('\n');
-              csWorker.onmessage = (function(id) {
-                return function(event) {
-                  var _ref;
-                  if (!(event.data.sender === 'autoComplete' && event.data.id === id)) {
-                    return;
-                  }
-                  return _this.addVariablesAndShowFirst_(getDeclaredVariables((_ref = event.data.js) != null ? _ref : []));
-                };
-              })(AutoComplete.id);
-              csWorker.postMessage({
-                sender: 'autoComplete',
-                source: cs,
-                options: {
-                  bare: true
-                }
-              });
-              return AutoComplete.id += 1;
-            }
-          };
-        })(AutoComplete.id);
-        csWorker.postMessage({
-          sender: 'autoComplete',
-          id: AutoComplete.id,
-          source: cs,
-          options: {
-            bare: true
+        return compileCS(cs, {
+          bare: true
+        }, function(data) {
+          var tmp;
+          if (data.js != null) {
+            return _this.addVariablesAndShowFirst_(getDeclaredVariables(data.js));
+          } else {
+            tmp = cs.split(/\r?\n/).slice(0, csErrorLine(data.error) - 1);
+            cs = tmp.join('\n');
+            return compileCS(cs, {
+              bare: true
+            }, function(data) {
+              var _ref;
+              return _this.addVariablesAndShowFirst_(getDeclaredVariables((_ref = event.data.js) != null ? _ref : []));
+            });
           }
         });
-        return AutoComplete.id += 1;
       } else {
-        return addVariablesAndShowFirst_(getDeclaredVariables(this.cm.getValue()));
+        return this.addVariablesAndShowFirst_(getDeclaredVariables(this.cm.getValue()));
       }
     };
 
@@ -308,8 +305,6 @@
 
   window.AutoComplete = AutoComplete;
 
-  if ((_ref = window.csWorker) == null) {
-    window.csWorker = new Worker('coffee-script-worker.js');
-  }
+  window.compileCS = compileCS;
 
 }).call(this);

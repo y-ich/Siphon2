@@ -37,6 +37,19 @@ JS_KEYWORDS_ASSIST =
 #
 # functions
 #
+
+compileCS = (source, options, callback) ->
+    compileCS.worker.onmessage = ((id) ->
+            (event) -> callback event.data if event.data.id is id
+        )(compileCS.id)
+    compileCS.worker.postMessage
+        id: compileCS.id
+        source: source
+        options: options
+    compileCS.id += 1    
+compileCS.worker = new Worker 'coffee-script-worker.js'
+compileCS.id = 0
+
 getDeclaredVariables = (js) ->
     IDENTIFIER = '[_A-Za-z$][_A-Za-z$0-9]*'
     IDENTIFIER_MAY_WITH_ASSIGN = IDENTIFIER + '\\s*(?:=\\s*\\S+)?'
@@ -170,35 +183,16 @@ class AutoComplete
     extractVariablesAndShowFirst_: ->
         if @cm.getOption('mode') is 'coffeescript'
             cs = @cm.getValue()
-            csWorker.onmessage = ((id) =>
-                    (event) =>
-                        return unless event.data.sender is 'autoComplete' and event.data.id is id
-                        if event.data.js?
-                            @addVariablesAndShowFirst_ getDeclaredVariables event.data.js
-                        else
-                            tmp = cs.split(/\r?\n/)[0...csErrorLine(event.data.error) - 1]
-                            cs = tmp.join '\n'
-                            csWorker.onmessage = ((id) =>
-                                    (event) =>
-                                        return unless event.data.sender is 'autoComplete' and event.data.id is id
-                                        @addVariablesAndShowFirst_ getDeclaredVariables event.data.js ? []                                        
-                                )(AutoComplete.id)
-                            csWorker.postMessage
-                                sender: 'autoComplete'
-                                source: cs
-                                options:
-                                    bare: on    
-                            AutoComplete.id += 1
-                )(AutoComplete.id)
-            csWorker.postMessage
-                sender: 'autoComplete'
-                id: AutoComplete.id
-                source: cs
-                options:
-                    bare: on
-            AutoComplete.id += 1
+            compileCS cs, {bare: on}, (data) =>
+                if data.js?
+                    @addVariablesAndShowFirst_ getDeclaredVariables data.js
+                else
+                    tmp = cs.split(/\r?\n/)[0...csErrorLine(data.error) - 1]
+                    cs = tmp.join '\n'
+                    compileCS cs, {bare: on}, (data) =>
+                        @addVariablesAndShowFirst_ getDeclaredVariables event.data.js ? []
         else
-            addVariablesAndShowFirst_ getDeclaredVariables @cm.getValue()
+            @addVariablesAndShowFirst_ getDeclaredVariables @cm.getValue()
 
     addVariablesAndShowFirst_: (variables) ->
         candidates = @globalPropertiesPlusKeywords.concat(variables).sort()
@@ -206,7 +200,7 @@ class AutoComplete
         @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
         @showFirstCandidate_()
 
-
+# exports
 window.AutoComplete = AutoComplete
+window.compileCS = compileCS
 
-window.csWorker ?= new Worker 'coffee-script-worker.js'

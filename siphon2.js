@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, compareString, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, showError, spinner, touchDevice, uploadFile, _ref;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, compareString, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -296,31 +296,26 @@
     if (config.compile) {
       switch (getExtension(path)) {
         case 'coffee':
-          csWorker.postMessage({
-            sender: 'upload',
-            callback: function(data) {
-              var line, parse;
-              if (data.js != null) {
-                return dropbox.writeFile(path.replace(/coffee$/, 'js'), data.js, null, function(error, stat) {
-                  if (error) {
-                    console.log(error);
-                    alert(error);
-                  }
-                  return compileDeferred.resolve();
-                });
-              } else if (data.error != null) {
-                parse = data.error.message.match(/Parse error on line (\d+): (.*)$/);
-                if (parse != null) {
-                  line = parseInt(parse[1]) - 1;
-                  cm.setLineClass(line, 'cm-error', null);
-                  cm.siphon.error = line;
+          compileCS($active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')), null, function(data) {
+            var line, parse;
+            if (data.js != null) {
+              return dropbox.writeFile(path.replace(/coffee$/, 'js'), data.js, null, function(error, stat) {
+                if (error) {
+                  console.log(error);
+                  alert(error);
                 }
-                alert(data.error.message);
                 return compileDeferred.resolve();
+              });
+            } else if (data.error != null) {
+              parse = data.error.message.match(/Parse error on line (\d+): (.*)$/);
+              if (parse != null) {
+                line = parseInt(parse[1]) - 1;
+                cm.setLineClass(line, 'cm-error', null);
+                cm.siphon.error = line;
               }
-            },
-            source: $active.data('editor').getValue().replace(/\t/g, new Array(cm.getOption('tabSize')).join(' ')),
-            options: null
+              alert(data.error.message);
+              return compileDeferred.resolve();
+            }
           });
           break;
         case 'less':
@@ -833,7 +828,7 @@
       return event.preventDefault();
     });
     $('#eval').on('click', function() {
-      var cm, continuation, line, mode, source, worker;
+      var cm, line, mode, result, source;
       cm = $('#file-tabs > li.active > a').data('editor');
       mode = cm.getOption('mode');
       if (!(mode === 'coffeescript' || mode === 'javascript')) {
@@ -850,36 +845,30 @@
         });
       }
       source = cm.getSelection();
-      continuation = function(data) {
-        var result;
-        if (data.js != null) {
+      switch (cm.getOption('mode')) {
+        case 'coffeescript':
+          return compileCS(source, {
+            bare: true
+          }, function(data) {
+            var result;
+            if (data.js != null) {
+              try {
+                result = eval(data.js);
+              } catch (error) {
+                result = error.message;
+              }
+            } else if (data.error != null) {
+              result = data.error.message;
+            }
+            return cm.replaceSelection(result.toString());
+          });
+        case 'javascript':
           try {
-            result = eval(data.js);
+            result = eval(source);
           } catch (error) {
             result = error.message;
           }
-        } else if (data.error != null) {
-          result = data.error.message;
-        }
-        return cm.replaceSelection(result.toString());
-      };
-      switch (cm.getOption('mode')) {
-        case 'coffeescript':
-          worker = new Worker('coffee-script-worker.js');
-          worker.onmessage = function(event) {
-            return continuation(event.data);
-          };
-          return worker.postMessage({
-            source: source,
-            options: {
-              bare: true
-            }
-          });
-        case 'javascript':
-          return continuation({
-            js: source,
-            error: null
-          });
+          return cm.replaceSelection(result.toString());
       }
     });
     $('#previous-button').on('click', function() {
@@ -912,17 +901,6 @@
       return makeFileList(null, config.fileList.order, config.fileList.direction);
     });
   };
-
-  if ((_ref = window.csWorker) == null) {
-    window.csWorker = new Worker('coffee-script-worker.js');
-  }
-
-  window.csWorker.addEventListener('message', (function(event) {
-    if (event.sender !== 'upload') {
-      return;
-    }
-    return event.data.callback(event.data);
-  }), false);
 
   if (!isPortrait()) {
     $('.tabbable').addClass('tabs-left');
