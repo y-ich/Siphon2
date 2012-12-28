@@ -25,6 +25,16 @@ dropbox = null
 
 dateString = (date) -> date.toDateString().replace(/^.*? /, '') + ' ' + date.toTimeString().replace(/GMT.*$/, '')
 
+byteString = (n) ->
+    if n < 1000
+        n.toString() + 'B'
+    else if n < 1000000
+        Math.floor(n / 1000).toString() + 'KB'
+    else if n < 1000000000
+        Math.floor(n / 1000000).toString() + 'MB'
+    else if n < 1000000000000
+        Math.floor(n / 1000000000).toString() + 'GB'
+
 getExtension = (path) -> if /\./.test path then path.replace /^.*\./, '' else ''
 
 compareString = (str1, str2) ->
@@ -154,14 +164,21 @@ getList = (path) ->
             makeFileList stats, config.fileList.order, config.fileList.direction
 
 makeFileList = (stats, order, direction) ->
+    ITEMS =
+        image: (stat) -> "<td><img src=\"img/dropbox-api-icons/16x16/#{stat.typeIcon}.gif\"></td>"
+        name: (stat) -> "<td>#{stat.name}</td>"
+        date: (stat) -> "<td>#{dateString stat.modifiedAt}</td>"
+        size: (stat) -> "<td>#{byteString stat.size}</td>"
+        kind: (stat) -> "<td>#{getExtension stat.name}</td>"
     $table = $('#download-modal table')
     if stats?
         $table.data 'dropbox', stats
     else
         stats = $table.data 'dropbox'
     $table.children().remove()
-    $tr = '<tr>' + ("<th#{if order is e then " class=\"#{direction}\"" else ''}><span>#{e}</span></th>" for e in ['image', 'name', 'kind', 'date']).join('') + '</tr>'
-    $table.append $tr
+    
+    th = (key) -> "<th#{if order is key then " class=\"#{direction}\"" else ''}><span>#{key}</span></th>"
+    $table.append "<tr>#{Object.keys(ITEMS).map(th).join('')}</tr>"
             
     stats = stats.sort (a, b) ->
         result = switch order
@@ -171,12 +188,14 @@ makeFileList = (stats, order, direction) ->
                 compareString getExtension(a.name), getExtension(b.name)            
             when 'date'
                 a.modifiedAt.getTime() - b.modifiedAt.getTime()
+            when 'size'
+                a.size - b.size
 
         result * if direction is 'ascending' then 1 else -1
 
-    for e in stats
-        $tr = $("<tr><td><img src=\"img/dropbox-api-icons/16x16/#{e.typeIcon}.gif\"></td><td>#{e.name}</td><td>#{getExtension e.name}</td><td>#{dateString e.modifiedAt}</td></tr>")
-        $tr.data 'dropbox-stat', e
+    for stat in stats
+        $tr = $("<tr>#{(value(stat) for key, value of ITEMS).join('')}</tr>")
+        $tr.data 'dropbox-stat', stat
         $table.append $tr
     
 uploadFile = ->

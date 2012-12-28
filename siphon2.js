@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, compareString, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, showError, spinner, touchDevice, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, byteString, compareString, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, showError, spinner, touchDevice, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -33,6 +33,18 @@
 
   dateString = function(date) {
     return date.toDateString().replace(/^.*? /, '') + ' ' + date.toTimeString().replace(/GMT.*$/, '');
+  };
+
+  byteString = function(n) {
+    if (n < 1000) {
+      return n.toString() + 'B';
+    } else if (n < 1000000) {
+      return Math.floor(n / 1000).toString() + 'KB';
+    } else if (n < 1000000000) {
+      return Math.floor(n / 1000000).toString() + 'MB';
+    } else if (n < 1000000000000) {
+      return Math.floor(n / 1000000000).toString() + 'GB';
+    }
   };
 
   getExtension = function(path) {
@@ -214,7 +226,24 @@
   };
 
   makeFileList = function(stats, order, direction) {
-    var $table, $tr, e, _i, _len, _results;
+    var $table, $tr, ITEMS, key, stat, th, value, _i, _len, _results;
+    ITEMS = {
+      image: function(stat) {
+        return "<td><img src=\"img/dropbox-api-icons/16x16/" + stat.typeIcon + ".gif\"></td>";
+      },
+      name: function(stat) {
+        return "<td>" + stat.name + "</td>";
+      },
+      date: function(stat) {
+        return "<td>" + (dateString(stat.modifiedAt)) + "</td>";
+      },
+      size: function(stat) {
+        return "<td>" + (byteString(stat.size)) + "</td>";
+      },
+      kind: function(stat) {
+        return "<td>" + (getExtension(stat.name)) + "</td>";
+      }
+    };
     $table = $('#download-modal table');
     if (stats != null) {
       $table.data('dropbox', stats);
@@ -222,17 +251,10 @@
       stats = $table.data('dropbox');
     }
     $table.children().remove();
-    $tr = '<tr>' + ((function() {
-      var _i, _len, _ref, _results;
-      _ref = ['image', 'name', 'kind', 'date'];
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        e = _ref[_i];
-        _results.push("<th" + (order === e ? " class=\"" + direction + "\"" : '') + "><span>" + e + "</span></th>");
-      }
-      return _results;
-    })()).join('') + '</tr>';
-    $table.append($tr);
+    th = function(key) {
+      return "<th" + (order === key ? " class=\"" + direction + "\"" : '') + "><span>" + key + "</span></th>";
+    };
+    $table.append("<tr>" + (Object.keys(ITEMS).map(th).join('')) + "</tr>");
     stats = stats.sort(function(a, b) {
       var result;
       result = (function() {
@@ -243,15 +265,25 @@
             return compareString(getExtension(a.name), getExtension(b.name));
           case 'date':
             return a.modifiedAt.getTime() - b.modifiedAt.getTime();
+          case 'size':
+            return a.size - b.size;
         }
       })();
       return result * (direction === 'ascending' ? 1 : -1);
     });
     _results = [];
     for (_i = 0, _len = stats.length; _i < _len; _i++) {
-      e = stats[_i];
-      $tr = $("<tr><td><img src=\"img/dropbox-api-icons/16x16/" + e.typeIcon + ".gif\"></td><td>" + e.name + "</td><td>" + (getExtension(e.name)) + "</td><td>" + (dateString(e.modifiedAt)) + "</td></tr>");
-      $tr.data('dropbox-stat', e);
+      stat = stats[_i];
+      $tr = $("<tr>" + (((function() {
+        var _results1;
+        _results1 = [];
+        for (key in ITEMS) {
+          value = ITEMS[key];
+          _results1.push(value(stat));
+        }
+        return _results1;
+      })()).join('')) + "</tr>");
+      $tr.data('dropbox-stat', stat);
       _results.push($table.append($tr));
     }
     return _results;
