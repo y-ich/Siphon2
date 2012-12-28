@@ -152,6 +152,9 @@
   newCodeMirror.onBlur = function() {
     $('#key-extension').css('display', '');
     if (touchDevice) {
+      $('#editor-pane').css('bottom', '');
+    }
+    if (touchDevice) {
       return scrollTo(0, 0);
     }
   };
@@ -181,10 +184,12 @@
     }), 0);
   };
 
-  newCodeMirror.onFocus = function() {
+  newCodeMirror.onFocus = function(cm) {
     $('#key-extension').css('display', 'block');
     if (touchDevice) {
       $('#key-extension').css('bottom', "" + (footerHeight(config)) + "px");
+      $('#editor-pane').css('bottom', "" + (keyboardHeight(config) - 50) + "px");
+      cm.refresh();
       return setTimeout((function() {
         return scrollTo(0, isPortrait() ? 0 : $('#header').outerHeight(true));
       }), 0);

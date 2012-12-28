@@ -111,6 +111,7 @@ newCodeMirror = (id, options, title) ->
 
 newCodeMirror.onBlur = ->
     $('#key-extension').css 'display', ''
+    $('#editor-pane').css 'bottom', '' if touchDevice
     scrollTo 0, 0 if touchDevice
 
 newCodeMirror.onChange = (cm, change) ->
@@ -133,10 +134,12 @@ newCodeMirror.timerId = null
 newCodeMirror.onCursorActivity = ->
     setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # restore position against auto scroll of mobile safari
 
-newCodeMirror.onFocus = ->
+newCodeMirror.onFocus = (cm) ->
     $('#key-extension').css 'display', 'block'
     if touchDevice
         $('#key-extension').css 'bottom', "#{footerHeight config}px"
+        $('#editor-pane').css 'bottom', "#{keyboardHeight(config) - 50}px" # 50px is transparent space.
+        cm.refresh()
         setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # hide header when landscape
 
 newCodeMirror.onKeyEvent = (cm, event) ->
