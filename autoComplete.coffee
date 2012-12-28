@@ -4,11 +4,13 @@
 # (C) 2012 ICHIKAWA, Yuji (New 3 Rs)
 ###
 
-
+#
+# constants
+#
 
 # JavaScript/CoffeeScript common keywords
-COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null',
- 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while']
+COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new',
+    'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while']
 # JavaScript-only keywords
 JS_ONLY_KEYWORDS = ['case', 'default', 'function', 'var', 'void', 'with']
 # CoffeeScript-only keywords.
@@ -19,6 +21,7 @@ GLOBAL_PROPERTIES = (e for e of window)
 GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS = GLOBAL_PROPERTIES.concat(COMMON_KEYWORDS).concat(JS_ONLY_KEYWORDS).sort()
 GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS = GLOBAL_PROPERTIES.concat(COMMON_KEYWORDS).concat(CS_ONLY_KEYWORDS).sort()
 
+# statement completion for keywords
 CS_KEYWORDS_ASSIST =
     class: ['extends']
     for: ['in', 'in when', 'of', 'of when']
@@ -38,6 +41,10 @@ JS_KEYWORDS_ASSIST =
 # functions
 #
 
+# compile CoffeeScript by WebWorker (coffee-script-worker.js)
+# source: string
+# options: options for coffeescript compiler
+# callback: callback that is invoked when finish to compile
 compileCS = (source, options, callback) ->
     compileCS.worker.onmessage = ((id) ->
             (event) -> callback event.data if event.data.id is id
