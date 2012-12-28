@@ -8,8 +8,7 @@
 
 
 (function() {
-  var AutoComplete, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_ONLY_KEYWORDS, GLOBAL_PROPERTIES, GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS, GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_ONLY_KEYWORDS, csErrorLine, e, extractVariablesAndShowFirst__, getDeclaredVariables, _ref,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  var AutoComplete, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_ONLY_KEYWORDS, GLOBAL_PROPERTIES, GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS, GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_ONLY_KEYWORDS, csErrorLine, e, getDeclaredVariables, _ref;
 
   COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while'];
 
@@ -71,13 +70,13 @@
   };
 
   AutoComplete = (function() {
+    var extractVariablesAndShowFirst__,
+      _this = this;
 
-    AutoComplete.latest = null;
+    AutoComplete.id = 0;
 
     function AutoComplete(cm) {
       this.cm = cm;
-      this.addVariablesAndShowFirst_ = __bind(this.addVariablesAndShowFirst_, this);
-
       switch (this.cm.getOption('mode')) {
         case 'javascript':
           this.globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS;
@@ -245,21 +244,54 @@
       var cs;
       if (this.cm.getOption('mode') === 'coffeescript') {
         cs = this.cm.getValue();
-        return csWorker.postMessage({
+        csWorker.onmessage = (function(id) {
+          return function(event) {
+            var tmp;
+            if (!(event.data.sender === 'autoComplete' && event.data.id === id)) {
+              return;
+            }
+            if (event.data.js != null) {
+              return this.addVariablesAndShowFirst_(getDeclaredVariables(event.data.js));
+            } else {
+              tmp = cs.split(/\r?\n/).slice(0, csErrorLine(event.data.error) - 1);
+              cs = tmp.join('\n');
+              csWorker.onmessage = (function(id) {
+                return function(event) {
+                  var _ref;
+                  if (!(event.data.sender === 'autoComplete' && event.data.id === id)) {
+                    return;
+                  }
+                  return this.addVariablesAndShowFirst_(getDeclaredVariables((_ref = event.data.js) != null ? _ref : []));
+                };
+              })(AutoComplete.id);
+              csWorker.postMessage({
+                sender: 'autoComplete',
+                source: cs,
+                options: {
+                  bare: true
+                }
+              });
+              return AutoComplete.id += 1;
+            }
+          };
+        })(AutoComplete.id);
+        csWorker.postMessage({
           sender: 'autoComplete',
-          callback: extractVariablesAndShowFirst__,
+          id: AutoComplete.id,
           source: cs,
           options: {
             bare: true
           }
         });
+        return AutoComplete.id += 1;
       } else {
-        return postProcess(getDeclaredVariables(this.cm.getValue()));
+        return addVariablesAndShowFirst_(getDeclaredVariables(this.cm.getValue()));
       }
     };
 
     AutoComplete.prototype.addVariablesAndShowFirst_ = function(variables) {
       var candidates;
+      console.log('pass');
       candidates = /^\s*$/.test(propertyChain[0].string) ? [] : this.globalPropertiesPlusKeywords.concat(variables).sort();
       this.candidates = candidates.filter(function(e) {
         return new RegExp('^' + target).test(e);
@@ -269,41 +301,16 @@
       return this.showFirstCandidate_();
     };
 
+    extractVariablesAndShowFirst__ = function(data) {};
+
     return AutoComplete;
 
-  })();
-
-  extractVariablesAndShowFirst__ = function(data) {
-    var cs, tmp;
-    if (data.js != null) {
-      return addVariablesAndShowFirst_(getDeclaredVariables(data.js));
-    } else if (data.sender === 'autoComplete') {
-      tmp = cs.split(/\r?\n/).slice(0, csErrorLine(event.data.error) - 1);
-      cs = tmp.join('\n');
-      return worker.postMessage({
-        sender: 'autoComplete-retry',
-        callback: extractVariablesAndShowFirst__,
-        source: cs,
-        options: {
-          bare: true
-        }
-      });
-    } else {
-      return addVariablesAndShowFirst_([]);
-    }
-  };
+  }).call(this);
 
   window.AutoComplete = AutoComplete;
 
   if ((_ref = window.csWorker) == null) {
     window.csWorker = new Worker('coffee-script-worker.js');
   }
-
-  window.csWorker.addEventListener('message', (function(event) {
-    if (!/autoComplete/.test(event.data.sender)) {
-      return;
-    }
-    return event.data.callback(data);
-  }), false);
 
 }).call(this);

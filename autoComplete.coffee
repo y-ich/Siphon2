@@ -53,7 +53,7 @@ csErrorLine = (error) ->
         null
 
 class AutoComplete
-    @latest: null # if process to get candidates is not latest, AutoComplete discards the result.
+    @id: 0 # id that currently processed.
 
     constructor: (@cm) ->
         switch @cm.getOption 'mode' 
@@ -171,40 +171,46 @@ class AutoComplete
     extractVariablesAndShowFirst_: ->
         if @cm.getOption('mode') is 'coffeescript'
             cs = @cm.getValue()
+            csWorker.onmessage = ((id) ->
+                    (event) ->
+                        return unless event.data.sender is 'autoComplete' and event.data.id is id
+                        if event.data.js?
+                            @addVariablesAndShowFirst_ getDeclaredVariables event.data.js
+                        else
+                            tmp = cs.split(/\r?\n/)[0...csErrorLine(event.data.error) - 1]
+                            cs = tmp.join '\n'
+                            csWorker.onmessage = ((id) ->
+                                    (event) ->
+                                        return unless event.data.sender is 'autoComplete' and event.data.id is id
+                                        @addVariablesAndShowFirst_ getDeclaredVariables event.data.js ? []                                        
+                                )(AutoComplete.id)
+                            csWorker.postMessage
+                                sender: 'autoComplete'
+                                source: cs
+                                options:
+                                    bare: on    
+                            AutoComplete.id += 1
+                )(AutoComplete.id)
             csWorker.postMessage
                 sender: 'autoComplete'
-                callback: extractVariablesAndShowFirst__
+                id: AutoComplete.id
                 source: cs
                 options:
                     bare: on
+            AutoComplete.id += 1
         else
-            postProcess getDeclaredVariables @cm.getValue()
+            addVariablesAndShowFirst_ getDeclaredVariables @cm.getValue()
 
-    addVariablesAndShowFirst_: (variables) =>
+    addVariablesAndShowFirst_: (variables) ->
+        console.log 'pass'
+    
         candidates = if /^\s*$/.test propertyChain[0].string then [] else @globalPropertiesPlusKeywords.concat(variables).sort()
         @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
         @showFirstCandidate_()
 
-extractVariablesAndShowFirst__ = (data) ->
-    if data.js?
-        addVariablesAndShowFirst_ getDeclaredVariables data.js
-    else if data.sender is 'autoComplete'
-        tmp = cs.split(/\r?\n/)[0...csErrorLine(event.data.error) - 1]
-        cs = tmp.join '\n'
-        worker.postMessage
-            sender: 'autoComplete-retry'
-            callback: extractVariablesAndShowFirst__
-            source: cs
-            options:
-                bare: on    
-    else
-        addVariablesAndShowFirst_ []
+    extractVariablesAndShowFirst__ = (data) =>
 
 
 window.AutoComplete = AutoComplete
 
 window.csWorker ?= new Worker 'coffee-script-worker.js'
-window.csWorker.addEventListener 'message', ((event) ->
-        return unless /autoComplete/.test event.data.sender
-        event.data.callback data
-    ), false

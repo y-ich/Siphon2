@@ -1,6 +1,6 @@
 {spawn, exec} = require 'child_process'
 
-src = ['autoComplete.coffee', 'siphon2.coffee']
+src = ['csWorker.coffee','autoComplete.coffee', 'siphon2.coffee']
 
 task 'watch', 'continually build with --watch', ->
     p1 = spawn 'coffee', ['-wc'].concat src
@@ -11,3 +11,6 @@ task 'watch', 'continually build with --watch', ->
 
     p3 = spawn 'coffee', ['-wc','spec']
     p3.stdout.on 'data', (data) -> console.log data.toString().trim()
+
+task 'worker', 'build coffee-script-worker.js', ->
+    exec 'cat csWorker.js ~/Opensources/coffee-script/extras/coffee-script.js > coffee-script-worker.js', (error, stdout, stderr) ->
