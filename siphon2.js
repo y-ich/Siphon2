@@ -238,10 +238,10 @@
         return "<td>" + (dateString(stat.modifiedAt)) + "</td>";
       },
       size: function(stat) {
-        return "<td>" + (byteString(stat.size)) + "</td>";
+        return "<td style=\"text-align: right;\">" + (byteString(stat.size)) + "</td>";
       },
       kind: function(stat) {
-        return "<td>" + (getExtension(stat.name)) + "</td>";
+        return "<td>" + (stat.isFile ? getExtension(stat.name) : 'folder') + "</td>";
       }
     };
     $table = $('#download-modal table');

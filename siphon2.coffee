@@ -168,8 +168,8 @@ makeFileList = (stats, order, direction) ->
         image: (stat) -> "<td><img src=\"img/dropbox-api-icons/16x16/#{stat.typeIcon}.gif\"></td>"
         name: (stat) -> "<td>#{stat.name}</td>"
         date: (stat) -> "<td>#{dateString stat.modifiedAt}</td>"
-        size: (stat) -> "<td>#{byteString stat.size}</td>"
-        kind: (stat) -> "<td>#{getExtension stat.name}</td>"
+        size: (stat) -> "<td style=\"text-align: right;\">#{byteString stat.size}</td>"
+        kind: (stat) -> "<td>#{if stat.isFile then getExtension stat.name else 'folder'}</td>"
     $table = $('#download-modal table')
     if stats?
         $table.data 'dropbox', stats
