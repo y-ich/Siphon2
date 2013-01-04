@@ -121,7 +121,6 @@
     var $wrapper, defaultOptions, key, result, value, _ref;
     defaultOptions = {
       lineNumbers: true,
-      lineWrapping: true,
       onBlur: newCodeMirror.onBlur,
       onChange: newCodeMirror.onChange,
       onCursorActivity: newCodeMirror.onCursorActivity,

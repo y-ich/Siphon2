@@ -32,10 +32,12 @@ a.btn:focus {
 }
 .CodeMirror {
   height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .CodeMirror-scroll {
-  height: 100%;
-  -webkit-overflow-scrolling: touch;
+  height: auto;
+  overflow: visible;
 }
 /* Tried to scroll whole page, it worked fine except fixed position menu on Mobile Safari.
  * on Mobile Safari, fixed position elements scroll when focusing text input. */

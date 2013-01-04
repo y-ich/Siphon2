@@ -91,7 +91,6 @@ ext2mode = (str) ->
 newCodeMirror = (id, options, title) ->
     defaultOptions =
         lineNumbers: true
-        lineWrapping: true
         onBlur: newCodeMirror.onBlur
         onChange: newCodeMirror.onChange
         onCursorActivity: newCodeMirror.onCursorActivity
