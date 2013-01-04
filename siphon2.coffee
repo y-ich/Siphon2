@@ -482,7 +482,6 @@ initializeEventHandlers = ->
         reader.readAsText event.target.files[0]
 
     $('#file-tabs').on 'shown', 'a[data-toggle="tab"]', ->
-        console.log 'shown'
         $(this).data('editor').refresh()
 
     $('#file-tabs').on 'click', 'button.close', ->

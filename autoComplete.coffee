@@ -109,11 +109,13 @@ class AutoComplete
             if @keywordsAssist.hasOwnProperty propertyChain[0].string
                 @candidates = @keywordsAssist[propertyChain[0].string]
         else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and propertyChain[propertyChain.length - 2].className is 'property'
+            @candicates = null
+            return
         else if propertyChain.length != 0
-            @target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
+            target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
             if propertyChain.length == 1
-                @addVariablesAndShowFirst_() unless /^\s*$/.test propertyChain[0].string 
-                return # no need to execute continuation.
+                unless /^\s*$/.test propertyChain[0].string 
+                    candidates = if @variables? then @globalPropertiesPlusKeywords.concat(@variables).sort() else @globalPropertiesPlusKeywords.sort()
             else
                 try
                     value = eval "(#{propertyChain.map((e) -> e.string).join('').replace /\..*?$/, ''})" # you need () for object literal.
@@ -126,9 +128,12 @@ class AutoComplete
                                 Object.getOwnPropertyNames(Object.getPrototypeOf object)
                             else
                                 Object.getOwnPropertyNames(Object.getPrototypeOf object).concat Object.getOwnPropertyNames(object)
-                    @candidates = candidates.sort().filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
                 catch error
                     console.log error
+                    @candidates = null
+                    return
+            @candidates = candidates.sort().filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
+                    
         @showFirstCandidate_()
 
     getPropertyChain_: ->
@@ -144,7 +149,7 @@ class AutoComplete
             else if token.className is 'variable' and bracketStack.length == 0
                 propertyChain.push token
                 breakFlag = true
-            else
+            else if token.className isnt 'comment'
                 switch token.string
                     when ')', '}', ']'
                         propertyChain.push token
@@ -178,17 +183,12 @@ class AutoComplete
         propertyChain.reverse()
 
     showFirstCandidate_: ->
+        console.log @candidates
         if @candidates.length > 0
             @index = 0
             @cm.replaceRange @candidates[@index], @start
             @end = @cm.getCursor()
             @cm.setSelection @start, @end
-
-    addVariablesAndShowFirst_: ->
-        candidates = if @variables? then @globalPropertiesPlusKeywords.concat(@variables).sort() else @globalPropertiesPlusKeywords.sort()
-        target = @target
-        @candidates = candidates.filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
-        @showFirstCandidate_()
 
 # exports
 window.AutoComplete = AutoComplete

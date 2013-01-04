@@ -683,7 +683,6 @@
       return reader.readAsText(event.target.files[0]);
     });
     $('#file-tabs').on('shown', 'a[data-toggle="tab"]', function() {
-      console.log('shown');
       return $(this).data('editor').refresh();
     });
     $('#file-tabs').on('click', 'button.close', function() {
