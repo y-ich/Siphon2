@@ -102,7 +102,6 @@
 
     AutoComplete.prototype.setCandidates_ = function(propertyChain) {
       var candidates, object, snippet, target, value, _ref;
-      console.log(propertyChain);
       this.candidates = null;
       if (propertyChain.length === 0) {
 

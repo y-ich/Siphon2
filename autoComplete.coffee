@@ -85,7 +85,6 @@ class AutoComplete
             @cm.setSelection @start, @end
 
     setCandidates_: (propertyChain) ->
-        console.log propertyChain
         @candidates = null
 
         if propertyChain.length == 0
