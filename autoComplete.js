@@ -66,10 +66,14 @@
         case 'coffeescript':
           this.globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS;
           this.keywordsAssist = CS_KEYWORDS_ASSIST;
+          break;
+        default:
+          return;
       }
       this.variables = (this.cm.siphon != null) && (this.cm.siphon.variables != null) ? this.cm.siphon.variables : null;
       this.start = this.cm.getCursor();
-      this.setCandidatesAndShowFirst_();
+      this.setCandidates_(this.getPropertyChain_());
+      this.showFirstCandidate_();
     }
 
     AutoComplete.prototype.previous = function() {
@@ -96,19 +100,21 @@
       }
     };
 
-    AutoComplete.prototype.setCandidatesAndShowFirst_ = function() {
-      var candidates, object, propertyChain, target, value;
-      propertyChain = this.getPropertyChain_();
+    AutoComplete.prototype.setCandidates_ = function(propertyChain) {
+      var candidates, object, target, value;
+      console.log(propertyChain);
+      this.candidates = null;
       if (propertyChain.length === 0) {
-        return;
-      } else if (propertyChain.length === 2 && /^\s+$/.test(propertyChain[1].string)) {
-        if (this.keywordsAssist.hasOwnProperty(propertyChain[0].string)) {
-          this.candidates = this.keywordsAssist[propertyChain[0].string];
-        }
-      } else if (propertyChain.length > 1 && /^\s+$/.test(propertyChain[propertyChain.length - 1].string) && propertyChain[propertyChain.length - 2].className === 'property') {
-        this.candicates = null;
-        return;
-      } else if (propertyChain.length !== 0) {
+
+      } else if (propertyChain[propertyChain.length - 1].className === 'operator') {
+
+      } else if (propertyChain.length > 1 && /^\s+$/.test(propertyChain[propertyChain.length - 1].string) && (['property', 'operator'].some(function(e) {
+        return propertyChain[propertyChain.length - 2].className === e;
+      }))) {
+
+      } else if (propertyChain.length === 2 && /^\s+$/.test(propertyChain[1].string && this.keywordsAssist.hasOwnProperty(propertyChain[0].string))) {
+        return this.candidates = this.keywordsAssist[propertyChain[0].string];
+      } else {
         target = /^(\s*|\.)$/.test(propertyChain[propertyChain.length - 1].string) ? '' : propertyChain[propertyChain.length - 1].string;
         if (propertyChain.length === 1) {
           if (!/^\s*$/.test(propertyChain[0].string)) {
@@ -136,17 +142,15 @@
             })();
           } catch (error) {
             console.log(error);
-            this.candidates = null;
             return;
           }
         }
-        this.candidates = candidates.sort().filter(function(e) {
+        return this.candidates = candidates.sort().filter(function(e) {
           return new RegExp('^' + target).test(e);
         }).map(function(e) {
           return e.slice(target.length);
         });
       }
-      return this.showFirstCandidate_();
     };
 
     AutoComplete.prototype.getPropertyChain_ = function() {
@@ -218,8 +222,7 @@
     };
 
     AutoComplete.prototype.showFirstCandidate_ = function() {
-      console.log(this.candidates);
-      if (this.candidates.length > 0) {
+      if ((this.candidates != null) && this.candidates.length > 0) {
         this.index = 0;
         this.cm.replaceRange(this.candidates[this.index], this.start);
         this.end = this.cm.getCursor();

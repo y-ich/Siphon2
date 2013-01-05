@@ -40,12 +40,17 @@ JS_KEYWORDS_ASSIST =
 # functions
 #
 
+# returns the number of line that error occurred from CoffeeScript compile error.
 csErrorLine = (error) ->
     if parse = error.message.match /Parse error on line (\d+): (.*)$/
         parseInt parse[1]
     else
         null
 
+# Usage:
+# new AutoComplete with CodeMirror instance. Then AutoComplete prepares candidates for current cursor position and shows first one.
+# It shows next or previous candidate when the method next or previous is invoked.
+# AutoComplete uses CodeMirror instance's siphon.variables properties for completion for source code variables.
 class AutoComplete
     constructor: (@cm) ->
         switch @cm.getOption 'mode' 
@@ -55,10 +60,13 @@ class AutoComplete
             when 'coffeescript'
                 @globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS
                 @keywordsAssist = CS_KEYWORDS_ASSIST
+            else
+                return
         
         @variables = if @cm.siphon? and @cm.siphon.variables? then @cm.siphon.variables else null # variables list that editor prepared
         @start = @cm.getCursor()
-        @setCandidatesAndShowFirst_()
+        @setCandidates_ @getPropertyChain_()                    
+        @showFirstCandidate_()
 
     previous: -> @next_ -1
 
@@ -76,18 +84,19 @@ class AutoComplete
             @end = @cm.getCursor()
             @cm.setSelection @start, @end
 
-    setCandidatesAndShowFirst_: ->
-        propertyChain = @getPropertyChain_()
+    setCandidates_: (propertyChain) ->
+        console.log propertyChain
+        @candidates = null
 
         if propertyChain.length == 0
             return
-        else if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string # keyword assist
-            if @keywordsAssist.hasOwnProperty propertyChain[0].string
-                @candidates = @keywordsAssist[propertyChain[0].string]
-        else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and propertyChain[propertyChain.length - 2].className is 'property'
-            @candicates = null
+        else if propertyChain[propertyChain.length - 1].className is 'operator'
             return
-        else if propertyChain.length != 0
+        else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and (['property', 'operator'].some (e) -> propertyChain[propertyChain.length - 2].className is e)
+            return
+        else if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string and @keywordsAssist.hasOwnProperty propertyChain[0].string # keyword assist
+            @candidates = @keywordsAssist[propertyChain[0].string]
+        else
             target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
             if propertyChain.length == 1
                 unless /^\s*$/.test propertyChain[0].string 
@@ -106,11 +115,8 @@ class AutoComplete
                                 Object.getOwnPropertyNames(Object.getPrototypeOf object).concat Object.getOwnPropertyNames(object)
                 catch error
                     console.log error
-                    @candidates = null
                     return
             @candidates = candidates.sort().filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
-                    
-        @showFirstCandidate_()
 
     getPropertyChain_: ->
         propertyChain = []
@@ -159,8 +165,7 @@ class AutoComplete
         propertyChain.reverse()
 
     showFirstCandidate_: ->
-        console.log @candidates
-        if @candidates.length > 0
+        if @candidates? and @candidates.length > 0
             @index = 0
             @cm.replaceRange @candidates[@index], @start
             @end = @cm.getCursor()
