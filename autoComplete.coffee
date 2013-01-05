@@ -105,7 +105,9 @@ class AutoComplete
     setCandidatesAndShowFirst_: ->
         propertyChain = @getPropertyChain_()
 
-        if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string # keyword assist
+        if propertyChain.length == 0
+            return
+        else if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string # keyword assist
             if @keywordsAssist.hasOwnProperty propertyChain[0].string
                 @candidates = @keywordsAssist[propertyChain[0].string]
         else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and propertyChain[propertyChain.length - 2].className is 'property'

@@ -134,7 +134,9 @@
     AutoComplete.prototype.setCandidatesAndShowFirst_ = function() {
       var candidates, object, propertyChain, target, value;
       propertyChain = this.getPropertyChain_();
-      if (propertyChain.length === 2 && /^\s+$/.test(propertyChain[1].string)) {
+      if (propertyChain.length === 0) {
+        return;
+      } else if (propertyChain.length === 2 && /^\s+$/.test(propertyChain[1].string)) {
         if (this.keywordsAssist.hasOwnProperty(propertyChain[0].string)) {
           this.candidates = this.keywordsAssist[propertyChain[0].string];
         }
