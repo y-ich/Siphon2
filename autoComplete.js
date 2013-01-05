@@ -56,8 +56,9 @@
 
   AutoComplete = (function() {
 
-    function AutoComplete(cm) {
+    function AutoComplete(cm, variables) {
       this.cm = cm;
+      this.variables = variables != null ? variables : null;
       switch (this.cm.getOption('mode')) {
         case 'javascript':
           this.globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS;
@@ -70,7 +71,6 @@
         default:
           return;
       }
-      this.variables = (this.cm.siphon != null) && (this.cm.siphon.variables != null) ? this.cm.siphon.variables : null;
       this.start = this.cm.getCursor();
       this.setCandidates_(this.getPropertyChain_());
       this.showFirstCandidate_();

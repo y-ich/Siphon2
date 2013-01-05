@@ -81,6 +81,8 @@
             return console.log(data.error.message);
           }
         });
+      default:
+        return cm.siphon.variables = null;
     }
   };
 
@@ -198,7 +200,7 @@
     }
     cm.siphon.error = null;
     if (!(cm.siphon.autoComplete != null) && change.text.length === 1 && change.text[0].length === 1) {
-      cm.siphon.autoComplete = new AutoComplete(cm);
+      cm.siphon.autoComplete = new AutoComplete(cm, cm.siphon.variables);
     }
     if (cm.siphon.timer != null) {
       clearTimeout(cm.siphon.timer);
@@ -208,8 +210,6 @@
       return cm.siphon.timer = null;
     }), config.autoSaveTime);
   };
-
-  newCodeMirror.timerId = null;
 
   newCodeMirror.onCursorActivity = function() {
     return setTimeout((function() {

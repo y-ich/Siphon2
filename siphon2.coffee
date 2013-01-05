@@ -60,6 +60,9 @@ setValue = (cm, string) ->
                 else if data.error?
                     cm.siphon.variables = null
                     console.log data.error.message
+        else
+            cm.siphon.variables = null
+            
 
 dateString = (date) -> date.toDateString().replace(/^.*? /, '') + ' ' + date.toTimeString().replace(/GMT.*$/, '')
 
@@ -145,7 +148,7 @@ newCodeMirror.onChange = (cm, change) ->
     if not cm.siphon.autoComplete? and change.text.length == 1 and change.text[0].length == 1
         # I regard change.text[0].length == 1 as key type, change.text[0].length == 0 as delete, change.text[0].length > 1 as paste.
         # I don't know the case change.text.length > 1
-        cm.siphon.autoComplete = new AutoComplete cm
+        cm.siphon.autoComplete = new AutoComplete cm, cm.siphon.variables
 
     # auto save
     clearTimeout cm.siphon.timer if cm.siphon.timer?
@@ -153,7 +156,6 @@ newCodeMirror.onChange = (cm, change) ->
             saveBuffer cm
             cm.siphon.timer = null
         ), config.autoSaveTime
-newCodeMirror.timerId = null
 
 newCodeMirror.onCursorActivity = ->
     setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # restore position against auto scroll of mobile safari

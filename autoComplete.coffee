@@ -48,11 +48,11 @@ csErrorLine = (error) ->
         null
 
 # Usage:
-# new AutoComplete with CodeMirror instance. Then AutoComplete prepares candidates for current cursor position and shows first one.
+# new AutoComplete with CodeMirror instance and optionally variable names' list.
+# Then AutoComplete prepares candidates for current cursor position and shows first one.
 # It shows next or previous candidate when the method next or previous is invoked.
-# AutoComplete uses CodeMirror instance's siphon.variables properties for completion for source code variables.
 class AutoComplete
-    constructor: (@cm) ->
+    constructor: (@cm, @variables = null) ->
         switch @cm.getOption 'mode' 
             when 'javascript'
                 @globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS
@@ -63,7 +63,6 @@ class AutoComplete
             else
                 return
         
-        @variables = if @cm.siphon? and @cm.siphon.variables? then @cm.siphon.variables else null # variables list that editor prepared
         @start = @cm.getCursor()
         @setCandidates_ @getPropertyChain_()                    
         @showFirstCandidate_()
