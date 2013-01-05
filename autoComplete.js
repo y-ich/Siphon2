@@ -101,49 +101,46 @@
     };
 
     AutoComplete.prototype.setCandidates_ = function(propertyChain) {
-      var candidates, object, target, value;
+      var candidates, object, target, value, _ref;
       console.log(propertyChain);
       this.candidates = null;
       if (propertyChain.length === 0) {
 
-      } else if (propertyChain[propertyChain.length - 1].className === 'operator') {
-
-      } else if (propertyChain.length > 1 && /^\s+$/.test(propertyChain[propertyChain.length - 1].string) && (['property', 'operator'].some(function(e) {
-        return propertyChain[propertyChain.length - 2].className === e;
-      }))) {
-
-      } else if (propertyChain.length === 2 && /^\s+$/.test(propertyChain[1].string && this.keywordsAssist.hasOwnProperty(propertyChain[0].string))) {
+      } else if (propertyChain.length === 2 && propertyChain[1].className === null && this.keywordsAssist.hasOwnProperty(propertyChain[0].string)) {
         return this.candidates = this.keywordsAssist[propertyChain[0].string];
       } else {
-        target = /^(\s*|\.)$/.test(propertyChain[propertyChain.length - 1].string) ? '' : propertyChain[propertyChain.length - 1].string;
-        if (propertyChain.length === 1) {
-          if (!/^\s*$/.test(propertyChain[0].string)) {
-            candidates = this.variables != null ? this.globalPropertiesPlusKeywords.concat(this.variables).sort() : this.globalPropertiesPlusKeywords.sort();
-          }
-        } else {
-          try {
-            value = eval("(" + (propertyChain.map(function(e) {
-              return e.string;
-            }).join('').replace(/\..*?$/, '')) + ")");
-            candidates = (function() {
-              switch (typeof value) {
-                case 'string':
-                  return Object.getOwnPropertyNames(value.__proto__);
-                case 'undefined':
-                  return [];
-                default:
-                  object = new Object(value);
-                  if (object instanceof Array) {
-                    return Object.getOwnPropertyNames(Object.getPrototypeOf(object));
-                  } else {
-                    return Object.getOwnPropertyNames(Object.getPrototypeOf(object)).concat(Object.getOwnPropertyNames(object));
-                  }
-              }
-            })();
-          } catch (error) {
-            console.log(error);
+        target = propertyChain[propertyChain.length - 1].string;
+        switch (propertyChain[propertyChain.length - 1].className) {
+          case 'variable':
+            candidates = this.globalPropertiesPlusKeywords.concat((_ref = this.variables) != null ? _ref : []);
+            break;
+          case 'property':
+            try {
+              value = eval("(" + (propertyChain.map(function(e) {
+                return e.string;
+              }).join('').replace(/\..*?$/, '')) + ")");
+              candidates = (function() {
+                switch (typeof value) {
+                  case 'undefined':
+                    return [];
+                  case 'string':
+                    return Object.getOwnPropertyNames(value.__proto__);
+                  default:
+                    object = new Object(value);
+                    if (object instanceof Array) {
+                      return Object.getOwnPropertyNames(Object.getPrototypeOf(object));
+                    } else {
+                      return Object.getOwnPropertyNames(Object.getPrototypeOf(object)).concat(Object.getOwnPropertyNames(object));
+                    }
+                }
+              })();
+            } catch (error) {
+              console.log(error);
+              return;
+            }
+            break;
+          default:
             return;
-          }
         }
         return this.candidates = candidates.sort().filter(function(e) {
           return new RegExp('^' + target).test(e);

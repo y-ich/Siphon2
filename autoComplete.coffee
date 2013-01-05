@@ -90,31 +90,29 @@ class AutoComplete
 
         if propertyChain.length == 0
             return
-        else if propertyChain[propertyChain.length - 1].className is 'operator'
-            return
-        else if propertyChain.length > 1 and /^\s+$/.test(propertyChain[propertyChain.length - 1].string) and (['property', 'operator'].some (e) -> propertyChain[propertyChain.length - 2].className is e)
-            return
-        else if propertyChain.length == 2 and /^\s+$/.test propertyChain[1].string and @keywordsAssist.hasOwnProperty propertyChain[0].string # keyword assist
+        else if propertyChain.length == 2 and propertyChain[1].className is null and @keywordsAssist.hasOwnProperty propertyChain[0].string # keyword assist
             @candidates = @keywordsAssist[propertyChain[0].string]
         else
-            target = if /^(\s*|\.)$/.test propertyChain[propertyChain.length - 1].string then '' else propertyChain[propertyChain.length - 1].string
-            if propertyChain.length == 1
-                unless /^\s*$/.test propertyChain[0].string 
-                    candidates = if @variables? then @globalPropertiesPlusKeywords.concat(@variables).sort() else @globalPropertiesPlusKeywords.sort()
-            else
-                try
-                    value = eval "(#{propertyChain.map((e) -> e.string).join('').replace /\..*?$/, ''})" # you need () for object literal.
-                    candidates = switch typeof value
-                        when 'string' then Object.getOwnPropertyNames value.__proto__ # I don't need index propertes.
-                        when 'undefined' then []
-                        else
-                            object = new Object value # wrap value for primitive type.
-                            if object instanceof Array
-                                Object.getOwnPropertyNames(Object.getPrototypeOf object)
+            target = propertyChain[propertyChain.length - 1].string
+            switch propertyChain[propertyChain.length - 1].className
+                when 'variable'
+                    candidates = @globalPropertiesPlusKeywords.concat @variables ? []
+                when 'property'
+                    try
+                        value = eval "(#{propertyChain.map((e) -> e.string).join('').replace /\..*?$/, ''})" # you need () for object literal.
+                        candidates = switch typeof value
+                            when 'undefined' then []
+                            when 'string' then Object.getOwnPropertyNames value.__proto__ # I don't need index propertes.
                             else
-                                Object.getOwnPropertyNames(Object.getPrototypeOf object).concat Object.getOwnPropertyNames(object)
-                catch error
-                    console.log error
+                                object = new Object value # wrap value for primitive type.
+                                if object instanceof Array
+                                    Object.getOwnPropertyNames(Object.getPrototypeOf object)
+                                else
+                                    Object.getOwnPropertyNames(Object.getPrototypeOf object).concat Object.getOwnPropertyNames(object)
+                    catch error
+                        console.log error
+                        return
+                else
                     return
             @candidates = candidates.sort().filter((e) -> new RegExp('^' + target).test e).map (e) -> e[target.length..]
 
