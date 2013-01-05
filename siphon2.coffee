@@ -23,6 +23,31 @@ dropbox = null
 # function definitions
 #
 
+# compile CoffeeScript by WebWorker (coffee-script-worker.js)
+# source: string
+# options: options for coffeescript compiler
+# callback: callback that is invoked when finish to compile
+compileCS = (source, options, callback) ->
+    compileCS.worker.onmessage = ((id) ->
+            (event) -> callback event.data if event.data.id is id
+        )(compileCS.id)
+    compileCS.worker.postMessage
+        id: compileCS.id
+        source: source
+        options: options
+    compileCS.id += 1    
+compileCS.worker = new Worker 'coffee-script-worker.js'
+compileCS.id = 0
+
+getDeclaredVariables = (js) ->
+    IDENTIFIER = '[_A-Za-z$][_A-Za-z$0-9]*'
+    IDENTIFIER_MAY_WITH_ASSIGN = IDENTIFIER + '\\s*(?:=\\s*\\S+)?'
+    result = []
+    regexp = new RegExp "(?:^|;)\\s*(?:for\\s*\\(\\s*)?var\\s+((?:#{IDENTIFIER_MAY_WITH_ASSIGN}\\s*,\\s*)*#{IDENTIFIER_MAY_WITH_ASSIGN})\\s*(?:;|$)", 'gm'
+    while match = regexp.exec js
+        result = result.concat match[1].split(/\s*,\s*/).map (e) -> e.replace /\s*=.*$/, ''
+    result
+
 setValue = (cm, string) ->
     cm.setValue string
     switch cm.getOption 'mode'

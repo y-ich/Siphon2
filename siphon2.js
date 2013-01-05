@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, byteString, compareString, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, setValue, showError, spinner, touchDevice, updateEditor, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, byteString, compareString, compileCS, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getDeclaredVariables, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, setValue, showError, spinner, touchDevice, updateEditor, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -30,6 +30,40 @@
   lessParser = new less.Parser();
 
   dropbox = null;
+
+  compileCS = function(source, options, callback) {
+    compileCS.worker.onmessage = (function(id) {
+      return function(event) {
+        if (event.data.id === id) {
+          return callback(event.data);
+        }
+      };
+    })(compileCS.id);
+    compileCS.worker.postMessage({
+      id: compileCS.id,
+      source: source,
+      options: options
+    });
+    return compileCS.id += 1;
+  };
+
+  compileCS.worker = new Worker('coffee-script-worker.js');
+
+  compileCS.id = 0;
+
+  getDeclaredVariables = function(js) {
+    var IDENTIFIER, IDENTIFIER_MAY_WITH_ASSIGN, match, regexp, result;
+    IDENTIFIER = '[_A-Za-z$][_A-Za-z$0-9]*';
+    IDENTIFIER_MAY_WITH_ASSIGN = IDENTIFIER + '\\s*(?:=\\s*\\S+)?';
+    result = [];
+    regexp = new RegExp("(?:^|;)\\s*(?:for\\s*\\(\\s*)?var\\s+((?:" + IDENTIFIER_MAY_WITH_ASSIGN + "\\s*,\\s*)*" + IDENTIFIER_MAY_WITH_ASSIGN + ")\\s*(?:;|$)", 'gm');
+    while (match = regexp.exec(js)) {
+      result = result.concat(match[1].split(/\s*,\s*/).map(function(e) {
+        return e.replace(/\s*=.*$/, '');
+      }));
+    }
+    return result;
+  };
 
   setValue = function(cm, string) {
     cm.setValue(string);

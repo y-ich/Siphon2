@@ -2,13 +2,12 @@
 
 /*
 # AutoComplete for CodeMirror in CoffeeScript
-# requirement: coffee-script-worker.js
 # (C) 2012 ICHIKAWA, Yuji (New 3 Rs)
 */
 
 
 (function() {
-  var AutoComplete, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_ONLY_KEYWORDS, GLOBAL_PROPERTIES, GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS, GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_ONLY_KEYWORDS, compileCS, csErrorLine, e, getDeclaredVariables;
+  var AutoComplete, COMMON_KEYWORDS, CS_KEYWORDS_ASSIST, CS_ONLY_KEYWORDS, GLOBAL_PROPERTIES, GLOBAL_PROPERTIES_PLUS_CS_KEYWORDS, GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS, JS_KEYWORDS_ASSIST, JS_ONLY_KEYWORDS, csErrorLine, e;
 
   COMMON_KEYWORDS = ['break', 'catch', 'continue', 'debugger', 'delete', 'do', 'else', 'false', 'finally', 'for', 'if', 'in', 'instanceof', 'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'while'];
 
@@ -44,40 +43,6 @@
     "switch": ['( ) { case : break; default: }'],
     "try": ['catch finally', 'catch'],
     "while": ['( )']
-  };
-
-  compileCS = function(source, options, callback) {
-    compileCS.worker.onmessage = (function(id) {
-      return function(event) {
-        if (event.data.id === id) {
-          return callback(event.data);
-        }
-      };
-    })(compileCS.id);
-    compileCS.worker.postMessage({
-      id: compileCS.id,
-      source: source,
-      options: options
-    });
-    return compileCS.id += 1;
-  };
-
-  compileCS.worker = new Worker('coffee-script-worker.js');
-
-  compileCS.id = 0;
-
-  getDeclaredVariables = function(js) {
-    var IDENTIFIER, IDENTIFIER_MAY_WITH_ASSIGN, match, regexp, result;
-    IDENTIFIER = '[_A-Za-z$][_A-Za-z$0-9]*';
-    IDENTIFIER_MAY_WITH_ASSIGN = IDENTIFIER + '\\s*(?:=\\s*\\S+)?';
-    result = [];
-    regexp = new RegExp("(?:^|;)\\s*(?:for\\s*\\(\\s*)?var\\s+((?:" + IDENTIFIER_MAY_WITH_ASSIGN + "\\s*,\\s*)*" + IDENTIFIER_MAY_WITH_ASSIGN + ")\\s*(?:;|$)", 'gm');
-    while (match = regexp.exec(js)) {
-      result = result.concat(match[1].split(/\s*,\s*/).map(function(e) {
-        return e.replace(/\s*=.*$/, '');
-      }));
-    }
-    return result;
   };
 
   csErrorLine = function(error) {
@@ -267,9 +232,5 @@
   })();
 
   window.AutoComplete = AutoComplete;
-
-  window.compileCS = compileCS;
-
-  window.getDeclaredVariables = getDeclaredVariables;
 
 }).call(this);
