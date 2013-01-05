@@ -101,7 +101,7 @@
     };
 
     AutoComplete.prototype.setCandidates_ = function(propertyChain) {
-      var candidates, object, target, value, _ref;
+      var candidates, object, snippet, target, value, _ref;
       console.log(propertyChain);
       this.candidates = null;
       if (propertyChain.length === 0) {
@@ -116,9 +116,13 @@
             break;
           case 'property':
             try {
-              value = eval("(" + (propertyChain.map(function(e) {
+              snippet = "(" + (propertyChain.map(function(e) {
                 return e.string;
-              }).join('').replace(/\..*?$/, '')) + ")");
+              }).join('').replace(/\..*?$/, '')) + ")";
+              if (/[_a-zA-Z$][_a-zA-Z$0-9]*\s*\(/.test(snippet)) {
+                return;
+              }
+              value = eval(snippet);
               candidates = (function() {
                 switch (typeof value) {
                   case 'undefined':

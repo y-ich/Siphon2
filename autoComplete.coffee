@@ -99,7 +99,9 @@ class AutoComplete
                     candidates = @globalPropertiesPlusKeywords.concat @variables ? []
                 when 'property'
                     try
-                        value = eval "(#{propertyChain.map((e) -> e.string).join('').replace /\..*?$/, ''})" # you need () for object literal.
+                        snippet = "(#{propertyChain.map((e) -> e.string).join('').replace /\..*?$/, ''})" # you need () for object literal.
+                        return if /[_a-zA-Z$][_a-zA-Z$0-9]*\s*\(/.test snippet # snippet includes function call. So terminate.
+                        value = eval snippet
                         candidates = switch typeof value
                             when 'undefined' then []
                             when 'string' then Object.getOwnPropertyNames value.__proto__ # I don't need index propertes.
