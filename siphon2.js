@@ -285,7 +285,7 @@
   };
 
   makeFileList = function(stats, order, direction) {
-    var $table, $tr, ITEMS, key, stat, th, value, _i, _len, _results;
+    var $table, $tr, ITEMS, key, sign, sortFunc, stat, th, value, _i, _len, _results;
     ITEMS = {
       image: function(stat) {
         return "<td><img src=\"img/dropbox-api-icons/16x16/" + stat.typeIcon + ".gif\"></td>";
@@ -314,22 +314,28 @@
       return "<th" + (order === key ? " class=\"" + direction + "\"" : '') + "><span>" + key + "</span></th>";
     };
     $table.append("<tr>" + (Object.keys(ITEMS).map(th).join('')) + "</tr>");
-    stats = stats.sort(function(a, b) {
-      var result;
-      result = (function() {
-        switch (order) {
-          case 'name':
-            return compareString(a.name, b.name);
-          case 'kind':
-            return compareString(getExtension(a.name), getExtension(b.name));
-          case 'date':
-            return a.modifiedAt.getTime() - b.modifiedAt.getTime();
-          case 'size':
-            return a.size - b.size;
-        }
-      })();
-      return result * (direction === 'ascending' ? 1 : -1);
-    });
+    sign = direction === 'ascending' ? 1 : -1;
+    sortFunc = (function() {
+      switch (order) {
+        case 'name':
+          return function(a, b) {
+            return sign * compareString(a.name.toLowerCase(), b.name.toLowerCase());
+          };
+        case 'kind':
+          return function(a, b) {
+            return sign * compareString(getExtension(a.name).toLowerCase(), getExtension(b.name).toLowerCase());
+          };
+        case 'date':
+          return function(a, b) {
+            return sign * (a.modifiedAt.getTime() - b.modifiedAt.getTime());
+          };
+        case 'size':
+          return function(a, b) {
+            return sign * (a.size - b.size);
+          };
+      }
+    })();
+    stats = stats.sort(sortFunc);
     _results = [];
     for (_i = 0, _len = stats.length; _i < _len; _i++) {
       stat = stats[_i];
@@ -540,6 +546,9 @@
 
   ancestorFolders = function(path) {
     var e, i, split, _i, _len, _results;
+    if (path === '/') {
+      return [''];
+    }
     split = path.split('/');
     _results = [];
     for (i = _i = 0, _len = split.length; _i < _len; i = ++_i) {
@@ -633,7 +642,7 @@
   };
 
   initializeDropbox = function() {
-    var e, key, value, _i, _len, _ref, _results;
+    var key, value, _results;
     dropbox = new Dropbox.Client({
       key: config.dropbox.sandbox ? API_KEY_SANDBOX : API_KEY_FULL,
       sandbox: config.dropbox.sandbox
@@ -641,38 +650,35 @@
     dropbox.authDriver(new Dropbox.Drivers.Redirect({
       rememberUser: true
     }));
-    if (!/not_approved=true/.test(location.toString())) {
-      try {
-        for (key in localStorage) {
-          value = localStorage[key];
-          if (!(/^dropbox-auth/.test(key) && JSON.parse(value).key === dropbox.oauth.key)) {
-            continue;
-          }
-          $('#dropbox').button('loading');
-          dropbox.authenticate(function(error, client) {
-            if (error) {
-              showError(error);
-              return $('#dropbox').button('reset');
-            } else {
-              return $('#dropbox').button('signout');
-            }
-          });
-          break;
+    if (/not_approved=true/.test(location.toString())) {
+      return;
+    }
+    try {
+      _results = [];
+      for (key in localStorage) {
+        value = localStorage[key];
+        if (!(/^dropbox-auth/.test(key) && JSON.parse(value).key === dropbox.oauth.key)) {
+          continue;
         }
-      } catch (error) {
-        console.log(error);
+        $('#dropbox').button('loading');
+        dropbox.authenticate(function(error, client) {
+          if (error) {
+            showError(error);
+            return $('#dropbox').button('reset');
+          } else {
+            return $('#dropbox').button('signout');
+          }
+        });
+        break;
       }
+      return _results;
+    } catch (error) {
+      return console.log(error);
     }
-    _ref = $('#key-extension');
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      e = _ref[_i];
-      _results.push(new NoClickDelay(e, false));
-    }
-    return _results;
   };
 
   initializeEventHandlers = function() {
+    var cmCompiled, e, _i, _len, _ref;
     window.addEventListener('orientationchange', (function() {
       $('#key-extension').css('bottom', "" + (footerHeight(config)) + "px");
       if (isPortrait()) {
@@ -685,6 +691,11 @@
     window.addEventListener('resize', (function() {
       return $('#file-tabs > li.active > a').data('editor').refresh();
     }), false);
+    _ref = $('#key-extension');
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      e = _ref[_i];
+      new NoClickDelay(e, false);
+    }
     $('#plus-editor').on('touchstart', function() {
       return scrollTo(0, 0);
     });
@@ -787,17 +798,17 @@
       stat = $('#download-modal table tr.info').data('dropbox-stat');
       if (stat != null ? stat.isFile : void 0) {
         $tabs = $('#file-tabs > li > a.editor-anchor').filter(function() {
-          var _ref;
-          return ((_ref = $(this).data('editor').siphon['dropbox-stat']) != null ? _ref.path : void 0) === stat.path;
+          var _ref1;
+          return ((_ref1 = $(this).data('editor').siphon['dropbox-stat']) != null ? _ref1.path : void 0) === stat.path;
         });
         if ($tabs.length > 0 && !confirm("There is a buffer editing. Do you want to discard a content of the buffer and update to the server's?")) {
           $tabs = null;
         }
         dropbox.readFile(stat.path, null, function(error, string, stat) {
-          var $active, cm, e, _i, _len;
+          var $active, cm, _j, _len1;
           if (($tabs != null) && $tabs.length > 0) {
-            for (_i = 0, _len = $tabs.length; _i < _len; _i++) {
-              e = $tabs[_i];
+            for (_j = 0, _len1 = $tabs.length; _j < _len1; _j++) {
+              e = $tabs[_j];
               cm = $(e).data('editor');
               setValue(cm, string);
               cm.siphon['dropbox-stat'] = stat;
@@ -840,9 +851,8 @@
       } else {
         dropbox.signOut(function(error) {
           spinner.stop();
-          if (error) {
-            showError(error);
-            return alart('pass');
+          if (error(showError(error))) {
+
           } else {
             return $this.button('reset');
           }
@@ -851,7 +861,7 @@
       return spinner.spin(document.body);
     });
     $('#save-setting').on('click', function() {
-      var e, _i, _len, _ref;
+      var _j, _len1, _ref1;
       config.keyboard = $('#setting input[name="keyboard"]:checked').val();
       if (config.keyboard === 'user-defined') {
         config['user-defined-keyboard'] = {
@@ -866,9 +876,9 @@
         config.compile = !config.compile;
       }
       config.tabSize = parseInt($('#setting input[name="tab-size"]').val());
-      _ref = $('#file-tabs > li:not(.dropdown) > a');
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        e = _ref[_i];
+      _ref1 = $('#file-tabs > li:not(.dropdown) > a');
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        e = _ref1[_j];
         $(e).data('editor').setOption('tabSize', config.tabSize);
       }
       return localStorage['siphon-config'] = JSON.stringify(config);
@@ -915,7 +925,7 @@
     $('#undo').on('click', function() {
       return $('#file-tabs > li.active > a').data('editor').undo();
     });
-    $('#eval, #previous-button, #next-button').on('mousedown', function(event) {
+    $('#compile, #eval, #previous-button, #next-button').on('mousedown', function(event) {
       return event.preventDefault();
     });
     $('#eval').on('click', function() {
@@ -963,22 +973,22 @@
       }
     });
     $('#previous-button').on('click', function() {
-      var cm, _ref;
+      var cm, _ref1;
       cm = $('#file-tabs > li.active > a').data('editor');
-      if ((_ref = cm.siphon.autoComplete) != null) {
-        _ref.previous();
+      if ((_ref1 = cm.siphon.autoComplete) != null) {
+        _ref1.previous();
       }
       return cm.focus();
     });
     $('#next-button').on('click', function() {
-      var cm, _ref;
+      var cm, _ref1;
       cm = $('#file-tabs > li.active > a').data('editor');
-      if ((_ref = cm.siphon.autoComplete) != null) {
-        _ref.next();
+      if ((_ref1 = cm.siphon.autoComplete) != null) {
+        _ref1.next();
       }
       return cm.focus();
     });
-    return $('#download-modal table').on('click', 'tr > th:not(:first)', function() {
+    $('#download-modal table').on('click', 'tr > th:not(:first)', function() {
       var $this;
       $this = $(this);
       if ($this.hasClass('ascending')) {
@@ -990,6 +1000,37 @@
         config.fileList.direction = 'ascending';
       }
       return makeFileList(null, config.fileList.order, config.fileList.direction);
+    });
+    cmCompiled = CodeMirror($('#compiled')[0], {
+      mode: 'javascript',
+      readOnly: true
+    });
+    $('#compile').on('click', function() {
+      var cm, line, source;
+      cm = $('#file-tabs > li.active > a').data('editor');
+      if (cm.getMode() === 'coffeescript') {
+        return;
+      }
+      if (!cm.somethingSelected()) {
+        line = cm.getCursor().line;
+        cm.setSelection({
+          line: line,
+          ch: 0
+        }, {
+          line: line,
+          ch: cm.getLine(line).length
+        });
+      }
+      source = cm.getSelection();
+      return compileCS(source, {
+        bare: true
+      }, function(data) {
+        return cmCompiled.setValue(data.js != null ? data.js : data.error != null ? data.error.message : '');
+      });
+    });
+    return $('#compile-modal').on('shown', function() {
+      console.log('pass');
+      return cmCompiled.refresh();
     });
   };
 

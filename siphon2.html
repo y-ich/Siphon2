@@ -89,7 +89,10 @@
             </div>
         </div>
         <div class="pull-right">
-            <button id="eval" class="btn">Eval</button>
+            <div class="btn-group">
+                <a id="compile" href="#compile-modal" role="button" class="btn" data-toggle="modal">Compile</a>
+                <button id="eval" class="btn">Eval</button>
+            </div>
             <div class="btn-group">
                 <button id="previous-button" class="btn">Previous</button>
                 <button id="next-button" class="btn">Next</button>
@@ -188,6 +191,14 @@
         <div class="modal-footer">
             <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>            
             <button id="save-setting" class="btn btn-primary" data-dismiss="modal" aria-hidden="true">Save</button>
+        </div>
+    </div>
+    <div id="compile-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="downloadLabel" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="compiled"></div>
         </div>
     </div>
     <script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>

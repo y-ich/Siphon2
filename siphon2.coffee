@@ -661,7 +661,7 @@ initializeEventHandlers = ->
     $('#undo').on 'click', ->
         $('#file-tabs > li.active > a').data('editor').undo()
 
-    $('#eval, #previous-button, #next-button').on 'mousedown', (event) -> event.preventDefault()
+    $('#compile, #eval, #previous-button, #next-button').on 'mousedown', (event) -> event.preventDefault()
         
 
     $('#eval').on 'click', ->
@@ -702,7 +702,7 @@ initializeEventHandlers = ->
         cm.siphon.autoComplete?.next()
         cm.focus()
         
-    $('#download-modal table'). on 'click', 'tr > th:not(:first)', ->
+    $('#download-modal table').on 'click', 'tr > th:not(:first)', ->
         $this = $(this)
         if $this.hasClass 'ascending'
             config.fileList.direction = 'descending'
@@ -713,7 +713,26 @@ initializeEventHandlers = ->
             config.fileList.direction = 'ascending'
         makeFileList null, config.fileList.order, config.fileList.direction
 
-        
+    cmCompiled = CodeMirror $('#compiled')[0],
+        mode: 'javascript'
+        readOnly: true
+    $('#compile').on 'click', ->
+        cm = $('#file-tabs > li.active > a').data 'editor'
+        return if cm.getMode() is 'coffeescript'
+        if not cm.somethingSelected()
+            line = cm.getCursor().line
+            cm.setSelection { line: line, ch: 0 }, { line: line, ch: cm.getLine(line).length}
+        source = cm.getSelection()
+        compileCS source, {bare: on}, (data) ->
+            cmCompiled.setValue if data.js?
+                 data.js
+            else if data.error?
+                data.error.message
+            else
+                ''
+    $('#compile-modal').on 'shown', -> 
+        console.log 'pass'
+        cmCompiled.refresh()
 #
 # main
 #
