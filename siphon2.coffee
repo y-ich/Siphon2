@@ -223,18 +223,17 @@ makeFileList = (stats, order, direction) ->
     th = (key) -> "<th#{if order is key then " class=\"#{direction}\"" else ''}><span>#{key}</span></th>"
     $table.append "<tr>#{Object.keys(ITEMS).map(th).join('')}</tr>"
             
-    stats = stats.sort (a, b) ->
-        result = switch order
+    sign = if direction is 'ascending' then 1 else -1
+    sortFunc = switch order
             when 'name'
-                compareString a.name, b.name
+                (a, b) -> sign * compareString a.name.toLowerCase(), b.name.toLowerCase()
             when 'kind'
-                compareString getExtension(a.name), getExtension(b.name)            
+                (a, b) -> sign * compareString getExtension(a.name).toLowerCase(), getExtension(b.name).toLowerCase()
             when 'date'
-                a.modifiedAt.getTime() - b.modifiedAt.getTime()
+                (a, b) -> sign * (a.modifiedAt.getTime() - b.modifiedAt.getTime())
             when 'size'
-                a.size - b.size
-
-        result * if direction is 'ascending' then 1 else -1
+                (a, b) -> sign * (a.size - b.size)        
+    stats = stats.sort sortFunc
 
     for stat in stats
         $tr = $("<tr>#{(value(stat) for key, value of ITEMS).join('')}</tr>")
@@ -386,8 +385,10 @@ newTabAndEditor = (title = 'untitled', mode = null) ->
     cm
 newTabAndEditor.num = 0
 
+# '/' => ['']
 # '/a/b/c' => ['', '/a', '/a/b', '/a/b/c']
 ancestorFolders = (path) ->
+    return [''] if path is '/'
     split = path.split '/'
     split[0..i].join '/' for e, i in split
 
@@ -456,22 +457,21 @@ initializeDropbox = ->
         key: if config.dropbox.sandbox then API_KEY_SANDBOX else API_KEY_FULL
         sandbox: config.dropbox.sandbox
     dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
-    if not /not_approved=true/.test location.toString() # if redirect result is not user reject
-        try
-            for key, value of localStorage when /^dropbox-auth/.test(key) and JSON.parse(value).key is dropbox.oauth.key
-                $('#dropbox').button 'loading'
-                dropbox.authenticate (error, client) ->
-                    if error
-                        showError error 
-                        $('#dropbox').button 'reset'
-                    else
-                        $('#dropbox').button 'signout'
-                break
-        catch error
-            console.log error
 
-    for e in $('#key-extension') # removed .navbar for a work around for dropdown menu
-        new NoClickDelay e, false
+    return if /not_approved=true/.test location.toString() # if redirect result shows user reject
+
+    try
+        for key, value of localStorage when /^dropbox-auth/.test(key) and JSON.parse(value).key is dropbox.oauth.key
+            $('#dropbox').button 'loading'
+            dropbox.authenticate (error, client) ->
+                if error
+                    showError error 
+                    $('#dropbox').button 'reset'
+                else
+                    $('#dropbox').button 'signout'
+            break
+    catch error
+        console.log error
 
 initializeEventHandlers = ->
     window.addEventListener 'orientationchange', (->
@@ -485,6 +485,9 @@ initializeEventHandlers = ->
 
     window.addEventListener 'resize', (-> $('#file-tabs > li.active > a').data('editor').refresh()), false
     
+    for e in $('#key-extension') # removed .navbar for a work around for dropdown menu
+        new NoClickDelay e, false
+
     $('#plus-editor').on 'touchstart', -> scrollTo 0, 0 # work around dropdown menu bug. When scrollTop is not 0, you can not touch correctly.
     $('a.new-tab-type').on 'click', ->
         newTabAndEditor 'untitled', ext2mode $(this).text().toLowerCase()
@@ -606,18 +609,11 @@ initializeEventHandlers = ->
             dropbox.reset()
             dropbox.authenticate (error, client) ->
                 spinner.stop()
-                if error
-                    showError error 
-                else
-                    $this.button 'signout'
+                if error then showError error else $this.button 'signout'
         else
             dropbox.signOut (error) ->
                 spinner.stop()
-                if error
-                    showError error
-                    alart 'pass'
-                else
-                    $this.button 'reset'
+                if error showError error else $this.button 'reset'
             
         spinner.spin document.body
 
