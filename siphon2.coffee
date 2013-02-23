@@ -173,6 +173,8 @@ newCodeMirror.onKeyEvent = (cm, event) ->
         when 'keydown'
             cm.siphon.autoComplete = null # reset
 
+activeEditor = -> $('#file-tabs > li.active > a').data 'editor'
+
 foldFunction = (mode) ->
     switch mode
         when 'clike', 'clojure', 'haxe', 'java', 'javascript', 'commonlisp', 'css', 'less', 'scheme'
@@ -637,7 +639,7 @@ initializeEventHandlers = ->
         query = null
         find = (method) ->
             if not searchCursor?
-                cm = $('#file-tabs > .active > a').data 'editor'
+                cm = activeEditor()
                 query = $('#search > input[name="query"]').val()
                 searchCursor = cm.getSearchCursor query, cm.getCursor(), false                
             if searchCursor[method]()
@@ -658,14 +660,13 @@ initializeEventHandlers = ->
     
     $('.key').on (if touchDevice then 'touchend' else 'mouseup'), -> fireKeyEvent 'keyup', $(this).data('identifier')
 
-    $('#undo').on 'click', ->
-        $('#file-tabs > li.active > a').data('editor').undo()
+    $('#undo').on 'click', -> activeEditor().undo()
 
     $('#compile, #eval, #previous-button, #next-button').on 'mousedown', (event) -> event.preventDefault()
         
 
     $('#eval').on 'click', ->
-        cm = $('#file-tabs > li.active > a').data 'editor'
+        cm = activeEditor()
         mode = cm.getOption 'mode'
         return unless mode is 'coffeescript' or mode is 'javascript'
 
@@ -693,12 +694,12 @@ initializeEventHandlers = ->
                 cm.replaceSelection result.toString()
             
     $('#previous-button').on 'click', ->
-        cm = $('#file-tabs > li.active > a').data('editor')
+        cm = activeEditor()
         cm.siphon.autoComplete?.previous()
         cm.focus()
         
     $('#next-button').on 'click', ->
-        cm = $('#file-tabs > li.active > a').data('editor')
+        cm = activeEditor()
         cm.siphon.autoComplete?.next()
         cm.focus()
         
@@ -717,7 +718,7 @@ initializeEventHandlers = ->
         mode: 'javascript'
         readOnly: true
     $('#compile').on 'click', ->
-        cm = $('#file-tabs > li.active > a').data 'editor'
+        cm = activeEditor()
         return if cm.getMode() is 'coffeescript'
         if not cm.somethingSelected()
             line = cm.getCursor().line
@@ -733,6 +734,7 @@ initializeEventHandlers = ->
     $('#compile-modal').on 'shown', -> 
         console.log 'pass'
         cmCompiled.refresh()
+    
 #
 # main
 #

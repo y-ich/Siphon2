@@ -6,7 +6,7 @@
 
 
 (function() {
-  var API_KEY_FULL, API_KEY_SANDBOX, ancestorFolders, byteString, compareString, compileCS, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getDeclaredVariables, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, setValue, showError, spinner, touchDevice, updateEditor, uploadFile;
+  var API_KEY_FULL, API_KEY_SANDBOX, activeEditor, ancestorFolders, byteString, compareString, compileCS, config, dateString, dropbox, ext2mode, fireKeyEvent, foldFunction, footerHeight, getDeclaredVariables, getExtension, getList, initializeDropbox, initializeEventHandlers, isPortrait, keyboardHeight, lessParser, makeFileList, newCodeMirror, newTabAndEditor, restoreBuffer, restoreConfig, saveBuffer, setValue, showError, spinner, touchDevice, updateEditor, uploadFile;
 
   API_KEY_FULL = 'iHaFSTo2hqA=|lC0ziIxBPWaNm/DX+ztl4p1RdqPQI2FAwofDEmJsiQ==';
 
@@ -234,6 +234,10 @@
       case 'keydown':
         return cm.siphon.autoComplete = null;
     }
+  };
+
+  activeEditor = function() {
+    return $('#file-tabs > li.active > a').data('editor');
   };
 
   foldFunction = function(mode) {
@@ -890,7 +894,7 @@
       find = function(method) {
         var cm, pos;
         if (!(searchCursor != null)) {
-          cm = $('#file-tabs > .active > a').data('editor');
+          cm = activeEditor();
           query = $('#search > input[name="query"]').val();
           searchCursor = cm.getSearchCursor(query, cm.getCursor(), false);
         }
@@ -923,14 +927,14 @@
       return fireKeyEvent('keyup', $(this).data('identifier'));
     });
     $('#undo').on('click', function() {
-      return $('#file-tabs > li.active > a').data('editor').undo();
+      return activeEditor().undo();
     });
     $('#compile, #eval, #previous-button, #next-button').on('mousedown', function(event) {
       return event.preventDefault();
     });
     $('#eval').on('click', function() {
       var cm, line, mode, result, source;
-      cm = $('#file-tabs > li.active > a').data('editor');
+      cm = activeEditor();
       mode = cm.getOption('mode');
       if (!(mode === 'coffeescript' || mode === 'javascript')) {
         return;
@@ -974,7 +978,7 @@
     });
     $('#previous-button').on('click', function() {
       var cm, _ref1;
-      cm = $('#file-tabs > li.active > a').data('editor');
+      cm = activeEditor();
       if ((_ref1 = cm.siphon.autoComplete) != null) {
         _ref1.previous();
       }
@@ -982,7 +986,7 @@
     });
     $('#next-button').on('click', function() {
       var cm, _ref1;
-      cm = $('#file-tabs > li.active > a').data('editor');
+      cm = activeEditor();
       if ((_ref1 = cm.siphon.autoComplete) != null) {
         _ref1.next();
       }
@@ -1007,7 +1011,7 @@
     });
     $('#compile').on('click', function() {
       var cm, line, source;
-      cm = $('#file-tabs > li.active > a').data('editor');
+      cm = activeEditor();
       if (cm.getMode() === 'coffeescript') {
         return;
       }
