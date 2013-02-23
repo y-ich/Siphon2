@@ -682,7 +682,7 @@
   };
 
   initializeEventHandlers = function() {
-    var cmCompiled, e, _i, _len, _ref;
+    var cmCompiled, e, selectEnd, selectMove, selectStart, _i, _len, _ref;
     window.addEventListener('orientationchange', (function() {
       $('#key-extension').css('bottom', "" + (footerHeight(config)) + "px");
       if (isPortrait()) {
@@ -1032,9 +1032,51 @@
         return cmCompiled.setValue(data.js != null ? data.js : data.error != null ? data.error.message : '');
       });
     });
-    return $('#compile-modal').on('shown', function() {
+    $('#compile-modal').on('shown', function() {
       console.log('pass');
       return cmCompiled.refresh();
+    });
+    selectStart = function(event) {
+      var $cm, cm, offset, pos, touch;
+      cm = event.data;
+      $cm = $(cm.getWrapperElement());
+      touch = event.originalEvent.touches[1];
+      offset = $cm.offset();
+      pos = cm.coordsChar({
+        x: touch.pageX,
+        y: touch.pageY
+      });
+      $cm.on('touchmove', {
+        cm: cm,
+        start: pos
+      }, selectMove);
+      return $cm.one('touchend', {
+        cm: cm,
+        start: pos
+      }, selectEnd);
+    };
+    selectMove = function(event) {
+      var cm, pos, touch;
+      cm = event.data.cm;
+      touch = event.originalEvent.touches[1];
+      pos = cm.coordsChar({
+        x: touch.pageX,
+        y: touch.pageY
+      });
+      return cm.setSelection(event.data.start, pos);
+    };
+    selectEnd = function(event) {
+      return $(event.data.cm.getWrapperElement()).off('touchmove', selectMove);
+    };
+    $('#hold').on('touchstart', function() {
+      var cm;
+      cm = activeEditor();
+      return $(cm.getWrapperElement()).on('touchstart', cm, selectStart);
+    });
+    return $('#hold').on('touchcancel touchend', function() {
+      var cm;
+      cm = activeEditor();
+      return $(cm.getWrapperElement()).off('touchstart', selectStart);
     });
   };
 

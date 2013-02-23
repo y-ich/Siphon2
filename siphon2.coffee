@@ -735,6 +735,32 @@ initializeEventHandlers = ->
         console.log 'pass'
         cmCompiled.refresh()
     
+    selectStart = (event) ->
+        cm = event.data
+        $cm = $(cm.getWrapperElement())
+        touch = event.originalEvent.touches[1]
+        offset= $cm.offset()
+        pos = cm.coordsChar { x: touch.pageX, y: touch.pageY }
+        $cm.on 'touchmove', { cm: cm, start: pos }, selectMove
+        $cm.one 'touchend', { cm: cm, start: pos }, selectEnd
+
+    selectMove = (event) ->
+        cm = event.data.cm
+        touch = event.originalEvent.touches[1]
+        pos = cm.coordsChar { x: touch.pageX, y: touch.pageY }
+        cm.setSelection event.data.start, pos
+
+    selectEnd = (event) -> 
+        $(event.data.cm.getWrapperElement()).off 'touchmove', selectMove
+
+    $('#hold').on 'touchstart', ->
+        cm = activeEditor()
+        $(cm.getWrapperElement()).on 'touchstart', cm, selectStart
+        
+    $('#hold').on 'touchcancel touchend', ->
+        cm = activeEditor()
+        $(cm.getWrapperElement()).off 'touchstart', selectStart
+        
 #
 # main
 #
