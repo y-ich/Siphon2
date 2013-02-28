@@ -455,27 +455,36 @@ restoreBuffer = ->
         cm.siphon['dropbox-stat'] = buffer.dropbox if buffer.dropbox?
     
 initializeDropbox = ->
-    dropbox = new Dropbox.Client
-        key: if config.dropbox.sandbox then API_KEY_SANDBOX else API_KEY_FULL
-        sandbox: config.dropbox.sandbox
-    dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
+    if navigator.onLine
+        dropbox = new Dropbox.Client
+            key: if config.dropbox.sandbox then API_KEY_SANDBOX else API_KEY_FULL
+            sandbox: config.dropbox.sandbox
+        dropbox.authDriver new Dropbox.Drivers.Redirect rememberUser: true
 
-    return if /not_approved=true/.test location.toString() # if redirect result shows user reject
+        return if /not_approved=true/.test location.toString() # if redirect result shows user reject
 
-    try
-        for key, value of localStorage when /^dropbox-auth/.test(key) and JSON.parse(value).key is dropbox.oauth.key
-            $('#dropbox').button 'loading'
-            dropbox.authenticate (error, client) ->
-                if error
-                    showError error 
-                    $('#dropbox').button 'reset'
-                else
-                    $('#dropbox').button 'signout'
-            break
-    catch error
-        console.log error
+        try
+            for key, value of localStorage when /^dropbox-auth/.test(key) and JSON.parse(value).key is dropbox.oauth.key
+                $('#dropbox').button 'loading'
+                dropbox.authenticate (error, client) ->
+                    if error
+                        showError error 
+                        $('#dropbox').button 'reset'
+                    else
+                        $('#dropbox').button 'signout'
+                break
+        catch error
+            console.log error
+    else
+        $('#download-button').addClass('disabled').attr 'data-toggle', null
+        $('#upload, #dropbox').attr 'disabled', 'disabled'
 
 initializeEventHandlers = ->
+    # application cache debug information            
+    types = ['checking', 'noupdate', 'downloading', 'progress','cached', 'updateready', 'obsolete', 'error']
+    for type in types
+        applicationCache.addEventListener type, (event) -> console.log event.type
+
     window.addEventListener 'orientationchange', (->
             $('#key-extension').css 'bottom', "#{footerHeight config}px"
             if isPortrait()
@@ -542,7 +551,7 @@ initializeEventHandlers = ->
             cm.focus()
 
     $('#download-button').on 'click', ->
-        getList config.dropbox.currentFolder
+        getList config.dropbox.currentFolder if navigator.onLine
 
     $('#download-modal .breadcrumb').on 'click', 'li:not(.active) > a', ->
         $this = $(this)

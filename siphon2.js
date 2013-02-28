@@ -647,42 +647,54 @@
 
   initializeDropbox = function() {
     var key, value, _results;
-    dropbox = new Dropbox.Client({
-      key: config.dropbox.sandbox ? API_KEY_SANDBOX : API_KEY_FULL,
-      sandbox: config.dropbox.sandbox
-    });
-    dropbox.authDriver(new Dropbox.Drivers.Redirect({
-      rememberUser: true
-    }));
-    if (/not_approved=true/.test(location.toString())) {
-      return;
-    }
-    try {
-      _results = [];
-      for (key in localStorage) {
-        value = localStorage[key];
-        if (!(/^dropbox-auth/.test(key) && JSON.parse(value).key === dropbox.oauth.key)) {
-          continue;
-        }
-        $('#dropbox').button('loading');
-        dropbox.authenticate(function(error, client) {
-          if (error) {
-            showError(error);
-            return $('#dropbox').button('reset');
-          } else {
-            return $('#dropbox').button('signout');
-          }
-        });
-        break;
+    if (navigator.onLine) {
+      dropbox = new Dropbox.Client({
+        key: config.dropbox.sandbox ? API_KEY_SANDBOX : API_KEY_FULL,
+        sandbox: config.dropbox.sandbox
+      });
+      dropbox.authDriver(new Dropbox.Drivers.Redirect({
+        rememberUser: true
+      }));
+      if (/not_approved=true/.test(location.toString())) {
+        return;
       }
-      return _results;
-    } catch (error) {
-      return console.log(error);
+      try {
+        _results = [];
+        for (key in localStorage) {
+          value = localStorage[key];
+          if (!(/^dropbox-auth/.test(key) && JSON.parse(value).key === dropbox.oauth.key)) {
+            continue;
+          }
+          $('#dropbox').button('loading');
+          dropbox.authenticate(function(error, client) {
+            if (error) {
+              showError(error);
+              return $('#dropbox').button('reset');
+            } else {
+              return $('#dropbox').button('signout');
+            }
+          });
+          break;
+        }
+        return _results;
+      } catch (error) {
+        return console.log(error);
+      }
+    } else {
+      $('#download-button').addClass('disabled').attr('data-toggle', null);
+      return $('#upload, #dropbox').attr('disabled', 'disabled');
     }
   };
 
   initializeEventHandlers = function() {
-    var cmCompiled, e, selectEnd, selectMove, selectStart, _i, _len, _ref;
+    var cmCompiled, e, selectEnd, selectMove, selectStart, type, types, _i, _j, _len, _len1, _ref;
+    types = ['checking', 'noupdate', 'downloading', 'progress', 'cached', 'updateready', 'obsolete', 'error'];
+    for (_i = 0, _len = types.length; _i < _len; _i++) {
+      type = types[_i];
+      applicationCache.addEventListener(type, function(event) {
+        return console.log(event.type);
+      });
+    }
     window.addEventListener('orientationchange', (function() {
       $('#key-extension').css('bottom', "" + (footerHeight(config)) + "px");
       if (isPortrait()) {
@@ -696,8 +708,8 @@
       return $('#file-tabs > li.active > a').data('editor').refresh();
     }), false);
     _ref = $('#key-extension');
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      e = _ref[_i];
+    for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+      e = _ref[_j];
       new NoClickDelay(e, false);
     }
     $('#plus-editor').on('touchstart', function() {
@@ -766,7 +778,9 @@
       }
     });
     $('#download-button').on('click', function() {
-      return getList(config.dropbox.currentFolder);
+      if (navigator.onLine) {
+        return getList(config.dropbox.currentFolder);
+      }
     });
     $('#download-modal .breadcrumb').on('click', 'li:not(.active) > a', function() {
       var $this, path;
@@ -809,10 +823,10 @@
           $tabs = null;
         }
         dropbox.readFile(stat.path, null, function(error, string, stat) {
-          var $active, cm, _j, _len1;
+          var $active, cm, _k, _len2;
           if (($tabs != null) && $tabs.length > 0) {
-            for (_j = 0, _len1 = $tabs.length; _j < _len1; _j++) {
-              e = $tabs[_j];
+            for (_k = 0, _len2 = $tabs.length; _k < _len2; _k++) {
+              e = $tabs[_k];
               cm = $(e).data('editor');
               setValue(cm, string);
               cm.siphon['dropbox-stat'] = stat;
@@ -865,7 +879,7 @@
       return spinner.spin(document.body);
     });
     $('#save-setting').on('click', function() {
-      var _j, _len1, _ref1;
+      var _k, _len2, _ref1;
       config.keyboard = $('#setting input[name="keyboard"]:checked').val();
       if (config.keyboard === 'user-defined') {
         config['user-defined-keyboard'] = {
@@ -881,8 +895,8 @@
       }
       config.tabSize = parseInt($('#setting input[name="tab-size"]').val());
       _ref1 = $('#file-tabs > li:not(.dropdown) > a');
-      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-        e = _ref1[_j];
+      for (_k = 0, _len2 = _ref1.length; _k < _len2; _k++) {
+        e = _ref1[_k];
         $(e).data('editor').setOption('tabSize', config.tabSize);
       }
       return localStorage['siphon-config'] = JSON.stringify(config);
