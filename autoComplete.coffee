@@ -53,7 +53,7 @@ csErrorLine = (error) ->
 # It shows next or previous candidate when the method next or previous is invoked.
 class AutoComplete
     constructor: (@cm, @variables = null) ->
-        switch @cm.getOption 'mode' 
+        switch @cm.getOption 'mode'
             when 'javascript'
                 @globalPropertiesPlusKeywords = GLOBAL_PROPERTIES_PLUS_JS_KEYWORDS
                 @keywordsAssist = JS_KEYWORDS_ASSIST
@@ -64,7 +64,7 @@ class AutoComplete
                 return
         
         @start = @cm.getCursor()
-        @setCandidates_ @getPropertyChain_()                    
+        @setCandidates_ @getPropertyChain_()
         @showFirstCandidate_()
 
     previous: -> @next_ -1
@@ -75,10 +75,10 @@ class AutoComplete
         if @candidates.length > 1
             cursor = @cm.getCursor()
             @index += increment
-            if @index < 0       
-                @index = @candidates.length - 1 
+            if @index < 0
+                @index = @candidates.length - 1
             else if @index >= @candidates.length
-                @index = 0 
+                @index = 0
             @cm.replaceRange @candidates[@index], @start, @end
             @end = @cm.getCursor()
             @cm.setSelection @start, @end
