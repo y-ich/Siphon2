@@ -1,0 +1,38 @@
+CACHE MANIFEST
+
+#version 1.0 10-10-2013
+
+CACHE:
+
+#images
+
+
+#internal HTML documents
+siphon2.html
+
+#style sheets
+css/bootstrap.css
+lib/codemirror.css
+siphon2.css
+theme/blackboard.css
+
+#style sheet images
+img/glyphicons-halflings-white.png
+img/glyphicons-halflings.png
+
+#javascript files
+http://www.google-analytics.com/ga.js
+http://code.jquery.com/jquery-2.0.3.min.js
+js/bootstrap.js
+js/spin.min.js
+js/noClickDelay.js
+lib/codemirror-compressed.js
+mode/coffeescript/coffeescript.js
+lib/emmet.min.js
+http://cdnjs.cloudflare.com/ajax/libs/less.js/1.3.3/less.min.js
+http://cdnjs.cloudflare.com/ajax/libs/dropbox.js/0.7.1/dropbox.min.js
+autoComplete.js
+siphon2.js
+
+NETWORK:
+*
