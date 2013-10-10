@@ -78,20 +78,16 @@ html, body {
 }
 
 #query {
-    width: @tab-width - 2 * (@search-query-padding + 2px);
+    width: (@tab-width - 2 * (@search-query-padding + 2px));
 }
 
-
-#key-extension {
-    display: none;
-}
 
 // responsive tab pane
 
 .tabbable .tab-content {
     position: absolute;
     width: 100%;
-    top: @header-height + @tab-height;
+    top: (@header-height + @tab-height);
     bottom: 0px;
     background-color: black;
 }
@@ -113,12 +109,12 @@ html, body {
 }
 
 .tabbable.tabs-left .navbar-search .btn-group {
-    left: @tab-width - @search-buttons-width;
+    left: (@tab-width - @search-buttons-width);
 }
 
 .tabbable.tabs-left .tab-content {
     width: auto;
-    left: @tab-width + 2px;
+    left: (@tab-width + 2px);
     right: 0px;
     top: @header-height;
     bottom: 0px;

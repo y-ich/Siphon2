@@ -161,11 +161,7 @@ newCodeMirror.onCursorActivity = ->
     setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # restore position against auto scroll of mobile safari
 
 newCodeMirror.onFocus = (cm) ->
-    $('#key-extension').css 'display', 'block'
     if touchDevice
-        $('#key-extension').css 'bottom', "#{footerHeight config}px"
-        $('#editor-pane').css 'bottom', "#{keyboardHeight(config) - 50}px" # 50px is transparent space.
-        cm.refresh()
         setTimeout (-> scrollTo 0, if isPortrait() then 0 else $('#header').outerHeight(true)), 0 # hide header when landscape
 
 newCodeMirror.onKeyEvent = (cm, event) ->
@@ -178,9 +174,9 @@ activeEditor = -> $('#file-tabs > li.active > a').data 'editor'
 foldFunction = (mode) ->
     switch mode
         when 'clike', 'clojure', 'haxe', 'java', 'javascript', 'commonlisp', 'css', 'less', 'scheme'
-            CodeMirror.newFoldFunction CodeMirror.braceRangeFinder            
+            CodeMirror.newFoldFunction CodeMirror.braceRangeFinder
         when 'htmlmixed'
-            CodeMirror.newFoldFunction CodeMirror.tagRangeFinder        
+            CodeMirror.newFoldFunction CodeMirror.tagRangeFinder
         when 'coffeescript', 'haskell', 'ocaml'
             CodeMirror.newFoldFunction CodeMirror.indentRangeFinder
         else
@@ -347,22 +343,6 @@ showError = (error) ->
             alert 'Sorry, there seems something wrong in software.'
 
 
-keyboardHeight = (config) ->
-    IPAD_KEYBOARD_HEIGHT =
-        portrait: 307
-        landscape: 395
-    IPAD_SPLIT_KEYBOARD_HEIGHT =
-        portrait: 283
-        landscape: 329
-
-    (switch config.keyboard
-        when 'normal' then IPAD_KEYBOARD_HEIGHT
-        when 'split' then IPAD_SPLIT_KEYBOARD_HEIGHT
-        when 'user-defined' then config['user-defined-keyboard'])[if isPortrait() then 'portrait' else 'landscape']
-
-footerHeight = (config) ->
-    keyboardHeight(config) - if isPortrait() then 0 else $('#header').outerHeight(true)
-    
 newTabAndEditor = (title = 'untitled', mode = null) ->
     $('#file-tabs > li.active, #editor-pane > .active').removeClass 'active'
     id = "cm#{newTabAndEditor.num}"
@@ -383,7 +363,7 @@ newTabAndEditor = (title = 'untitled', mode = null) ->
     cm = newCodeMirror id, options, title, true
     $tab.children('a').data 'editor', cm
     $('#editor-pane .CodeMirror').removeClass 'active'
-    $(cm.getWrapperElement()).addClass 'active' 
+    $(cm.getWrapperElement()).addClass 'active'
     cm
 newTabAndEditor.num = 0
 
@@ -397,7 +377,7 @@ ancestorFolders = (path) ->
 isPortrait = -> (orientation ? 0) % 180 == 0
 
 
-updateEditor = ($tabAnchor, name, content) ->    
+updateEditor = ($tabAnchor, name, content) ->
     $tabAnchor.children('span').text name
     cm = $tabAnchor.data 'editor'
     cm.siphon.title = name
@@ -427,11 +407,8 @@ restoreConfig = ->
     for key, value of defaultConfig
         config[key] ?= value
 
+    $('#key-extension').css 'bottom', config.keyExtensionHeight ? '0px'
     $("#setting input[name=\"tab-size\"]").val config.tabSize.toString()
-    $("#setting input[name=\"keyboard\"][value=\"#{config.keyboard}\"]").attr 'checked', ''
-    if config['user-defined-keyboard']?
-        $('#setting input[name="keyboard-height-portrait"]').value config['user-defined-keyboard'].portrait
-        $('#setting input[name="keyboard-height-landscape"]').value config['user-defined-keyboard'].landscape
     $("#setting input[name=\"sandbox\"][value=\"#{config.dropbox.sandbox.toString()}\"]").attr 'checked', ''
     $("#setting input[name=\"compile\"]").attr 'checked', '' if config.compile
     for e, i in ancestorFolders config.dropbox.currentFolder
@@ -486,7 +463,6 @@ initializeEventHandlers = ->
         applicationCache.addEventListener type, (event) -> console.log event.type
 
     window.addEventListener 'orientationchange', (->
-            $('#key-extension').css 'bottom', "#{footerHeight config}px"
             if isPortrait()
                 $('.tabbable').removeClass 'tabs-left'
             else
@@ -629,11 +605,6 @@ initializeEventHandlers = ->
         spinner.spin document.body
 
     $('#save-setting').on 'click', ->
-        config.keyboard = $('#setting input[name="keyboard"]:checked').val()
-        if config.keyboard is 'user-defined'
-            config['user-defined-keyboard'] =
-                portrait: parseInt $('#setting input[name="keyboard-height-portrait"]').val()
-                landscape: parseInt $('#setting input[name="keyboard-height-landscape"]').val()
         if config.dropbox.sandbox.toString() isnt $('#setting input[name="sandbox"]:checked').val()
             config.dropbox.sandbox = not config.dropbox.sandbox
         if (typeof $('#setting input[name="compile"]').attr('checked') isnt 'undefined') isnt config.compile
@@ -769,13 +740,31 @@ initializeEventHandlers = ->
     $('#hold').on 'touchcancel touchend', ->
         cm = activeEditor()
         $(cm.getWrapperElement()).off 'touchstart', selectStart
+    
+    bottom = null
+    clientStartY = null
+    $('#key-extension').on 'touchstart', (e) ->
+        event = e.originalEvent
+        bottom = parseInt $(this).css 'bottom'
+        clientStartY = event.touches[0].clientY
+            
+    $('#key-extension').on 'touchmove', (e) ->
+        event = e.originalEvent
+        $(this).css 'bottom', Math.max(bottom + clientStartY - event.touches[0].clientY, 0) + 'px'
+
+    $('#key-extension').on 'touchend', (e) ->
+        config.keyExtensionHeight = $(this).css 'bottom'
+        localStorage['siphon-config'] = JSON.stringify config
+        
+    $('#key-extension').on 'touchcancel', (e) ->
+        $(this).css 'bottom', bottom + 'px'
         
 #
 # main
 #
 
 unless isPortrait()
-    $('.tabbable').addClass 'tabs-left' 
+    $('.tabbable').addClass 'tabs-left'
 
 $('#soft-key').css 'display', 'block' if touchDevice
 $('#import').addClass 'disabled' if /iPad|iPhone/.test navigator.userAgent
